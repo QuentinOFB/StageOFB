@@ -1,0 +1,14 @@
+
+data/
+output/
+Data/
+out/
+*.png
+*.html
+*.rda
+*.tre
+*.rds
+*.nex
+*.csv
+*.xls
+*.xlsx

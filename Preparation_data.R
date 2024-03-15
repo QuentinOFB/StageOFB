@@ -25,7 +25,8 @@ unique(data$espece)
 ########### -> Remplacer chevalier combattant par combattant varié : 
 
 data[,6] <- gsub("chevalier_combattant","combattant_varie",data[,6])
-
+data[,6] <- gsub("bernache_nonette","bernache_nonnette", data[,6])
+data[,6] <- gsub("tournepierre","tournepierre_a_collier", data[,6])
 
 #Vérification dates: regarder les formats (JJ/MM/YYYY) 
 class(data$Date)
@@ -66,7 +67,40 @@ data[,5] <- gsub("paimboeuf_corsept_","paimboeuf_corsept",data[,5])
 data[,5] <- gsub("saint_brevin__mean","saint_brevin_mean",data[,5])
 
 
-#Porblème des 0 : créer table de tous les inventaires unique(un site,date) 
-unique(site,date)
-ID <- paste(site,date) 
+#Problème des 0 : créer table de tous les inventaires unique(un site,date) 
+  #unique(site,date)
+  #ID <- paste(site,date) 
+  #unique(data$espece)
+
+# Ajouter le tableau "espèce" au data 
+
+espece <- read.csv("Data/espece.csv")
+View(espece)
+help("merge")
+
+espece[,5] <- tolower(espece[,5])
+espece[,5] <- gsub(" ","_",espece[,5])
+espece[,5] <- gsub("\\.","_",espece[,5])
+espece[,5] <- gsub("é","e",espece[,5])
+espece[,5] <- gsub("à","a",espece[,5])
+espece[,5] <- gsub("'","_",espece[,5])
+espece[,5] <-iconv(espece[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+data_esp <- merge(data,espece, by.x = "espece", by.y = "french_name")
+View(data_esp)
+
+### Selection uniquement des anatidés et limicoles : 
+# -> Choix des Ansériformes + Charadriiformes
+
+data <- subset(data_esp, data_esp$order_tax == "Ansériformes"|data_esp$order_tax == "Charadriiformes")
+View(data)
 unique(data$espece)
+
+# Dégager les laridés + la sterne naine (Sternidés) : 
+
+data <- subset(data, !(data$family_tax=="Laridés"|data$family_tax=="Sternidés"))
+unique(data$espece)
+ 
+
+
+

@@ -125,7 +125,7 @@ View(ID_1)
 sp <- unique(data$espece)
 new_tab <- (ID_1,sp)
 help("data.frame")
-
+## Trouver un moyen d'appliquer la liste d'espèces pour chaque idée
 
 new_tab <- data.frame(ID_1,data$espece)
 new_tab$ID_esp <- paste(ID_1,data$espece)

@@ -1,17 +1,19 @@
 setwd("C:/Users/quentin.petit/Documents/Git/StageOFB") 
 
-########### Ouverture du jeu de données: 
+# Ouverture du jeu de données: 
 data <- read.csv("Data/Comptage_estuaire_2004_2024.csv", header = T, fileEncoding = "utf-8", sep = ";")
 View(data)
 str(data)
 
-# Changement noms colonnes (pas de point, ni d'espace, ni les accents)
+### 1. Régler les problèmes liés au noms : 
+
+#  Noms colonnes (pas de point, ni d'espace, ni les accents)
 colnames(data) <- tolower(colnames(data))
 colnames(data) <- gsub(" ","_",colnames(data))
 colnames(data) <- gsub("\\.","_", colnames(data))
 colnames(data) <-iconv(colnames(data), from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
-#Vérification noms des espèces: 
+# Noms des espèces: 
 data[,6] <- tolower(data[,6])
 data[,6] <- gsub(" ","_",data[,6])
 data[,6] <- gsub("\\.","", data[,6])
@@ -28,7 +30,7 @@ data[,6] <- gsub("chevalier_combattant","combattant_varie",data[,6])
 data[,6] <- gsub("bernache_nonette","bernache_nonnette", data[,6])
 data[,6] <- gsub("tournepierre","tournepierre_a_collier", data[,6])
 
-#Vérification foromes des dates: regarder les formats (JJ/MM/YYYY) 
+# Forme des dates: regarder les formats (JJ/MM/YYYY) 
 class(data$date)
 unique(data$date)
 
@@ -43,14 +45,14 @@ data[,1] <- gsub("12/12/23","12/12/2023",data[,1])
 data[,1] <- gsub("10/01/24","10/01/2024",data[,1])                 
 data[,1] <- gsub("11/01/24","11/01/2024",data[,1])
 
-# Mettre au format DATE : 
+# - > Mettre au format DATE : 
 
 data$date <- as.Date(data$date, format = "%d/%m/%Y")
 class(data$date)
 ## Format date : YYYY - MM - JJ 
 data$Date <- format(data$date,"%d/%m/%Y") #Ca renvoie au format "character" 
 
-# Vérification nom des sites :
+#  Nom des secteurs :
 
 unique(data$secteur)
 data[,5] <- tolower(data[,5])
@@ -60,19 +62,26 @@ data[,5] <- gsub("/","", data[,5])
 data[,5] <- gsub("é","e",data[,5])
 data[,5] <-iconv(data[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
-########### Problèmes avec certains noms : 
+# Problèmes avec certains noms : 
  
 data[,5] <- gsub("paimboeuf___corsept","paimboeuf_corsept",data[,5])
 data[,5] <- gsub("paimboeuf_corsept_","paimboeuf_corsept",data[,5])
 data[,5] <- gsub("saint_brevin__mean","saint_brevin_mean",data[,5])
 
+#  Nom du site : (enlever les majuscules)
+unique(data$site)
+data[,4] <- tolower(data[,4])
 
-######################### AJOUTER LES LIGNES AVEC LES ESPECES MANQUANTES : 
+#Remplacement des cases vides par le nom du site : 
+data$site[data$site == ""] <- "estuaire"
+
+### 2. Compiler le tableau "espece" et jeu de données + sélectionner les taxons d'intérêt :  
 
 # Ajouter les noms latins au jeu de données : 
 
 espece <- read.csv("Data/espece.csv")
 View(espece)
+
 help("merge")
 
 espece[,5] <- tolower(espece[,5])
@@ -82,6 +91,12 @@ espece[,5] <- gsub("é","e",espece[,5])
 espece[,5] <- gsub("à","a",espece[,5])
 espece[,5] <- gsub("'","_",espece[,5])
 espece[,5] <-iconv(espece[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+#Retirer la ligne de la sous-espèce de la bernache cravant (sinon ça dédouble les données pour cette espèce)
+
+espece <- espece[-c(98),]
+
+#Fusion des deux jeux de données : 
 
 data_esp <- merge(data,espece, by.x = "espece", by.y = "french_name")
 View(data_esp)
@@ -98,41 +113,40 @@ unique(data$espece)
 
 data <- subset(data, !(data$family_tax=="Laridés"|data$family_tax=="Sternidés"))
 unique(data$espece)
- 
-# Tentative d'ajout des espèces manquantes dans le jeu de données : 
-######### En phase de test : 
-# Création d'un identifiant pour "fusionner les deux tableaux" 
 
+#Enlever les colonnes dont on a pas besoin (à priori) : pour alléger le jeu de données
+data <- data[,c(1:14,17:18,28:30)]
+
+
+### 3. Tentative d'ajout des lignes espèces manquantes dans le jeu de données : 
+
+# Création d'un ID dans data pour pouvoir ensuite "fusionner" les deux tableaux : 
 data$ID <- paste(data$secteur,data$date,data$espece)
-View(data)
-#Création tableau "inventaire" à croiser avec le jeu de données :
 
-ID2 <- paste(data$secteur,data$date)
-new_data <- data.frame(ID2, data$espece)
-View(new_data)
+# Création du tableau "inventaire" à croiser avec le jeu de données Data :  
 
-data <- merge(data,new_data, by.x = "ID", by.y = "ID2")
-View(data)
-# Trouver autre chose, car ça ne fonctionne pas. 
+data$ID <- paste(data$secteur,data$date)
 
-# 1 Création d'un ID 
-secteur <- unique(data$secteur)
-date <- unique(data$date)
-ID_1 <- paste(secteur,date)
-str(ID_1)
-View(ID_1)
-
+ID <- unique(data$ID)
 sp <- unique(data$espece)
-new_tab <- (ID_1,sp)
-help("data.frame")
-## Trouver un moyen d'appliquer la liste d'espèces pour chaque idée
 
-new_tab <- data.frame(ID_1,data$espece)
-new_tab$ID_esp <- paste(ID_1,data$espece)
-View(new_tab)
-View(ID_1)
+# Construction inventaire (pour chaque ID = la liste des 53 espèces anatidés limicoles)
+inventaire <- expand.grid(ID, sp)
+View(inventaire)
 
+# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID 
+# dans les data 
 
-data_F <- merge(new_tab,data, by.x = "ID_esp", by.y = "ID", all.x = TRUE)
+inventaire$ID_Sp <- paste(inventaire$Var1,inventaire$Var2)
+
+# Création de l'ID espece dans le jeu de données : 
+
+data$ID_Sp <- paste(data$ID,data$espece)
+
+# Combinaison des deux tableaux : 
+data_F <- merge(inventaire, data, by.x = "ID_Sp", by.y = "ID_Sp", all.x = T)
 View(data_F)
-table(data_F$effectif)
+
+
+
+

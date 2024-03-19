@@ -146,7 +146,35 @@ data$ID_Sp <- paste(data$ID,data$espece)
 # Combinaison des deux tableaux : 
 data_F <- merge(inventaire, data, by.x = "ID_Sp", by.y = "ID_Sp", all.x = T)
 View(data_F)
+# PB -> Ajout de NA pour site, secteurs et date avec les nouvelles lignes :
 
 
+# Utilisation de cette fonction pour séparer la date et les secteurs dans l'ID : 
 
+library(tidyr)
+data <- separate(data_F, col = "Var1",into = c("secteur_v","date_v"),sep = " ",remove =T) 
+help("separate")
 
+# Faire en sorte que le site "estuaire" soit renseigné dans toute la colonne : 
+data$site <- replace_na(data$site,"estuaire")
+
+# Remplacement des NA par des 0 
+data$effectif[is.na(data$effectif)] = 0
+View(data)
+
+# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID : 
+
+data <- data[,-c(5,6,10,19:24)]
+
+# Var 2 -> espece : 
+colnames(data)[names(data)== "Var2"] <- "espece"
+
+# On remet les noms latins + famille + ordre 
+
+data <- merge(data,espece, by.x = "espece", by.y = "french_name")
+data <- data[,-c(18:27)]
+
+# Pour poursuivre 
+# + Voir si c'est possible d'ajouter le nom des compteurs 
+# Refaire une colonne mois et années en extrayant l'information depuis la date
+# Voir pour les doubles comptages 

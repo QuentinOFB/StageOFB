@@ -1,7 +1,6 @@
-library(lubridate) # [RL] pour gere efficacement les dates qui sont l'un des formats de données les plus complexe
-
-
 setwd("C:/Users/quentin.petit/Documents/Git/StageOFB")
+
+library(lubridate)
 
 # Ouverture du jeu de données:
 data <- read.csv("Data/Comptage_estuaire_2004_2024.csv", header = T, fileEncoding = "utf-8", sep = ";")
@@ -37,6 +36,8 @@ data[,6] <- gsub("tournepierre","tournepierre_a_collier", data[,6])
 class(data$date)
 unique(data$date)
 
+data$date <- dmy(data$date)
+
 data[,1] <- gsub("13/06/22","13/06/2022",data[,1]) # [RL] un peu barbar et fastidieux mais efficace. la fonction mdy() de lubridate fait ça tout seul
 data[,1] <- gsub("10/11/22","10/11/2022",data[,1])
 data[,1] <- gsub("20/01/23","20/01/2023",data[,1])
@@ -51,10 +52,9 @@ data[,1] <- gsub("11/01/24","11/01/2024",data[,1])
 # - > Mettre au format DATE :
 
 data$date <- as.Date(data$date, format = "%d/%m/%Y")
-# [RL] data$date <- dmy(data$date)
+
 class(data$date)
 ## Format date : YYYY - MM - JJ
-data$Date <- format(data$date,"%d/%m/%Y") #Ca renvoie au format "character" # [RL] OK mais pas nécessaire
 
 #  Nom des secteurs :
 
@@ -79,9 +79,27 @@ data[,4] <- tolower(data[,4])
 #Remplacement des cases vides par le nom du site :
 data$site[data$site == ""] <- "estuaire"
 
-### 2. Compiler le tableau "espece" et jeu de données + sélectionner les taxons d'intérêt :
+#### PARTIE 2 : 
 
-# Ajouter les noms latins au jeu de données :
+# Création table site : 
+
+id <- paste(data$secteur,data$date)
+table_site <- data.frame(id,data$secteur,data$site,data$meteo,data$remarques)
+View(table_site)
+site <- unique(table_site)
+# Création table inventaire : 
+
+date_jj <- yday(data$date)
+mois <- month(data$date)
+annee <- year(data$date)
+table_inv <- data.frame(id,data$date,date_jj,mois,annee,data$compteur)
+View(table_inv)
+inv <- unique(table_inv)
+
+
+### Compiler le tableau "espece" et jeu de données + sélectionner les taxons d'intérêt :
+
+  # Ajouter les noms latins au jeu de données :
 
 espece <- read.csv("Data/espece.csv")
 View(espece)
@@ -118,11 +136,8 @@ unique(data$espece)
 data <- subset(data, !(data$family_tax=="Laridés"|data$family_tax=="Sternidés"))
 unique(data$espece)
 
-#Enlever les colonnes dont on a pas besoin (à priori) : pour alléger le jeu de données
-data <- data[,c(1:14,17:18,28:30)]
 
-
-### 3. Tentative d'ajout des lignes espèces manquantes dans le jeu de données :
+  # Tentative d'ajout des lignes espèces manquantes dans le jeu de données :
 
 # Création d'un ID dans data pour pouvoir ensuite "fusionner" les deux tableaux :
 data$ID <- paste(data$secteur,data$date,data$espece)
@@ -148,16 +163,14 @@ inventaire$ID_Sp <- paste(inventaire$Var1,inventaire$Var2)
 data$ID_Sp <- paste(data$ID,data$espece)
 
 # Combinaison des deux tableaux :
-data_F <- merge(inventaire, data, by.x = "ID_Sp", by.y = "ID_Sp", all.x = T)
-View(data_F)
-# PB -> Ajout de NA pour site, secteurs et date avec les nouvelles lignes :
-
+data <- merge(inventaire, data, by.x = "ID_Sp", by.y = "ID_Sp", all.x = T)
+View(data)
 
 # Utilisation de cette fonction pour séparer la date et les secteurs dans l'ID :
 
 library(tidyr)
-data <- separate(data_F, col = "Var1",into = c("secteur_v","date_v"),sep = " ",remove =T)
-help("separate")
+#data <- separate(data_F, col = "Var1",into = c("secteur_v","date_v"),sep = " ",remove =T)
+#help("separate")
 
 # Faire en sorte que le site "estuaire" soit renseigné dans toute la colonne :
 data$site <- replace_na(data$site,"estuaire")
@@ -166,25 +179,35 @@ data$site <- replace_na(data$site,"estuaire")
 data$effectif[is.na(data$effectif)] = 0
 View(data)
 
-# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID :
-
-data <- data[,-c(5,6,10,19:24)]
+# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
+  # pour obtenir la table observation : 
+data <- data[,-c(1,4,5,6,7,8,9,11:34)]
 
 # Var 2 -> espece :
 colnames(data)[names(data)== "Var2"] <- "espece"
+colnames(data)[names(data)== "Var1"] <- "id"
 
 # On remet les noms latins + famille + ordre
 
 data <- merge(data,espece, by.x = "espece", by.y = "french_name")
-data <- data[,-c(18:27)]
+data <- data[,-c(4,6,7:15)]
 
+# Combinaison de tous les table : 
+
+tab_1 <- merge(inv,site, by.x = "id",by.y = "id")
+data_fin <- merge(data,tab_1,by.x="id",by.y="id")
+
+# ATTENTION Rajoute 10 000 lignes... 
+# Problème en cours de résolution... 
 ## Pour poursuivre
-## + Voir si c'est possible d'ajouter le nom des compteurs
-## Refaire une colonne mois et années en extrayant l'information depuis la date
+
 ## Voir pour les doubles comptages
 
                                         # [RL] conseils :
                                         # [RL] 1- créer une table site (id, nom, caratéristique,...)
                                         # [RL] 2- créer une table inventaire (id, id_site,date, annee, mois,jour_julien,observateur,...)
                                         # [RL] 3- tu as ta table observation (id_inventaire, espece, abondance)
+
+
+
 

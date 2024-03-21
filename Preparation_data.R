@@ -49,12 +49,6 @@ data[,1] <- gsub("12/12/23","12/12/2023",data[,1])
 data[,1] <- gsub("10/01/24","10/01/2024",data[,1])
 data[,1] <- gsub("11/01/24","11/01/2024",data[,1])
 
-# - > Mettre au format DATE :
-
-data$date <- as.Date(data$date, format = "%d/%m/%Y")
-
-class(data$date)
-## Format date : YYYY - MM - JJ
 
 #  Nom des secteurs :
 
@@ -79,23 +73,16 @@ data[,4] <- tolower(data[,4])
 #Remplacement des cases vides par le nom du site :
 data$site[data$site == ""] <- "estuaire"
 
+# Uniformiser les noms des observateurs : ## Compliqué d'unifier les noms (des fois il y'a les initiales du prénom, des fois pas, plusieurs cas de figures)
+data[,8] <- tolower(data[,8])
+data[,8] <- gsub("\\.","", data[,8])
+data[,8] <- gsub("é","e",data[,8]) 
+data[,8] <- gsub("à","a",data[,8])
+data[,8] <- gsub(" ","",data[,8])
+data[,8] <-iconv(data[,8], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+unique(data$compteur)
+
 #### PARTIE 2 : 
-
-# Création table site : 
-
-id <- paste(data$secteur,data$date)
-table_site <- data.frame(id,data$secteur,data$site,data$meteo,data$remarques)
-View(table_site)
-site <- unique(table_site)
-# Création table inventaire : 
-
-date_jj <- yday(data$date)
-mois <- month(data$date)
-annee <- year(data$date)
-table_inv <- data.frame(id,data$date,date_jj,mois,annee,data$compteur)
-View(table_inv)
-inv <- unique(table_inv)
-
 
 ### Compiler le tableau "espece" et jeu de données + sélectionner les taxons d'intérêt :
 
@@ -135,6 +122,33 @@ unique(data$espece)
 
 data <- subset(data, !(data$family_tax=="Laridés"|data$family_tax=="Sternidés"))
 unique(data$espece)
+
+
+# Création table site : 
+# [ Quentin ] : Soucis dans la création des tables : la table site et la table inventaire n'ont pas le même de lignes. 
+# Alors qu'en théorie, je suppose, qu'elles devraient avoir le même nombre, puisque les ID sont les même. Sauf que lorsqu'on rajoute les observateurs
+# ou d'autres colonnes ca rajoute des lignes.
+# J'ai essayé d'uniformiser les noms des observateurs, mais il y a trop de différence dans la façon dont ils ont été entrés. 
+
+
+  # Création d'un ID qui va permettre de compiler les trois tables : 
+ID <- paste(data$secteur,data$date)
+
+site <- data.frame(ID,data$site,data$secteur)
+site <- unique(site)
+unique(site$ID)
+# Création table inventaire : 
+
+date_jj <- yday(data$date)
+mois <- month(data$date)
+annee <- year(data$date)
+
+inv <- data.frame(ID,data$date)
+inv <- unique(inv)
+
+# Compilation des deux tables : 
+
+data_inv <- merge(site,inv, by.x = "ID",by.y = "ID")
 
 
   # Tentative d'ajout des lignes espèces manquantes dans le jeu de données :
@@ -194,8 +208,8 @@ data <- data[,-c(4,6,7:15)]
 
 # Combinaison de tous les table : 
 
-tab_1 <- merge(inv,site, by.x = "id",by.y = "id")
-data_fin <- merge(data,tab_1,by.x="id",by.y="id")
+data_fin <- merge(data,data_inv,by.x="id",by.y="ID")
+unique(data_fin$espece)
 
 # ATTENTION Rajoute 10 000 lignes... 
 # Problème en cours de résolution... 

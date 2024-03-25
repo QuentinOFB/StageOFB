@@ -1,15 +1,40 @@
 setwd("C:/Users/quentin.petit/Documents/Git/StageOFB")
 
 library(lubridate)
+library(plyr)
+library(dplyr)
 
-# Ouverture du jeu de données:
+# Ouverture du jeu de données estuaire de la Loire : 
 data <- read.csv("Data/Comptage_estuaire_2004_2024.csv", header = T, fileEncoding = "utf-8", sep = ";")
 View(data)
 str(data)
 
-### 1. Régler les problèmes liés au noms :
+# Ouverture donnees Baie Aiguillon :  
+Baie <- read.csv("Data/donnees_aiguillon.csv",header = T, fileEncoding = "utf-8", sep = ";")
+View(Baie)
+str(Baie)
 
-#  Noms colonnes (pas de point, ni d'espace, ni les accents)
+# Ouverture donnees Camargue : 
+Camargue <- read.csv("Data/donnees_camargue.csv",header = T,fileEncoding = "utf-8",sep = ";")
+View(Camargue)
+str(Camargue)
+
+# Ouverture donnees cotentin : 
+Cotentin <- read.csv("Data/donnees_cotentin.csv",header = T,fileEncoding = "utf-8",sep = ";")
+View(Cotentin)
+str(Cotentin)
+
+### Unifier les noms des colonnes entre les différents tableaux de données : 
+
+# 1. Donnees estuaire : 
+
+colnames(data)[5] <- "site"
+colnames(data) [4] <- "secteur"
+colnames(data) [6] <- "espece"
+colnames(data) [7] <- "abondance"
+colnames(data) [8] <- "observateur" 
+
+# -> Noms de colonnes (pas de point, pas d'espace, pas d'accents) : 
 colnames(data) <- tolower(colnames(data))
 colnames(data) <- gsub(" ","_",colnames(data))
 colnames(data) <- gsub("\\.","_", colnames(data))
@@ -38,21 +63,10 @@ unique(data$date)
 
 data$date <- dmy(data$date)
 
-data[,1] <- gsub("13/06/22","13/06/2022",data[,1]) # [RL] un peu barbar et fastidieux mais efficace. la fonction mdy() de lubridate fait ça tout seul
-data[,1] <- gsub("10/11/22","10/11/2022",data[,1])
-data[,1] <- gsub("20/01/23","20/01/2023",data[,1])
-data[,1] <- gsub("17/04/23","17/04/2023",data[,1])
-data[,1] <- gsub("18/04/23","18/04/2023",data[,1])
-data[,1] <- gsub("14/09/23","14/09/2023",data[,1])
-data[,1] <- gsub("12/10/23","12/10/2023",data[,1])
-data[,1] <- gsub("12/12/23","12/12/2023",data[,1])
-data[,1] <- gsub("10/01/24","10/01/2024",data[,1])
-data[,1] <- gsub("11/01/24","11/01/2024",data[,1])
 
+#  Nom des sites :
 
-#  Nom des secteurs :
-
-unique(data$secteur)
+unique(data$site)
 data[,5] <- tolower(data[,5])
 data[,5] <- gsub(" ","_",data[,5])
 data[,5] <- gsub("-","_", data[,5])
@@ -66,23 +80,57 @@ data[,5] <- gsub("paimboeuf___corsept","paimboeuf_corsept",data[,5])
 data[,5] <- gsub("paimboeuf_corsept_","paimboeuf_corsept",data[,5])
 data[,5] <- gsub("saint_brevin__mean","saint_brevin_mean",data[,5])
 
-#  Nom du site : (enlever les majuscules)
-unique(data$site)
+#  Nom du secteur : (enlever les majuscules)
+unique(data$secteur)
 data[,4] <- tolower(data[,4])
 
 #Remplacement des cases vides par le nom du site :
-data$site[data$site == ""] <- "estuaire"
+data$site[data$secteur == ""] <- "estuaire"
 
 # Uniformiser les noms des observateurs : ## Compliqué d'unifier les noms (des fois il y'a les initiales du prénom, des fois pas, plusieurs cas de figures)
 data[,8] <- tolower(data[,8])
-data[,8] <- gsub("\\.","", data[,8])
-data[,8] <- gsub("é","e",data[,8]) 
-data[,8] <- gsub("à","a",data[,8])
-data[,8] <- gsub(" ","",data[,8])
 data[,8] <-iconv(data[,8], from = 'UTF-8', to = 'ASCII//TRANSLIT')
-unique(data$compteur)
+unique(data$observateur)
+
+data[,8] <- gsub("guenezan m ","guenezan m",data[,8])
+data[,8] <- gsub(" guenezan m","guenezan m",data[,8])
+
+data[16379,5] <- gsub("corsept","grand_bilho",data[16379,5])
+data[27248,8] <- gsub("","cochard, touze",data[27248,8])
+data[30820,8] <- gsub("latraube, frelon","becot, latraube, drouyer",data[30820,8])
+data[64699,1] <- gsub("2017-12-15","2017-11-15",data[64699,1])
 
 #### PARTIE 2 : 
+
+# Création d'un ID qui va permettre de compiler les trois tables : 
+ID <- paste(data$site,data$date)
+
+site <- data.frame(ID,data$site,data$secteur)
+site <- unique(site)
+
+# Création table inventaire : 
+
+date_jj <- yday(data$date)
+mois <- month(data$date)
+annee <- year(data$date)
+
+inv <- data.frame(ID,data$date, date_jj,mois,annee)
+inv <- unique(inv)
+
+#Partie observateurs : Problème du double comptage pour St-Brévin 2008-07-18 (ligne 16793 et 17471) 
+# supposition : comptage dans la même journée, ils ont refait un comptage pour avoir de la donnée car pas d'observation pour le 1er comptage
+# Décider quel jour on garde ? 
+obs <- data.frame(ID,data$observateur)
+obs <- unique(obs)
+                        # Compiler observateurs et inv :
+duplicated(obs$ID)
+duplicated(obs$ID[1000:2009])
+sum(duplicated(obs$ID))
+View(obs[1000:2009,])
+
+# Compilation des deux tables : Table invXsite : 
+data_inv <- merge(site,inv, by.x = "ID",by.y = "ID")
+
 
 ### Compiler le tableau "espece" et jeu de données + sélectionner les taxons d'intérêt :
 
@@ -92,7 +140,6 @@ espece <- read.csv("Data/espece.csv")
 View(espece)
 
 help("merge")
-
 espece[,5] <- tolower(espece[,5])
 espece[,5] <- gsub(" ","_",espece[,5])
 espece[,5] <- gsub("\\.","_",espece[,5])
@@ -123,35 +170,7 @@ unique(data$espece)
 data <- subset(data, !(data$family_tax=="Laridés"|data$family_tax=="Sternidés"))
 unique(data$espece)
 
-
-# Création table site : 
-# [ Quentin ] : Soucis dans la création des tables : la table site et la table inventaire n'ont pas le même de lignes. 
-# Alors qu'en théorie, je suppose, qu'elles devraient avoir le même nombre, puisque les ID sont les même. Sauf que lorsqu'on rajoute les observateurs
-# ou d'autres colonnes ca rajoute des lignes.
-# J'ai essayé d'uniformiser les noms des observateurs, mais il y a trop de différence dans la façon dont ils ont été entrés. 
-
-
-  # Création d'un ID qui va permettre de compiler les trois tables : 
-ID <- paste(data$secteur,data$date)
-
-site <- data.frame(ID,data$site,data$secteur)
-site <- unique(site)
-unique(site$ID)
-# Création table inventaire : 
-
-date_jj <- yday(data$date)
-mois <- month(data$date)
-annee <- year(data$date)
-
-inv <- data.frame(ID,data$date)
-inv <- unique(inv)
-
-# Compilation des deux tables : 
-
-data_inv <- merge(site,inv, by.x = "ID",by.y = "ID")
-
-
-  # Tentative d'ajout des lignes espèces manquantes dans le jeu de données :
+  # Tentative d'ajout des lignes espèces manquantes dans le jeu de données : (faire la table d'observation)
 
 # Création d'un ID dans data pour pouvoir ensuite "fusionner" les deux tableaux :
 data$ID <- paste(data$secteur,data$date,data$espece)
@@ -211,9 +230,6 @@ data <- data[,-c(4,6,7:15)]
 data_fin <- merge(data,data_inv,by.x="id",by.y="ID")
 unique(data_fin$espece)
 
-# ATTENTION Rajoute 10 000 lignes... 
-# Problème en cours de résolution... 
-## Pour poursuivre
 
 ## Voir pour les doubles comptages
 
@@ -223,5 +239,73 @@ unique(data_fin$espece)
                                         # [RL] 3- tu as ta table observation (id_inventaire, espece, abondance)
 
 
+
+
+#################### Les autres jeu de données : 
+# 2. Donnees Camargue : 
+colnames(Camargue) <- tolower(colnames(Camargue))
+colnames(Camargue) <-iconv(colnames(Camargue), from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+colnames(Camargue) [4] <- "site"
+colnames(Camargue) [5] <- "mois"
+colnames(Camargue) [6] <- "annee"
+colnames(Camargue) [8] <- "espece_lat"
+colnames(Camargue) [9] <- "abondance"
+colnames(Camargue) [10] <- "observateur" 
+
+# -> Attention ! Pour les noms d'observateur uniquement les initiales 
+
+unique(Camargue$espece_lat)
+
+# Ajouter les noms vernaculaires aux données camargue : 
+
+espece <- read.csv("Data/espece.csv")
+espece[,3] <- gsub(" ","_",espece[,3])
+
+# Modifier le nom latin du cygne de Bewick dans les données, sinon pas de correspondance : 
+
+Camargue[,8] <- gsub("Cygnus_columbianus_bewickii","Cygnus_columbianus",Camargue[,8])
+Camargue <- merge(Camargue,espece, by.x = "espece_lat", by.y = "scientific_name_2")
+Camargue <- Camargue[,-c(1,14,16,18:27)]
+
+colnames(Camargue)[13] <- "espece_lat"
+colnames(Camargue)[14] <- "espece" 
+
+# Rajouter une colonne avec le nom du secteur : 
+
+Camargue$secteur <- "camargue"
+Camargue$remarques <- "NA"
+
+# 3. Donnees Aiguillon : 
+
+colnames(Baie) [3] <- "espece"
+colnames(Baie) [5] <- "site"
+colnames(Baie) [6] <- "observateur"
+colnames(Baie) [8] <- "date" 
+colnames(Baie) [12] <- "abondance"
+colnames(Baie) [18] <- "mois" 
+colnames(Baie) [19] <- "annee" 
+
+# Rajouter une colonne avec le nom du secteur : 
+Baie$secteur <- "baie_aiguillon"
+
+# 4. Donnees Cotentin : 
+
+colnames(Cotentin) [11] <- "espece"
+colnames(Cotentin) [13] <- "observateur"
+colnames(Cotentin) [20] <- "abondance"
+colnames(Cotentin) [15] <- "date_1" 
+colnames(Cotentin) [16] <- "date"
+colnames(Cotentin) [18] <- "site" 
+colnames(Cotentin) [25] <- "remarques" 
+
+Cotentin$secteur <- "cotentin"
+Cotentin <- Cotentin[-c(1),]
+Cotentin$date <- ymd(Cotentin$date)
+
+# Ajout des tableaux : 
+
+data <- rbind.fill(data,Camargue,Cotentin,Baie)
+unique(data$secteur)
 
 

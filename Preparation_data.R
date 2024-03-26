@@ -94,14 +94,6 @@ data[,8] <- tolower(data[,8])
 data[,8] <-iconv(data[,8], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 unique(data$observateur)
 
-data[,8] <- gsub("guenezan m ","guenezan m",data[,8])
-data[,8] <- gsub(" guenezan m","guenezan m",data[,8])
-
-# Vérifier après... 
-data[16379,5] <- gsub("corsept","grand_bilho",data[16379,5])
-data[27248,8] <- gsub("","cochard, touze",data[27248,8])
-data[30820,8] <- gsub("latraube, frelon","becot, latraube, drouyer",data[30820,8])
-data[64699,1] <- gsub("2017-12-15","2017-11-15",data[64699,1])
 
 #Enlever les comptages partiels : 
 data[,9] <- tolower(data[,9])
@@ -212,6 +204,222 @@ data <- data[,-c(15,16,17,19,20:28)]
 
 
       ######## 2. La Camargue #############
+## -> Pour le protocole, il s'agit bien d'un comptage mensuel réalisé par avion 
+## -> Ecarte les 10 premières années en raison de changement de méthodologie 
+## Les comptages sont effectués sur 150 polygones avec certains qui ont été rajouté au cours des suivis : 
+Camargue <- read.csv("Data/donnees_camargue.csv",header = T,fileEncoding = "utf-8",sep = ";")
+View(Camargue)
+str(Camargue)
+
+#Changer le nom des colonnes : 
+colnames(Camargue)[2] <- "date"
+colnames(Camargue) [4] <- "site"
+colnames(Camargue) [5] <- "mois"
+colnames(Camargue) [6] <- "annee"
+colnames(Camargue) [7] <- "saison"
+colnames(Camargue) [8] <- "espece" 
+colnames(Camargue) [9] <- "abondance" 
+colnames(Camargue) [10] <- "observateur"
+colnames(Camargue) [11] <- "niveau_eau"
+colnames(Camargue) [12] <- "gel"
+
+colnames(Camargue) <- tolower(colnames(Camargue))
+colnames(Camargue) <-iconv(colnames(Camargue), from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+#Nom des espèces : 
+Camargue[,8] <- tolower(Camargue[,8])
+Camargue[,8] <-iconv(Camargue[,8], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+unique(Camargue$espece)
+
+#Nom des sites : 
+Camargue[,4] <- tolower(Camargue[,4])
+Camargue[,4] <-iconv(Camargue[,4], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+unique(Camargue$site)
+
+Camargue[,4] <- gsub("/","_",Camargue[,4])
+Camargue[,4] <- gsub("-","_",Camargue[,4])
+
+#Format de la date: 
+Camargue$date <- dmy(Camargue$date)
+
+#Observateur : 
+Camargue[,10] <- tolower(Camargue[,10])
+## Initiales des observateurs : AT = Alain Tamisier ; JBM = Jean-Baptiste Mouronval ; Michel Gauthier-Clerc 
+
+# -> Avoir les noms vernaculaires des espèces : 
+espece[,3] <- tolower(espece[,3])
+espece[,3] <- gsub(" ","_",espece[,3])
+# Prendre "scientific name 2 car il y a d'anciens noms latins dans le jeu de données Camargue : 
+#  Mareca penelope et mareca strepera 
+# Attention au nom latin du cygne de Bewick : 
+Camargue[,8] <- gsub("cygnus_columbianus_bewickii","cygnus_columbianus",Camargue[,8])
+Camargue <- merge(Camargue,espece, by.x = "espece", by.y = "scientific_name_2")
+
+#Retirer les colonnes dont on a pas besoin : 
+Camargue <- Camargue[,-c(1,14,16,18:25)]
+
+# Remettre les noms des obs et des colonnes au propre 
+colnames(Camargue)[14] <- "espece"
+Camargue[,14] <- tolower(Camargue[,14])
+Camargue[,14] <- gsub(" ","_",Camargue[,14])
+
+Camargue[,13] <- tolower(Camargue[,13])
+Camargue[,13] <- gsub(" ","_",Camargue[,13])
+
+#Création d'une colonne "secteur" pour la Camargue : 
+Camargue$secteur <- "camargue"
+
+#Sélection des années qui correspondent avec celle de l'estuaire de la Loire 
+# à partir de 2004-2005 
+# Sélectionner saison 2004 : 
+
+Camargue <- subset(Camargue, !(Camargue$saison<2004))
+unique(Camargue$date)
+
+# NA Dans les abondances, pour le coups il s'agit de vrais NA, dans la mesure ou quand une espèce n'est pas comptée elle est notée
+unique(Camargue$abondance)
+
+#Faut-il retirer ces données NA ? 
+Camargue <- subset(Camargue, !(Camargue$abondance=="NA"))
+
+
+      ######## 3. La Baie de l'Aiguillon #############
+#Attention depuis 2020 seulement les sites sans effectifs sont saisis !!! 
+
+
+Baie <- read.csv("Data/donnees_aiguillon.csv",header = T, fileEncoding = "utf-8", sep = ";")
+View(Baie)
+str(Baie)
+
+#Changer le nom des colonnes : 
+colnames(Baie)[3] <- "espece"
+colnames(Baie)[5] <- "site"
+colnames(Baie)[6] <- "observateur"
+colnames(Baie)[7] <- "observateur_det"
+colnames(Baie)[8] <- "date"
+colnames(Baie)[9] <- "confidentialite"
+colnames(Baie)[10] <- "validation"
+colnames(Baie)[11] <- "protocole"
+colnames(Baie)[12] <- "abondance"
+colnames(Baie)[13] <- "precision"
+colnames(Baie)[14] <- "remarques"
+colnames(Baie)[16] <- "id_habitat"
+colnames(Baie)[17] <- "family_tax"
+colnames(Baie)[18] <- "mois"
+colnames(Baie)[19] <- "annee"
+
+# Nom des colonnes : 
+colnames(Baie) <- tolower(colnames(Baie))
+colnames(Baie) <-iconv(colnames(Baie), from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+#Nom des especes : 
+Baie[,3] <- tolower(Baie[,3])
+Baie[,3] <- gsub(" ","_",Baie[,3])
+Baie[,3] <- gsub("-","_",Baie[,3])
+Baie[,3] <- gsub("'","_",Baie[,3])
+Baie[,3] <- gsub("é","e",Baie[,3])
+Baie[,3] <- gsub("î","i",Baie[,3])
+Baie[,3] <- gsub("à","a",Baie[,3])
+Baie[,3] <- gsub("ê","e",Baie[,3])
+Baie[,3] <- gsub("â","a",Baie[,3])
+Baie[,3] <- gsub("\\.","",Baie[,3])
+Baie[,3] <-iconv(Baie[,3], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+unique(Baie$espece)
+
+#Ne sélectionner que les anatidés/limicoles : 
+
+Baie <- subset(Baie, Baie$family_tax=="Anatidae"|Baie$family_tax=="Charadriidae"|Baie$family_tax=="Scolopacidae"|
+                 Baie$family_tax=="Recurvirostridae"|Baie$family_tax=="Haematopodidae"|Baie$family_tax=="Glareolidae")
+unique(Baie$family_tax)
+
+sort(unique(Baie$espece))
+# règler les problèmes des noms d'especes : 
+Baie[,3] <- gsub("chevalier_combattant,_combattant_varie","combattant_varie",Baie[,3])
+Baie[,3] <- gsub("becasseau_rousset,_becasseau_roussatre","becasseau_rousset",Baie[,3])
+Baie[,3] <- gsub("canard_a_front_blanc,_canard_d_amerique,_canard_siffleur_d_amerique","canard_a_front_blanc",Baie[,3])
+Baie[,3] <- gsub("fuligule_a_bec_cercle,_fuligule_a_collier,_morillon_a_collier","fuligule_a_bec_cercle",Baie[,3])
+Baie[,3] <- gsub("gravelot_a_collier_interrompu,_gravelot_de_kent","gravelot_a_collier_interrompu",Baie[,3])
+Baie[,3] <- gsub("harelde_de_miquelon,_harelde_boreale","harelde_de_miquelon",Baie[,3])
+Baie[,3] <- gsub("ouette_d_egypte,_oie_d_egypte","ouette_d_egypte",Baie[,3])
+Baie[,3] <- gsub("petit_chevalier_a_pattes_jaunes,_chevalier_a_pattes_jaunes,_pattes_jaunes","chevalier_a_pattes_jaunes",Baie[,3])
+Baie[,3] <- gsub("sarcelle_a_ailes_vertes,_sarcelle_de_la_caroline","sarcelle_a_ailes_vertes",Baie[,3])
+Baie[,3] <- gsub("tadorne_casarca,_casarca_roux","tadorne_casarca",Baie[,3])
+Baie[,3] <- gsub("tournepierre_a_collier,_pluvier_des_salines","tournepierre_a_collier",Baie[,3])
+
+#noms des sites : 
+unique(Baie$site)
+Baie[,5] <- tolower(Baie[,5])
+Baie[,5] <- gsub(" ","_",Baie[,5])
+Baie[,5] <- gsub("'","_",Baie[,5])
+Baie[,5] <- gsub("-","_",Baie[,5])
+Baie[,5] <- gsub("à","a",Baie[,5])
+Baie[,5] <- gsub("é","e",Baie[,5])
+Baie[,5] <- gsub("è","e",Baie[,5])
+Baie[,5] <- gsub("ç","c",Baie[,5])
+Baie[,5] <-iconv(Baie[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+# est-ce qu'il faut enlever les paranthèses ? 
+
+#Format date 
+unique(Baie$date) #de 1977 à 2024
+Baie$date <- dmy(Baie$date)
+
+#Nom des observateurs : 
+Baie[,6] <- tolower(Baie[,6])
+unique(Baie$observateur)
+sort(unique(Baie$observateur))
+
+Baie[,6] <- gsub(" lpo 17","lpo 17",Baie[,6])
+
+#Les différents protocoles : 
+unique(Baie$protocole)
+# -> Dans comptage simultané grues : 2 observations :  bécassine des marais + colvert 
+
+# Selection des années : 
+Baie <- subset(Baie, !(Baie$annee<2004))
+unique(Baie$date)
+#Enlever Janvier, février, mars, avril, mai, juin, juillet et aout 2004
+# Car le début du jeu de donnée estuaire correspond à la saison 2004-2005 (sept)
+
+Baie <- subset(Baie, !(Baie$annee=="2004"& Baie$mois=="1"|Baie$annee=="2004"& Baie$mois=="2"|Baie$annee=="2004"& Baie$mois=="3"
+                       |Baie$annee=="2004"& Baie$mois=="4"|Baie$annee=="2004"& Baie$mois=="5"|Baie$annee=="2004"& Baie$mois=="6"|Baie$annee=="2004"& Baie$mois=="7"
+                       |Baie$annee=="2004"& Baie$mois=="8"))
+
+
+#Prendre en compte les remarques : 
+unique(Baie$remarques)
+
+# -> Différence de conditions de marée lors du comptage (en dessous)
+# Le 20/12/2019 : 
+Baie <- subset(Baie, !(Baie$date=="2019-12-20"& Baie$site=="la_marina_(rnba)"|Baie$date=="2019-12-20"& Baie$site=="transfo_(rnba)"
+               |Baie$date=="2019-12-20"& Baie$site=="la_bosse_(rnba)"|Baie$date=="2019-12-20"& Baie$site=="tdcl_le_cure"
+               |Baie$date=="2019-12-20"& Baie$site=="tdcl_pree_mizottiere"|Baie$date=="2019-12-20"& Baie$site=="reposoir_principal_(rnba)"
+               |Baie$date=="2019-12-20"& Baie$site=="polder_ostreicole_(rnba)"|Baie$date=="2019-12-20"& Baie$site=="pointe_saint_clement_(rnba)"
+               |Baie$date=="2019-12-20"& Baie$site=="mirador_(rnba)"|Baie$date=="2019-12-20"& Baie$site=="le_cure_(rnba)"|Baie$date=="2019-12-20"& Baie$site=="les_chaines_(rnba)"
+               |Baie$date=="2019-12-20"& Baie$site=="arcay"))
+
+# Difficulté de comptage : 
+# Le 14/10/2019 
+Baie <- subset(Baie, !(Baie$date=="2019-10-14" & Baie$site=="arcay"))
+
+# Dérangement lié à la présence de travaux : 
+Baie <- subset(Baie, !(Baie$date=="2020-01-10"&Baie$site=="lagunage_de_la_tranche_sur_mer"))
+
+# Comptage hors comptage mensuel 
+Baie <- subset(Baie, !(Baie$date=="2019-12-24"&Baie$site=="les_casserottes"))
+
+#Mauvaise visibilité : 
+Baie <- subset(Baie, !(Baie$date=="2023-01-20" & Baie$site=="transfo_(rnba)"|Baie$date=="2023-03-10"&Baie$site=="la_marina_(rnba)"
+                       |Baie$date=="2023-03-10" & Baie$site=="transfo_(rnba)"|Baie$date=="2023-03-10" & Baie$site=="pointe_saint_clement_(rnba)"))
+
+#Mauvaise condition météo :               
+
+
+unique(Baie$site)
+
+# Rajouter une colonne avec le nom du secteur : 
+Baie$secteur <- "baie_aiguillon"
+
 
 
 
@@ -250,7 +458,7 @@ View(obs[1000:2009,])
 data_inv <- merge(site,inv, by.x = "ID",by.y = "ID")
 
 
-### Compiler le tableau "espece" et jeu de données + sélectionner les taxons d'intérêt :
+
 
 
   # Tentative d'ajout des lignes espèces manquantes dans le jeu de données : (faire la table d'observation)
@@ -324,50 +532,18 @@ unique(data_fin$espece)
 
 
 
-#################### Les autres jeu de données : 
-# 2. Donnees Camargue : 
-colnames(Camargue) <- tolower(colnames(Camargue))
-colnames(Camargue) <-iconv(colnames(Camargue), from = 'UTF-8', to = 'ASCII//TRANSLIT')
+ 
 
-colnames(Camargue) [4] <- "site"
-colnames(Camargue) [5] <- "mois"
-colnames(Camargue) [6] <- "annee"
-colnames(Camargue) [8] <- "espece_lat"
-colnames(Camargue) [9] <- "abondance"
-colnames(Camargue) [10] <- "observateur" 
 
-# -> Attention ! Pour les noms d'observateur uniquement les initiales 
 
-unique(Camargue$espece_lat)
 
-# Ajouter les noms vernaculaires aux données camargue : 
 
-espece <- read.csv("Data/espece.csv")
-espece[,3] <- gsub(" ","_",espece[,3])
 
-# Modifier le nom latin du cygne de Bewick dans les données, sinon pas de correspondance : 
 
-Camargue[,8] <- gsub("Cygnus_columbianus_bewickii","Cygnus_columbianus",Camargue[,8])
-Camargue <- merge(Camargue,espece, by.x = "espece_lat", by.y = "scientific_name_2")
-Camargue <- Camargue[,-c(1,14,16,18:27)]
 
-colnames(Camargue)[13] <- "espece_lat"
-colnames(Camargue)[14] <- "espece" 
 
-# Rajouter une colonne avec le nom du secteur : 
 
-Camargue$secteur <- "camargue"
-Camargue$remarques <- "NA"
 
-# 3. Donnees Aiguillon : 
-
-colnames(Baie) [3] <- "espece"
-colnames(Baie) [5] <- "site"
-colnames(Baie) [6] <- "observateur"
-colnames(Baie) [8] <- "date" 
-colnames(Baie) [12] <- "abondance"
-colnames(Baie) [18] <- "mois" 
-colnames(Baie) [19] <- "annee" 
 
 # Rajouter une colonne avec le nom du secteur : 
 Baie$secteur <- "baie_aiguillon"

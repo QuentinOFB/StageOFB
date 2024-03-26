@@ -26,7 +26,7 @@ str(Cotentin)
 
 ### Unifier les noms des colonnes entre les différents tableaux de données : 
 
-# 1. Donnees estuaire : 
+      ######### 1. Donnees estuaire : ###########
 
 colnames(data)[5] <- "site"
 colnames(data) [4] <- "secteur"
@@ -62,6 +62,8 @@ class(data$date)
 unique(data$date)
 
 data$date <- dmy(data$date)
+# Enlever les lignes qui ne continnent pas des dates mais : "comptage annulé + date) 
+data <- data[-c(43249,56643,56644,66910,66911,75111,75112,67651),]
 
 
 #  Nom des sites :
@@ -95,10 +97,126 @@ unique(data$observateur)
 data[,8] <- gsub("guenezan m ","guenezan m",data[,8])
 data[,8] <- gsub(" guenezan m","guenezan m",data[,8])
 
+# Vérifier après... 
 data[16379,5] <- gsub("corsept","grand_bilho",data[16379,5])
 data[27248,8] <- gsub("","cochard, touze",data[27248,8])
 data[30820,8] <- gsub("latraube, frelon","becot, latraube, drouyer",data[30820,8])
 data[64699,1] <- gsub("2017-12-15","2017-11-15",data[64699,1])
+
+#Enlever les comptages partiels : 
+data[,9] <- tolower(data[,9])
+
+data <- subset(data, !(data$remarques=="comptage partiel"|data$remarques=="compatge partiel, manque partie est de saint nicaols"
+                       |data$remarques == "houle, les compteurs ont dénombrés depuis le bateau donc comptage partiel"|data$remarques==" comptage partiel"))
+
+# Enlever les NC (non compté) à cause d'une remorque cassée, ou annulé pour cause de tir d'ibis la veille du comptage : 
+
+data <- subset(data, !(data$abondance=="NC"|data$abondance=="nc"|data$abondance=="Nc"|data$abondance=="non compté"))
+
+# Enlever les comptages avec du dérangements + pollution : 
+
+data <- subset(data, !(data$remarques=="pollution hydrocarbures du 16/03/08 (180tonnes) + hélicot survol"|data$remarques=="dérangement : kite surf et chien non tenu en laisse"))
+unique(data$remarques) 
+
+ # Beaucoup de dérangement le 20/08/2021 à St Brévin : 
+
+data <- subset(data, !(data$date=="2021-08-20" & data$site =="saint_brevin"))
+
+#Enlever le "comptage trop tardif par rapport à la marrée" : 
+
+data <- subset(data, !(data$remarques=="comptage trop tardif par rapport à la marée"))
+                         
+# Migron : comptage uniquement sur le bras de Migron (donc partiel) + fait à marée basse : 
+ data <- subset(data, !(data$date=="2017-09-19" & data$site=="migron"))
+
+# Supprimer les données agrégées entre Imperlay et Saint-Nicolas (une autre option serait d'agrégér Imperlay/St Nicolas pour toutes les dates ?)
+ 
+data <- subset(data, !(data$date=="2017-01-10" & data$site=="imperlay"|data$date=="2017-01-10" & data$site=="saint_nicolas")) 
+data <- subset(data, !(data$date=="2017-02-09" & data$site=="imperlay"|data$date=="2017-02-09" & data$site=="saint_nicolas")) 
+data <- subset(data, !(data$date=="2022-01-20" & data$site=="imperlay"|data$date=="2022-02-20" & data$site=="saint_nicolas")) 
+
+#Les erreurs d'entrée de données qui bloquent la création des tables inv et sites : 
+
+# Lié au nom d'observateur (avec des espaces avant et après)
+data[,8] <- gsub("guenezan m ","guenezan m",data[,8])
+data[,8] <- gsub(" guenezan m","guenezan m",data[,8])
+
+  #Erreur d'entrée de date : 2017-12-15 au lieu de 2017-11-15
+data[57093,1] <- gsub("2017-12-15","2017-11-15",data[57093,1])
+
+# Enlever les noms de sites absents : 
+data <- subset(data, !(data$site==""))
+
+#Je serais d'avis d'enlever le site "Estuaire" car personne ne sait à quoi il correspond sur la carte des sites. 
+# De plus, j'enlèverai aussi le site Baracon : c'est une réserve de chasse où les comptages sont centrés sur les espèces gibiers
+
+data <- subset(data, !(data$site=="baracon"|data$site=="estuaire"))
+
+# Ne conserver que les mois où les hivernants sont présents ? (oct-nov-dec-janv-fev-mars)
+# + septembre et avril pour se laisser une marge ? 
+
+unique(data$mois)
+data$mois <- month(data$date)
+
+data <- subset(data, !(data$mois=="5"|data$mois=="6"|data$mois=="7"|data$mois=="8"))
+
+unique(data$annee)
+data$annee <- year(data$date)
+#Retirer les sites qui sont sur moins de 3 saisons : Lavau, Chevalier et Saint_brévin/méan : 
+
+data <- subset(data, !(data$site=="lavau"|data$site=="chevallier"|data$site=="saint_brevin_mean"))
+
+# Enlever le comptage du 10/11/2008 : X2 passage sur tous les sites, avec des conditions météo nulles
+# + comptage partiel -> remplacé par les comptages du 12/11 et du 24/11
+# (déjà enlever précédement avec les comptages partiels)
+
+# Double comptage Corsept 18/07/2008 -> erreur de saisi des données, c'est un doublon !
+# Voir pour les doubles comptages avec Matthieu Bécot sur Pierre Rouge : 
+
+##Selectionner les espèces limicoles et anatidés et enlever les autres : 
+espece <- read.csv("Data/espece.csv")
+View(espece)
+espece[,5] <- tolower(espece[,5])
+espece[,5] <- gsub(" ","_",espece[,5])
+espece[,5] <- gsub("\\.","_",espece[,5])
+espece[,5] <- gsub("é","e",espece[,5])
+espece[,5] <- gsub("à","a",espece[,5])
+espece[,5] <- gsub("'","_",espece[,5])
+espece[,5] <-iconv(espece[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+#Retirer la ligne de la sous-espèce de la bernache cravant (sinon ça dédouble les données pour cette espèce)
+espece <- espece[-c(98),]
+
+#Combinaison des deux tableaux : 
+help("merge")
+data_esp <- merge(data,espece, by.x = "espece", by.y = "french_name")
+View(data_esp)
+unique(data_esp$espece)
+
+# Selectionnner les espèces qui nous intéressent : Anatidés + Limicoles
+# -> Choix des Ansériformes + Charadriiformes
+
+data <- subset(data_esp, data_esp$order_tax == "Ansériformes"|data_esp$order_tax == "Charadriiformes")
+View(data)
+unique(data$espece)
+
+# Dégager les laridés + la sterne naine (Sternidés) :
+
+data <- subset(data, !(data$family_tax=="Laridés"|data$family_tax=="Sternidés"))
+unique(data$espece)
+# -> 53 espèces anatidés/limicoles recensées sur tous les comptages estuaire Loire
+## Retrier les colonnes qui ne servent pas à grand chose : 
+
+data <- data[,-c(15,16,17,19,20:28)]
+
+  #Jeux de données nettoyé (si rien n'a été oublié) pour estuaire de la Loire ! 
+
+
+      ######## 2. La Camargue #############
+
+
+
+
+
 
 #### PARTIE 2 : 
 
@@ -134,41 +252,6 @@ data_inv <- merge(site,inv, by.x = "ID",by.y = "ID")
 
 ### Compiler le tableau "espece" et jeu de données + sélectionner les taxons d'intérêt :
 
-  # Ajouter les noms latins au jeu de données :
-
-espece <- read.csv("Data/espece.csv")
-View(espece)
-
-help("merge")
-espece[,5] <- tolower(espece[,5])
-espece[,5] <- gsub(" ","_",espece[,5])
-espece[,5] <- gsub("\\.","_",espece[,5])
-espece[,5] <- gsub("é","e",espece[,5])
-espece[,5] <- gsub("à","a",espece[,5])
-espece[,5] <- gsub("'","_",espece[,5])
-espece[,5] <-iconv(espece[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
-
-#Retirer la ligne de la sous-espèce de la bernache cravant (sinon ça dédouble les données pour cette espèce)
-
-espece <- espece[-c(98),]
-
-#Fusion des deux jeux de données :
-
-data_esp <- merge(data,espece, by.x = "espece", by.y = "french_name")
-View(data_esp)
-unique(data_esp$espece)
-
-# Selectionnner les espèces qui nous intéressent : Anatidés + Limicoles
-# -> Choix des Ansériformes + Charadriiformes
-
-data <- subset(data_esp, data_esp$order_tax == "Ansériformes"|data_esp$order_tax == "Charadriiformes")
-View(data)
-unique(data$espece)
-
-# Dégager les laridés + la sterne naine (Sternidés) :
-
-data <- subset(data, !(data$family_tax=="Laridés"|data$family_tax=="Sternidés"))
-unique(data$espece)
 
   # Tentative d'ajout des lignes espèces manquantes dans le jeu de données : (faire la table d'observation)
 

@@ -57,14 +57,22 @@ data[,6] <- gsub("chevalier_combattant","combattant_varie",data[,6])
 data[,6] <- gsub("bernache_nonette","bernache_nonnette", data[,6])
 data[,6] <- gsub("tournepierre","tournepierre_a_collier", data[,6])
 
+#Vérification des abondances : 
+unique(data$abondance)
+
+
 # Forme des dates: regarder les formats (JJ/MM/YYYY)
 class(data$date)
 unique(data$date)
+# Enlever les lignes qui ne continnent pas des dates mais : "comptage annulé + date) 
+data <- subset(data, !(data$date=="Jeudi 15 mars 2018 comptage annulé"|data$date=="Comptage octobre 2013 : annulé cause de mauvais temps"
+                       |data$date=="Comptage du 19 avril 2016 annulé condition climatique défavorable"|data$date=="Comptage du 19 mai 2016 annulé pas de pilote bateau"
+                       |data$date=="Comptage du 20 juin 2016 annulé pas de pilote bateau"|data$date=="Vendredu 13 avril  2018 comptage annulé"
+                      |data$date=="Comptage du lundi 11 juin 2018 annulé"|data$date=="Comptage du lundi 13 juin 2019 annulé"
+                      |data$date=="Comptage du lundi 14 août 2019 annulé"))
+
 
 data$date <- dmy(data$date)
-# Enlever les lignes qui ne continnent pas des dates mais : "comptage annulé + date) 
-data <- data[-c(43249,56643,56644,66910,66911,75111,75112,67651),]
-
 
 #  Nom des sites :
 
@@ -94,32 +102,30 @@ data[,8] <- tolower(data[,8])
 data[,8] <-iconv(data[,8], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 unique(data$observateur)
 
-
-#Enlever les comptages partiels : 
+#Création d'une colonne qualité comptage : ok et douteux 
 data[,9] <- tolower(data[,9])
+unique(data$remarques)
+data$qualite_comptage <- with(data, ifelse(data$remarques=="comptage partiel",'douteux', ifelse(data$remarques=="compatge partiel, manque partie est de saint nicaols",'douteux',
+                                                                                                ifelse(data$remarques=="houle, les compteurs ont dénombrés depuis le bateau donc comptage partiel",'douteux',
+                                                                                                       ifelse(data$remarques==" comptage partiel",'douteux',
+                                                                                                              ifelse(data$remarques=="pollution hydrocarbures du 16/03/08 (180tonnes) + hélicot survol",'douteux',
+                                                                                                              ifelse(data$remarques=="dérangement : kite surf et chien non tenu en laisse",'douteux',
+                                                                                                              ifelse(data$remarques=="comptage trop tardif par rapport à la marée",'douteux','ok'))))))))
+unique(data$qualite_comptage)
 
-data <- subset(data, !(data$remarques=="comptage partiel"|data$remarques=="compatge partiel, manque partie est de saint nicaols"
-                       |data$remarques == "houle, les compteurs ont dénombrés depuis le bateau donc comptage partiel"|data$remarques==" comptage partiel"))
+#Pour St Brévin : remarque uniquement renseignée sur la première ligne 
 
+data$qualite_comptage <- with(data, ifelse(data$date=="2021-08-20" & data$site =="saint_brevin",'douteux','ok'))
+
+#La même sur le bras de migron : 
+data$qualite_comptage <- with(data, ifelse(data$date=="2017-09-19" & data$site=="migron",'douteux','ok'))
+
+#Vérifier les abondances : 
+unique(data$abondance) 
 # Enlever les NC (non compté) à cause d'une remorque cassée, ou annulé pour cause de tir d'ibis la veille du comptage : 
 
-data <- subset(data, !(data$abondance=="NC"|data$abondance=="nc"|data$abondance=="Nc"|data$abondance=="non compté"))
+data <- subset(data, !(data$abondance=="NC"|data$abondance=="nc"|data$abondance=="Nc"|data$abondance=="non compté"|data$abondance=="Non dénombré"|data$abondance=="w"))
 
-# Enlever les comptages avec du dérangements + pollution : 
-
-data <- subset(data, !(data$remarques=="pollution hydrocarbures du 16/03/08 (180tonnes) + hélicot survol"|data$remarques=="dérangement : kite surf et chien non tenu en laisse"))
-unique(data$remarques) 
-
- # Beaucoup de dérangement le 20/08/2021 à St Brévin : 
-
-data <- subset(data, !(data$date=="2021-08-20" & data$site =="saint_brevin"))
-
-#Enlever le "comptage trop tardif par rapport à la marrée" : 
-
-data <- subset(data, !(data$remarques=="comptage trop tardif par rapport à la marée"))
-                         
-# Migron : comptage uniquement sur le bras de Migron (donc partiel) + fait à marée basse : 
- data <- subset(data, !(data$date=="2017-09-19" & data$site=="migron"))
 
 # Supprimer les données agrégées entre Imperlay et Saint-Nicolas (une autre option serait d'agrégér Imperlay/St Nicolas pour toutes les dates ?)
  
@@ -134,7 +140,7 @@ data[,8] <- gsub("guenezan m ","guenezan m",data[,8])
 data[,8] <- gsub(" guenezan m","guenezan m",data[,8])
 
   #Erreur d'entrée de date : 2017-12-15 au lieu de 2017-11-15
-data[57093,1] <- gsub("2017-12-15","2017-11-15",data[57093,1])
+data[59432,1] <- gsub("2017-12-15","2017-11-15",data[59432,1])
 
 # Enlever les noms de sites absents : 
 data <- subset(data, !(data$site==""))
@@ -159,10 +165,15 @@ data$annee <- year(data$date)
 data <- subset(data, !(data$site=="lavau"|data$site=="chevallier"|data$site=="saint_brevin_mean"))
 
 # Enlever le comptage du 10/11/2008 : X2 passage sur tous les sites, avec des conditions météo nulles
-# + comptage partiel -> remplacé par les comptages du 12/11 et du 24/11
-# (déjà enlever précédement avec les comptages partiels)
+# + comptage partiel -> remplacé par les comptages du 12/11 et du 24/11 : 
+
+data <- subset(data,!(data$date=="2008-11-10"))
 
 # Double comptage Corsept 18/07/2008 -> erreur de saisi des données, c'est un doublon !
+
+data <- data[!duplicated(data[c('2008-07-18','corsept'),]),]
+data <- subset(data,!(data$site=="saint_brevin"&data$date=="2008-07-18"&data$observateur=="potiron"))
+
 # Voir pour les doubles comptages avec Matthieu Bécot sur Pierre Rouge : 
 
 ##Selectionner les espèces limicoles et anatidés et enlever les autres : 
@@ -198,9 +209,24 @@ unique(data$espece)
 # -> 53 espèces anatidés/limicoles recensées sur tous les comptages estuaire Loire
 ## Retrier les colonnes qui ne servent pas à grand chose : 
 
-data <- data[,-c(15,16,17,19,20:28)]
+data <- data[,-c(15,16,18,20:29)]
+
+data[,16] <- tolower(data[,16])
+
+
+#Ajouter colonne protocole 
+
+data$protocole <- with(data, ifelse(data$site=="pierre_rouge","bateau",ifelse(
+                                    data$site=="nord_cordemais","bateau", ifelse(data$site=="carnet","bateau",
+                                              ifelse(data$site=="pipy","bateau",
+                                                ifelse(data$site=="marechale","bateau",
+                                                ifelse(data$site=="donges","bateau","terrestre")))))))
 
   #Jeux de données nettoyé (si rien n'a été oublié) pour estuaire de la Loire ! 
+
+
+
+
 
 
       ######## 2. La Camargue #############
@@ -374,6 +400,7 @@ Baie[,6] <- gsub(" lpo 17","lpo 17",Baie[,6])
 #Les différents protocoles : 
 unique(Baie$protocole)
 # -> Dans comptage simultané grues : 2 observations :  bécassine des marais + colvert 
+Baie <- subset(Baie, !(Baie$protocole=="Comptage simultané grues"))
 
 # Selection des années : 
 Baie <- subset(Baie, !(Baie$annee<2004))
@@ -385,6 +412,12 @@ Baie <- subset(Baie, !(Baie$annee=="2004"& Baie$mois=="1"|Baie$annee=="2004"& Ba
                        |Baie$annee=="2004"& Baie$mois=="4"|Baie$annee=="2004"& Baie$mois=="5"|Baie$annee=="2004"& Baie$mois=="6"|Baie$annee=="2004"& Baie$mois=="7"
                        |Baie$annee=="2004"& Baie$mois=="8"))
 
+#Sélection des mois qui nous intéressent, c'est à dire les mois où on voit les hivernants : 
+Baie <- subset(Baie, !(Baie$mois=="5"|Baie$mois=="6"|Baie$mois=="7"|Baie$mois=="8"))
+
+#Voir les abondance : 
+unique(Baie$abondance)
+unique(Baie$abondance[1000:1964])
 
 #Prendre en compte les remarques : 
 unique(Baie$remarques)
@@ -403,28 +436,254 @@ Baie <- subset(Baie, !(Baie$date=="2019-12-20"& Baie$site=="la_marina_(rnba)"|Ba
 Baie <- subset(Baie, !(Baie$date=="2019-10-14" & Baie$site=="arcay"))
 
 # Dérangement lié à la présence de travaux : 
-Baie <- subset(Baie, !(Baie$date=="2020-01-10"&Baie$site=="lagunage_de_la_tranche_sur_mer"))
+Baie <- subset(Baie, !(Baie$date=="2020-01-10"&Baie$site=="lagunage_de_la_tranche_sur_mer"|Baie$date=="2021-09-20"&Baie$site=="tdcl_le_cure"
+                       |Baie$date=="2023-09-20"&Baie$site=="rnr_ferme_de_choisy"|Baie$date=="2013-10-17"&Baie$site=="marais_de_la_guittiere"
+                       |Baie$date=="2023-01-20"&Baie$site=="le_cure_(rnba)"|Baie$date=="2023-01-20"& Baie$site=="tdcl_le_cure_(rnba)"
+               |Baie$date=="2023-02-23"&Baie$site=="le_cure_(rnba)"))
 
 # Comptage hors comptage mensuel 
 Baie <- subset(Baie, !(Baie$date=="2019-12-24"&Baie$site=="les_casserottes"))
 
 #Mauvaise visibilité : 
 Baie <- subset(Baie, !(Baie$date=="2023-01-20" & Baie$site=="transfo_(rnba)"|Baie$date=="2023-03-10"&Baie$site=="la_marina_(rnba)"
-                       |Baie$date=="2023-03-10" & Baie$site=="transfo_(rnba)"|Baie$date=="2023-03-10" & Baie$site=="pointe_saint_clement_(rnba)"))
+                       |Baie$date=="2023-03-10" & Baie$site=="transfo_(rnba)"|Baie$date=="2023-03-10" & Baie$site=="pointe_saint_clement_(rnba)"
+                       |Baie$date=="2020-12-14"&Baie$site=="les_casserottes"|Baie$date=="2023-08-17"& Baie$site=="transfo_(rnba)"
+                       |Baie$date=="2023-08-17"&Baie$site=="les_chaines_(rnba)"|Baie$date=="2023-08-17"&Baie$site=="transfo_(rnba)"
+                       |Baie$date=="2023-10-16"&Baie$site=="transfo_(rnba"))
+  #Liée à la brume : 
+Baie <- subset(Baie, !(Baie$date=="2022-02-17" & Baie$site=="la_bosse_(rnba)"|Baie$date=="2022-02-17" & Baie$site=="le_cure_(rnba)"
+                       |Baie$date=="2022-02-17" & Baie$site=="les_chaines_(rnba)"|Baie$date=="2022-02-17" & Baie$site=="mirador_(rnba)"
+                       |Baie$date=="2022-02-17" & Baie$site=="transfo_(rnba)"|Baie$date=="2023-05-17" & Baie$site=="les_chaines_(rnba)"
+                       |Baie$date=="2023-06-16"&Baie$site=="transfo_(rnba"))
+ 
+ #mer trop agitée (pas de comptage) : 
+Baie <- subset(Baie,!(Baie$date=="2022-11-22"&Baie$site=="les_casserottes"))
+
 
 #Mauvaise condition météo :               
+Baie <- subset(Baie, !(Baie$remarques=="mauvaises conditions météo"|Baie$date=="2022-12-22"&Baie$site=="pointe_saint_clement_(rnba)"
+                       |Baie$date=="2022-12-22"&Baie$site=="la_bosse_(rnba)"|Baie$date=="2022-12-22"&Baie$site=="les_chaines_(rnba)"
+                       |Baie$date=="2022-12-22"&Baie$site=="les_prises_4"|Baie$date=="2022-12-22"&Baie$site=="les_prises_3"
+                       |Baie$date=="2022-12-22"&Baie$site=="les_prises_5"|Baie$date=="2022-12-22"&Baie$site=="les_prises_6"
+                       |Baie$date=="2022-12-22"&Baie$site=="les_prises_7"|Baie$date=="2022-12-22"&Baie$site=="les_prises_4"
+                       |Baie$date=="2022-12-22"&Baie$site=="le_cure_(rnba)"|Baie$date=="2022-12-22"&Baie$site=="tdcl_le_cure"
+                       |Baie$date=="2022-12-22"&Baie$site=="transfo_(rnba)"|Baie$date=="2022-12-22"&Baie$site=="rnr_ferme_de_choisy"
+                       |Baie$date=="2022-12-22"&Baie$site=="plans_d_eau_de_l_aiguillon"|Baie$date=="2022-12-22"&Baie$site=="communal_d_angles"
+                       |Baie$date=="2022-12-22"&Baie$site=="lagunage_de_longeville"|Baie$date=="2022-12-22"&Baie$site=="rcfs_pointe_d_arcay_(arcay)"
+                       |Baie$date=="2022-12-22"&Baie$site=="lagunage_de_la_tranche_sur_mer"|Baie$date=="2022-12-22"&Baie$site=="les_casserottes"
+                       |Baie$date=="2022-12-22"&Baie$site=="la_marina_(rnba)"|Baie$date=="2022-12-22"&Baie$site=="rade_d_amour_(arcay)"
+                       |Baie$date=="2022-12-22"&Baie$site=="la_mare_a_2000"|Baie$date=="2022-12-22"&Baie$site=="le_petit_rocher"
+                       |Baie$date=="2022-12-22"&Baie$site=="mirador_(rnba)"|Baie$date=="2022-12-22"&Baie$site=="pointe_de_l_aiguillon_(rnba)"
+                       |Baie$date=="2022-12-22"&Baie$site=="polder_ostreicole_(rnba)"|Baie$date=="2022-12-22"&Baie$site=="reposoir_principal_(rnba)"
+                       |Baie$date=="2022-12-22"&Baie$site=="tdcl_pree_mizottiere"|Baie$date=="2023-02-23"&Baie$site=="reposoir_principal_(rnba)"))
 
+#Dérangement lié à la chasse : 
+Baie <- subset(Baie, !(Baie$date=="2020-09-16"&Baie$site=="tdcl_le_cure"|Baie$date=="2023-12-14"&Baie$site=="la_vacherie"))
+
+#Dérangement lié à la pêche : 
+Baie <- subset(Baie, !(Baie$date=="2020-06-22" & Baie$site=="les_arches_(rnba)"|Baie$date=="2020-09-16" & Baie$site=="pointe_saint_clement_(rnba)"
+                       |Baie$date=="2022-09-09" & Baie$site=="pointe_saint_clement_(rnba)"|Baie$date=="2023-09-15" & Baie$site=="pointe_saint_clement_(rnba)"
+                       |Baie$date=="2023-10-16" & Baie$site=="pointe_saint_clement_(rnba)"|Baie$date=="2023-10-16" & Baie$site=="les_arches_(rnba)"
+                       |Baie$date=="2021-07-22"& Baie$site=="reposoir_principal_(rnba)"|Baie$date=="2022-09-09"& Baie$site=="la_marina_(rnba)"
+                       |Baie$date=="2022-10-24"& Baie$site=="la_marina_(rnba)"|Baie$date=="2023-05-17"& Baie$site=="la_marina_(rnba)"
+                       |Baie$date=="2022-09-09"& Baie$site=="les_chaines_(rnba)"|Baie$date=="2022-10-24"& Baie$site=="les_chaines_(rnba)"
+                       |Baie$date=="2023-12-13"&Baie$site=="mirador_(rnba)"))
+
+#Dérangement lié à la présence d'humains sur la plage ou dérangement : 
+Baie <- subset(Baie, !(Baie$date=="2021-04-12"& Baie$site=="les_arches_(rnba)"|Baie$date=="2020-02-18"& Baie$site=="rnr_ferme_de_choisy"))
 
 unique(Baie$site)
 
 # Rajouter une colonne avec le nom du secteur : 
 Baie$secteur <- "baie_aiguillon"
 
+#Enlever les colonnes qui ne servent pas à grand chose : 
+Baie <- Baie[,-c(1,2,9,15,20,21)]
+
+
+      ##########"# 4. Le cotentin : #############
+
+Cotentin <- read.csv("Data/donnees_cotentin.csv",header = T,fileEncoding = "utf-8",sep = ";")
+str(Cotentin)
+View(Cotentin)
+# Deux types de suivis : 
+  # -> Remises diurnes 
+    # Compte les anatidés + comptage simultané + exhaustif sur la remise de Beauguillot (décompté de manière décadaire) 
+    # Attention données agrégées pour 2004 et 2008 (sous l'entité RNN_Beauguillot) + certaines limicoles (terrestre et côtiers à affinité terrestre)
+  # -> Limicoles côtiers : 
+    # Exhaustif + certains anatidés de manière exhaustif et mensuel 
+# ATTENTION : pour le site : Polder Sainte Marie : gestion hydraulique et agropastorale favorisant l'accueil des oiseaux depuis 2010
+
+#Changer le nom des colonnes + enlever la première ligne (redite des titres des colonnes)
+
+Cotentin <- Cotentin[-c(1),]
+Cotentin <- Cotentin[,-c(1,2,3,4,5,6,7,10,15,17,19,21,24)]
+
+colnames(Cotentin)[1] <- "family_tax"
+colnames(Cotentin) [2] <- "order_tax"
+colnames(Cotentin) [3] <- "espece"
+colnames(Cotentin) [4] <- "protocole"
+colnames(Cotentin) [5] <- "observateur"
+colnames(Cotentin) [6] <- "observateur_org"
+colnames(Cotentin) [7] <- "date"
+colnames(Cotentin) [8] <- "site"
+colnames(Cotentin) [9] <- "abondance"
+colnames(Cotentin) [10] <- "observation_protocole"
+colnames(Cotentin) [12] <- "remarques"
+
+#Format de la date : 
+Cotentin$date <- ymd(Cotentin$date)
+
+#Nom des espèces : 
+Cotentin[,3] <- tolower(Cotentin[,3])
+Cotentin[,3] <- gsub(" ","_",Cotentin[,3])
+Cotentin[,3] <- gsub("-","_",Cotentin[,3])
+Cotentin[,3] <- gsub("'","_",Cotentin[,3])
+Cotentin[,3] <- gsub("é","e",Cotentin[,3])
+Cotentin[,3] <- gsub("è","e",Cotentin[,3])
+Cotentin[,3] <- gsub("î","i",Cotentin[,3])
+Cotentin[,3] <- gsub("à","a",Cotentin[,3])
+Cotentin[,3] <- gsub("ê","e",Cotentin[,3])
+Cotentin[,3] <- gsub("â","a",Cotentin[,3])
+Cotentin[,3] <- gsub("\\.","",Cotentin[,3])
+Cotentin[,3] <-iconv(Cotentin[,3], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+sort(unique(Cotentin$espece))
+
+Cotentin <- subset(Cotentin,!(Cotentin$espece==""))
+
+Cotentin[,3] <- gsub("bernache_cravant_du_pacifique,_bernache_du_pacifique","bernache_du_pacifique",Cotentin[,3])
+Cotentin[,3] <- gsub("canard_des_bahamas,_pilet_des_bahamas","canard_des_bahamas",Cotentin[,3])
+Cotentin[,3] <- gsub("combattant_varie,_chevalier_combattant","combattant_varie",Cotentin[,3])
+Cotentin[,3] <- gsub("gravelot_a_collier_interrompu,_gravelot_de_kent","gravelot_a_collier_interrompu",Cotentin[,3])
+Cotentin[,3] <- gsub("guignard_d_eurasie,_pluvier_guignard","pluvier_guignard",Cotentin[,3])
+Cotentin[,3] <- gsub("oie_de_taiga,_oie_des_moissons","oie_des_moissons",Cotentin[,3])
+Cotentin[,3] <- gsub("ouette_d_egypte,_oie_d_egypte","ouette_d_egypte",Cotentin[,3])
+Cotentin[,3] <- gsub("tadorne_casarca,_casarca_roux","tadorne_casarca",Cotentin[,3])
+Cotentin[,3] <- gsub("tournepierre_a_collier,_pluvier_des_saline","tournepierre_a_collier",Cotentin[,3])
+Cotentin[,3] <- gsub("sarcelle_a_ailes_vertes,_sarcelle_de_la_caroline","sarcelle_a_ailes_vertes",Cotentin[,3])
+# Mystère... mets un s à tournepierre...
+Cotentin[,3] <- gsub("tournepierre_a_colliers","tournepierre_a_collier",Cotentin[,3])
+
+# Enlever guillemot, pinguin torda, labbe parasite :
+Cotentin <- subset(Cotentin,!(Cotentin$espece=="pingouin_torda,_petit_pingouin"|Cotentin$espece=="guillemot_de_troil"|Cotentin$espece=="labbe_parasite"))
+
+#Nom famille et ordre :
+
+Cotentin[,1] <- tolower(Cotentin[,1])
+Cotentin[,2] <- tolower(Cotentin[,2])
+Cotentin[,4] <- tolower(Cotentin[,4])
+Cotentin[,5] <- tolower(Cotentin[,5])
+Cotentin[,6] <- tolower(Cotentin[,6])
+Cotentin[,8] <- tolower(Cotentin[,8])
+
+#Nom observateurs 
+unique(Cotentin$observateur)
+Cotentin[,5] <- gsub(" ","_",Cotentin[,5])
+Cotentin[,5] <- gsub("-","_",Cotentin[,5])
+Cotentin[,5] <- gsub("'","_",Cotentin[,5])
+Cotentin[,5] <- gsub("é","e",Cotentin[,5])
+Cotentin[,5] <- gsub("è","e",Cotentin[,5])
+Cotentin[,5] <- gsub("î","i",Cotentin[,5])
+Cotentin[,5] <- gsub("à","a",Cotentin[,5])
+Cotentin[,5] <- gsub("ê","e",Cotentin[,5])
+Cotentin[,5] <- gsub("â","a",Cotentin[,5])
+Cotentin[,5] <- gsub("\\.","",Cotentin[,5])
+Cotentin[,5] <-iconv(Cotentin[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+#Nom des sites : 
+unique(Cotentin$site)
+# C'est ok ! 
+# Supprimer le Polder_Sainte_Marie 
+
+Cotentin <- subset(Cotentin, !(Cotentin$site=="polder_ste_marie_cel"))
+unique(Cotentin$site)
+
+#Supprimer les données agrégées 2004 et 2008 : 
+Cotentin <- subset(Cotentin, !(Cotentin$site=="rnn_beauguillot"))
+
+#Séparer les données des deux protocoles 
+# Suivi des remises -> Se concentrer uniquement sur les anatidés 
+# Suivi limicoles côtiers -> se concentrer uniquement sur les limicoles 
+
+
+#Vérification abondance : 
+unique(Cotentin$abondance)
+# Attention à certains moments des fourchettes sont données ex : 420-440 
+# Que faire ? Prendre la moyenne, le min, le max, ou supprimer ? 
+
+#sélection des années et des mois : 
+
+Cotentin$annee <- year(Cotentin$date)
+Cotentin$mois <- month(Cotentin$date)
+
+unique(Cotentin$annee) #De 2004 à 2023
+unique(Cotentin$mois)
+# -> Ne sélectionner que les mois où on trouve les hivernants 
+
+Cotentin <- subset(Cotentin,!(Cotentin$mois=="5"|Cotentin$mois=="6"|Cotentin$mois=="7"|Cotentin$mois=="8"))
 
 
 
 
+#####Prendre en compte les remarques : (à compléter)
+Cotentin$remarques
 
+#Enlever les dates où les conditions de comptage sont mauvaises : 
+
+Cotentin <- subset(Cotentin, !(Cotentin$date=="2021-02-12"& Cotentin$site=="polder_ste_marie_cel"|
+                               Cotentin$date=="2009-01-09"&Cotentin$site=="le_gabion"
+                                 |Cotentin$date=="2010-03-26"&Cotentin$site=="polder_ste_marie_cel"
+                               |Cotentin$date=="2011-01-13"&Cotentin$site=="la_dune_sud"
+                               |Cotentin$date=="2011-03-18"&Cotentin$site=="polder_ste_marie_cel"
+                               |Cotentin$date=="2011-03-18"&Cotentin$site=="les_grandes_iles"
+                               |Cotentin$date=="2011-03-18"&Cotentin$site=="le_gabion"
+                               |Cotentin$date=="2011-03-18"&Cotentin$site=="la_dune_sud"
+                               |Cotentin$date=="2011-03-18"&Cotentin$site=="l_ile_est"))
+  
+#Chute de neige pendant le comptage : 
+
+Cotentin <- subset(Cotentin, !(Cotentin$date=="2006-02-24"|Cotentin$site=="les_grandes_iles"
+                               |Cotentin$date=="2006-02-24"|Cotentin$site=="la_dune_sud"
+                               |Cotentin$date=="2006-02-24"|Cotentin$site=="la_dune_de_mer"))
+#Travaux : 
+
+Cotentin <- subset(Cotentin, !(Cotentin$date=="2006-02-15"& Cotentin$site=="les_grandes_iles"
+                               |Cotentin$date=="2006-02-15"& Cotentin$site=="la_dune_sud"
+                               |Cotentin$date=="2006-02-15"& Cotentin$site=="la_dune_de_mer"
+                               |Cotentin$date=="2006-02-15"& Cotentin$site=="l_ile_est"))
+
+#Suivi difficile : 
+
+Cotentin <- subset(Cotentin, !(Cotentin$date=="2004-11-04"& Cotentin$site=="le_grand_etang"
+                               |Cotentin$date=="2004-11-04"& Cotentin$site=="la_dune_sud"
+                               |Cotentin$date=="2004-11-04"& Cotentin$site=="l_ile_est"
+                               |Cotentin$date=="2004-11-14"& Cotentin$site=="les_grandes_iles"
+                               |Cotentin$date=="2004-11-14"& Cotentin$site=="le_grand_etang"
+                               |Cotentin$date=="2004-11-14"& Cotentin$site=="le_gabion"
+                               |Cotentin$date=="2004-11-14"& Cotentin$site=="la_dune_sud"
+                               |Cotentin$date=="2004-11-14"& Cotentin$site=="l_ile_est"))
+#Site gelé : 
+Cotentin <- subset(Cotentin, !(Cotentin$date=="2007-12-21"& Cotentin$site=="le_gabion"
+                               |Cotentin$date=="2007-12-21"& Cotentin$site=="la_dune_sud"
+                               |Cotentin$date=="2007-12-14"& Cotentin$site=="l_ile_est"
+                               |Cotentin$date=="2007-12-14"& Cotentin$site=="les_grandes_iles"
+                               |Cotentin$date=="2007-12-14"& Cotentin$site=="la_dune_de_mer"
+                               |Cotentin$date=="2007-12-14"& Cotentin$site=="la_dune_sud"
+                               |Cotentin$date=="2008-12-30"&Cotentin$site=="le_gabion"
+                               |Cotentin$date=="2010-01-12"&Cotentin$site=="le_grand_etang"
+                               |Cotentin$date=="2009-12-23"&Cotentin$site=="les_grandes_iles"
+                               |Cotentin$date=="2009-12-23"&Cotentin$site=="le_gabion"
+                               |Cotentin$date=="2009-12-23"&Cotentin$site=="l_ile_est"
+                               |Cotentin$date=="2009-12-23"&Cotentin$site=="la_dune_sud"
+                               |Cotentin$date=="2010-01-05"&Cotentin$site=="le_gabion"
+                               |Cotentin$date=="2010-01-15"&Cotentin$site=="les_grandes_iles"
+                               |Cotentin$date=="2010-01-15"&Cotentin$site=="polder_ste_marie_cel"
+                               |Cotentin$date=="2010-01-15"&Cotentin$site=="le_milieu"
+                               |Cotentin$date=="2010-01-15"&Cotentin$site=="le_gabion"
+                               |Cotentin$date=="2010-01-15"&Cotentin$site=="la_dune_de_mer"
+                               |Cotentin$date=="2010-01-15"&Cotentin$site=="l_ile_est"))
+                               
 
 #### PARTIE 2 : 
 
@@ -545,22 +804,9 @@ unique(data_fin$espece)
 
 
 
-# Rajouter une colonne avec le nom du secteur : 
-Baie$secteur <- "baie_aiguillon"
 
-# 4. Donnees Cotentin : 
 
-colnames(Cotentin) [11] <- "espece"
-colnames(Cotentin) [13] <- "observateur"
-colnames(Cotentin) [20] <- "abondance"
-colnames(Cotentin) [15] <- "date_1" 
-colnames(Cotentin) [16] <- "date"
-colnames(Cotentin) [18] <- "site" 
-colnames(Cotentin) [25] <- "remarques" 
 
-Cotentin$secteur <- "cotentin"
-Cotentin <- Cotentin[-c(1),]
-Cotentin$date <- ymd(Cotentin$date)
 
 # Ajout des tableaux : 
 

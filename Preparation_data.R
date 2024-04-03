@@ -1,9 +1,9 @@
 setwd("C:/Users/quentin.petit/Documents/Git/StageOFB")
 
 library(lubridate)
-library(plyr)
 library(dplyr)
-
+library(tydyr)
+library(stringr)
 # Ouverture du jeu de données estuaire de la Loire : 
 data <- read.csv("Data/Comptage_estuaire_2004_2024.csv", header = T, fileEncoding = "utf-8", sep = ";")
 View(data)
@@ -26,7 +26,7 @@ str(Cotentin)
 
 ### Unifier les noms des colonnes entre les différents tableaux de données : 
 
-      ######### 1. Donnees estuaire : ###########
+      ######### 1. Estuaire Loire : ###########
 
 colnames(data)[5] <- "site"
 colnames(data) [4] <- "secteur"
@@ -44,8 +44,6 @@ colnames(data) <-iconv(colnames(data), from = 'UTF-8', to = 'ASCII//TRANSLIT')
 data[,6] <- tolower(data[,6])
 data[,6] <- gsub(" ","_",data[,6])
 data[,6] <- gsub("\\.","", data[,6])
-data[,6] <- gsub("é","e",data[,6]) # [RL] très bien, normalement la fonction iconv() permet de faire ça mais en tout cas c'est important de ne plus avoir d'accent.
-data[,6] <- gsub("à","a",data[,6])
 data[,6] <- gsub("'","_",data[,6])
 data[,6] <-iconv(data[,6], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
@@ -56,10 +54,6 @@ unique(data$espece)
 data[,6] <- gsub("chevalier_combattant","combattant_varie",data[,6])
 data[,6] <- gsub("bernache_nonette","bernache_nonnette", data[,6])
 data[,6] <- gsub("tournepierre","tournepierre_a_collier", data[,6])
-
-#Vérification des abondances : 
-unique(data$abondance)
-
 
 # Forme des dates: regarder les formats (JJ/MM/YYYY)
 class(data$date)
@@ -81,7 +75,6 @@ data[,5] <- tolower(data[,5])
 data[,5] <- gsub(" ","_",data[,5])
 data[,5] <- gsub("-","_", data[,5])
 data[,5] <- gsub("/","", data[,5])
-data[,5] <- gsub("é","e",data[,5])
 data[,5] <-iconv(data[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
 # Problèmes avec certains noms :
@@ -89,13 +82,17 @@ data[,5] <-iconv(data[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 data[,5] <- gsub("paimboeuf___corsept","paimboeuf_corsept",data[,5])
 data[,5] <- gsub("paimboeuf_corsept_","paimboeuf_corsept",data[,5])
 data[,5] <- gsub("saint_brevin__mean","saint_brevin_mean",data[,5])
+# Corsept et Paimboeuf_corsept sont les mêmes sites : 
+
+data$site[data$site=="corsept"] <- "paimboeuf_corsept"
+
 
 #  Nom du secteur : (enlever les majuscules)
 unique(data$secteur)
 data[,4] <- tolower(data[,4])
 
 #Remplacement des cases vides par le nom du site :
-data$site[data$secteur == ""] <- "estuaire"
+data$secteur[data$secteur == ""] <- "estuaire"
 
 # Uniformiser les noms des observateurs : ## Compliqué d'unifier les noms (des fois il y'a les initiales du prénom, des fois pas, plusieurs cas de figures)
 data[,8] <- tolower(data[,8])
@@ -111,9 +108,14 @@ data$qualite_comptage <- with(data, ifelse(data$remarques=="comptage partiel",'d
                                                                                                               ifelse(data$remarques=="pollution hydrocarbures du 16/03/08 (180tonnes) + hélicot survol",'douteux',
                                                                                                               ifelse(data$remarques=="dérangement : kite surf et chien non tenu en laisse",'douteux',
                                                                                                               ifelse(data$remarques=="comptage trop tardif par rapport à la marée",'douteux',
-                                                                                                                     ifelse(data$date=="2021-08-20" & data$site =="saint_brevin",'douteux',
+                                                                                                                    ifelse(data$date=="2021-08-20" & data$site =="saint_brevin",'douteux',
                                                                                                                             ifelse(data$date=="2017-09-19" & data$site=="migron",'douteux','ok'))))))))))
 unique(data$qualite_comptage)
+
+
+
+
+
 
 #Vérifier les abondances : 
 unique(data$abondance) 
@@ -368,6 +370,13 @@ Baie[,3] <- gsub("sarcelle_a_ailes_vertes,_sarcelle_de_la_caroline","sarcelle_a_
 Baie[,3] <- gsub("tadorne_casarca,_casarca_roux","tadorne_casarca",Baie[,3])
 Baie[,3] <- gsub("tournepierre_a_collier,_pluvier_des_salines","tournepierre_a_collier",Baie[,3])
 
+# retirer les espèces inderterminées : 
+Baie <- subset(Baie, !(Baie$espece=="anatides_sp"|Baie$espece=="barge_sp"|Baie$espece=="canard_sp"|Baie$espece=="courlis_sp"|
+                       Baie$espece=="macreuse_sp"|Baie$espece=="oie_sp"))
+
+# retirer les hybrides : 
+Baie <- subset(Baie, !(Baie$espece=="hybride_tadorne_de_casarca_x_belon"))
+
 #noms des sites : 
 unique(Baie$site)
 Baie[,5] <- tolower(Baie[,5])
@@ -420,115 +429,107 @@ Baie <- subset(Baie,!(Baie$abondance=="NA"))
 #Prendre en compte les remarques : 
 unique(Baie$remarques)
 Baie[,14]<- iconv(Baie[,14], from = 'UTF-8', to = 'ASCII//TRANSLIT')
-
+Baie[,14] <- gsub(" ","_",Baie[,14])
 #Ajouter la colonne qualité du comptage : 
 
+# Uniformisation des remarques (pour que ça passe avec ifelse) 
 
+Baie$remarques[Baie$remarques=="Comptage_un_peu_galere_because_meteo._J'ai_essaye_de_tout_compter_avant_l'orage_(fin_de_comptage_vers_15H)._Par_contre,_j'ai_fait_la_partie_plage_sous_l'orage_et_le_vent_donc_les_effectifs_de_sanderling_sont_clairement_sous-estimes_(voir_Grand_Gravelot_et_BV)."] <- "conditions_meteo_pas_fav"
+Baie$remarques[Baie$remarques=="Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/20219"] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="la,_sous-estimation_claire_(je_n'ai_pas_pu_aller_a_la_prairie_la_ou_elles_se_tiennent_-_Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="la_sous_estime_severe_-_Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="sous_estime_-_Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="un_melange_de_PA,_BV_et_maubeche_certainement._Comptage_a_partir_de_la_rade_d'amour_et_de_l'estuaire_du_Lay_cote_Aiguillon_(battue_sanglier_sur_le_reste)_-_Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="sous-estimes_car_il_y_en_avait_pose_sur_les_pres_sales_-_Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="Attention_difference_avec_les_coef_habituels_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019._Eau_trop_haute_du_aux_basses_pressions,_oiseaux_deja_sur_les_mizottes_a_9h"] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="sous-estime_-_Attention_difference_avec_les_coef_habituels_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019._Eau_trop_haute_du_aux_basses_pressions,_oiseaux_deja_sur_les_mizottes_a_9h"] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="site_en_travaux"] <- "derangement_travaux"
+Baie$remarques[Baie$remarques=="Attention_difference_avec_les_coef_habituels_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019._Eau_trop_haute_du_aux_basses_pressions,_oiseaux_deja_sur_les_mizottes_a_9h."] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="mauvaise_visibilite"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="comptage_partiel_(travaux)"] <- "derangement_travaux"
+Baie$remarques[Baie$remarques=="4_camping_car_sur_site"] <- "derangement_loisir"
+Baie$remarques[Baie$remarques=="5_camping_car_sur_site"] <- "derangement_loisir"
+Baie$remarques[Baie$remarques=="8_filets_sur_les_vases,_2_pecheurs"] <- "derangement_peche"
+Baie$remarques[Baie$remarques=="Derangement_le_matin"] <- "derangement"
+Baie$remarques[Baie$remarques=="Derange_par_chasseur,_comptage_non_exhaustif"] <- "derangement_chasse"
+Baie$remarques[Baie$remarques=="Travaux_en_cours_sur_la_digue"] <- "derangement_travaux"
+Baie$remarques[Baie$remarques=="Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2022"] <- "diff_coef_maree"
+Baie$remarques[Baie$remarques=="Par_ailleurs_j'ai_un_vol_d'environ_1000_oiseaux_(maubeches_et_PA_a_priori)_a_14h47_partant_vers_Charlotte._Je_n'ai_pas_pu_le_compter_correctement_mais_a_priori_Charlotte_non_plus._"] <- "comptage_partiel"
+Baie$remarques[Baie$remarques=="Comptage_partiel,_brume"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="Comptage_partiel,_brume._Sur_les_mizottes"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="Comptage_partiel,_brume,_dont_30_dans_les_mizottes"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="au_moins_un_pecheur_au_filet_fixe"] <- "derangement_peche"
+Baie$remarques[Baie$remarques=="au_moins_3_pecheurs_au_filet_fixe_entre_la_Marina_et_les_Chaines"] <- "derangement_peche"
+Baie$remarques[Baie$remarques=="a_14h50._au_moins_3_pecheurs_au_filet_fixe_entre_la_Marina_et_les_Chaines._"] <- "derangement_peche"
+Baie$remarques[Baie$remarques=="a_15h._au_moins_3_pecheurs_au_filet_fixe_entre_la_Marina_et_les_Chaines._"] <- "derangement_peche"
+Baie$remarques[Baie$remarques=="a_15h05._au_moins_3_pecheurs_au_filet_fixe_entre_la_Marina_et_les_Chaines._"] <- "derangement_peche"
+Baie$remarques[Baie$remarques=="1_pecheur_a_l'haveneau"] <- "derangement_peche"
+Baie$remarques[Baie$remarques=="baccage_sur_le_canal_de_Lucon"] <- "derangement_travaux"
+Baie$remarques[Baie$remarques=="Impossible_de_donner_un_chiffre_car_mer_agitee"] <- "conditions_meteo_pas_fav"
+Baie$remarques[Baie$remarques=="tres_mauvaises_conditions_(pluie_et_vent),_effectifs_minimum"] <- "conditions_meteo_pas_fav"
+Baie$remarques[Baie$remarques=="en_vol,_tres_mauvaises_conditions_(pluie_et_vent),_effectifs_minimum"] <- "conditions_meteo_pas_fav"
+Baie$remarques[Baie$remarques=="plus_de_100_le_matin_au_niveau_digue,_tres_mauvaises_conditions_(pluie_et_vent),_effectifs_minimum"] <- "conditions_meteo_pas_fav"
+Baie$remarques[Baie$remarques=="Mauvaise_visibilite_nord-ouest_du_poste_(comptage_realise_par_Anaide)"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="Oiseaux_ont_probablement_glisses_sur_la_Sevre_avant_que_le_brouillard_se_leve"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="Dont_50_jeunes._Mauvaise_visibilite_nord-ouest_du_poste_(comptage_realise_par_Anaide)"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="Baccage_du_Cure_en_cours"] <- "derangement_travaux"
+Baie$remarques[Baie$remarques=="tonnes_forts_dans_les_polders_de_Triaize"] <- "conditions_meteo_pas_fav"
+Baie$remarques[Baie$remarques=="Baccage_du_cure"] <- "derangement_travaux"
+Baie$remarques[Baie$remarques=="comptage_complique,_la_plupart_des_oiseaux_en_amont_de_l'estuaire"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="Mauvaises_conditions_de_visibilite_apres_16h15"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="Mauvaises_conditions_de_visibilite"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="pecheurs_entre_Pte_et_Cure"] <- "derangement_peche"
+Baie$remarques[Baie$remarques=="manque_d'eau_et_travaux_de_remplacement_de_l'ouvrage_hydraulique_principal"] <- "derangement_travaux"
+Baie$remarques[Baie$remarques=="Visibilite_difficile,_comptage_partiel_pour_les_especes_les_plus_petites."] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="pecheurs_au_carrelet"] <- "derangement_peche"
+Baie$remarques[Baie$remarques=="mauvaises_conditions_meteo"] <- "conditions_meteo_pas_fav"
+Baie$remarques[Baie$remarques=="2_bateaux_civelle_canal_de_lucon,_peu_d'anatides._400_sarcelles_en_arrivant_sur_poste,_parties_et_non_revu_par_les_voisins"] <- "derangement_peche"
+Baie$remarques[Baie$remarques=="Temps_maussade_et_couvert_au_debut,_mais_devenant_lumineux_et_ensoleille."] <- "conditions_meteo_pas_fav"
+Baie$remarques[Baie$remarques=="des_chasseurs_en_bordure_de_RNR__lors_du_comptage_donc_pas_mal_de_derangement_observe_"] <- "derangement_chasse"
+Baie$remarques[Baie$remarques=="mauvaise visibilite"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="sous_estime"] <- "sous_estimation"
+Baie$remarques[Baie$remarques=="Sous_estimation_avec_poste_des_Chaines"] <- "sous_estimation"
+Baie$remarques[Baie$remarques=="vol_15h02_sous_estimation_avec_poste_du_Cure"] <- "sous_estimation"
+Baie$remarques[Baie$remarques=="Comptage_partiel,_brume._Dans_les_mizottes"] <- "mauvaise_visibilite"
+Baie$remarques[Baie$remarques=="possible_sous_estimation,_difficiles_a_compter"] <- "sous_estimation"
+Baie$remarques[Baie$remarques=="en_vol,_peut-etre_une_sous_estimation"] <- "sous_estimation"
+Baie$remarques[Baie$remarques=="condition_meteo_pas_fav"] <- "conditions_meteo_pas_fav"
 
-#Un peu lourd... # Trouver autre chose... 
-
-
-
-
-Baie$qualite_comptage <- with(Baie, ifelse(Baie$remarques=="Comptage tres approximatif (très mauvaises conditions, cf compte rendu papier) ne prendre en compte pour exploitation que les Oies, Bernaches et BQN","douteux",
-                                           ifelse(Baie$remarques=="Attention différence avec les coef habituel de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/20219", "douteux",
-                                            ifelse(Baie$remarques=="Attention différence avec les coef habituel de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2019","douteux",
-                                            ifelse(Baie$remarques=="Attention différence avec les coef habituels de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2019. Eau trop haute du aux basses pressions, oiseaux déjà sur les mizottes à 9h","douteux",
-                                            ifelse(Baie$remarques=="Attention différence avec les coef habituels de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2019. Eau trop haute du aux basses pressions, oiseaux déjà sur les mizottes à 9h.","douteux",
-                                            ifelse(Baie$remarques=="Attention différence avec les coef habituel de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2022","douteux",
-                                            ifelse(Baie$remarques=="là, sous-estimation claire (je n’ai pas pu aller à la prairie là où elles se tiennent - Attention différence avec les coef habituel de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2019","douteux",
-                                            ifelse(Baie$remarques=="là sous estimé sévère - Attention différence avec les coef habituel de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2019","douteux",
-                                            ifelse(Baie$remarques=="un mélange de PA, BV et maubèche certainement. Comptage à partir de la rade d’amour et de l’estuaire du Lay côté Aiguillon (battue sanglier sur le reste) - Attention différence avec les coef habituel de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2019","douteux",
-                                            ifelse(Baie$remarques=="sous estimé - Attention différence avec les coef habituel de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2019","douteux",
-                                            ifelse(Baie$remarques=="sous-estimés car il y en avait posé sur les prés salés - Attention différence avec les coef habituel de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2019","douteux",
-                                            ifelse(Baie$remarques=="sous-estimé - Attention différence avec les coef habituels de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2019. Eau trop haute du aux basses pressions, oiseaux déjà sur les mizottes à 9h","douteux",
-                                            ifelse(Baie$remarques=="sous-estimé - Attention différence avec les coef habituels de comptage (59), comptage de rattrapage suite à l'annulation du comptage 12/12/2019. Eau trop haute du aux basses pressions, oiseaux déjà sur les mizottes à 9h","douteux",
-                                            ifelse(Baie$remarques=="site en travaux","douteux",
-                                            ifelse(Baie$remarques=="Comptage hors comptage mensuel car imposible à la date du comptage mensuel et de la date de report","douteux",
-                                            ifelse(Baie$remarques=="mauvaise visibilité","douteux",
-                                            ifelse(Baie$remarques=="Mauvaises conditions de visibilité","douteux",
-                                            ifelse(Baie$remarques=="mauvaises conditions météo","douteux",
-                                            ifelse(Baie$remarques=="Mauvaise visibilité nord-ouest du poste (comptage réalisé par Anaïde)","douteux",
-                                            ifelse(Baie$remarques=="Dont 50 jeunes. Mauvaise visibilité nord-ouest du poste (comptage réalisé par Anaïde)","douteux",
-                                            ifelse(Baie$remarques=="Mauvaises conditions de visibilité après 16h15","douteux",
-                                            ifelse(Baie$remarques=="des chasseurs en bordure de RNR  lors du comptage donc pas mal de dérangement observé ","douteux",
-                                            ifelse(Baie$remarques=="2 bateaux civelle canal de luçon, peu d'anatidés. 400 sarcelles en arrivant sur poste, parties et non revu par les voisins","douteux",
-                                            ifelse(Baie$remarques=="pêcheurs au carrelet","douteux",
-                                            ifelse(Baie$remarques=="Visibilité difficile, comptage partiel pour les espèces les plus petites.","douteux",
-                                            ifelse(Baie$remarques=="manque d’eau et travaux de remplacement de l’ouvrage hydraulique principal","douteux",
-                                            ifelse(Baie$remarques=="pêcheurs entre Pte et Curé","douteux",
-                                            ifelse(Baie$remarques=="Visibilité difficile, comptage partiel pour les espèces les plus petites (bv,gg)","douteux",
-                                            ifelse(Baie$remarques=="Visibilité difficile, comptage partiel pour les espèces les plus petites (bv)","douteux",
-                                            ifelse(Baie$remarques=="fauchage aux abords du bassin aux alentours du 12 juillet ","douteux",
-                                            ifelse(Baie$remarques=="brumes de chaleur impactantes","douteux",
-                                            ifelse(Baie$remarques=="comptage très difficile, brumes de chaleur et la mer n'est pas montée vite. Identification possible lorsque tout el monde avait déjà fini de compter","douteux",
-                                            ifelse(Baie$remarques=="3 pêcheurs venus mettre des filets entre Marina et les Chaines","douteux",
-                                            ifelse(Baie$remarques=="comptage compliqué, la plupart des oiseaux en amont de l'estuaire","douteux",
-                                            ifelse(Baie$remarques=="Baccage du curé","douteux",
-                                            ifelse(Baie$remarques=="Baccage du Curé en cours","douteux",
-                                            ifelse(Baie$remarques=="tonnes forts dans les polders de Triaize","douteux",
-                                            ifelse(Baie$remarques=="en vol, très mauvaises conditions (pluie et vent), effectifs minimum","douteux",
-                                            ifelse(Baie$remarques=="Impossible de donner un chiffre car mer agitée","douteux",
-                                            ifelse(Baie$remarques=="baccage sur le canal de Luçon","douteux",
-                                            ifelse(Baie$remarques=="au moins un pêcheur au filet fixe","douteux",
-                                            ifelse(Baie$remarques=="dont 3400 envolé à 15h45. au moins 3 pêcheurs au filet fixe entre la Marina et les Chaines. ","douteux",
-                                            ifelse(Baie$remarques=="1 pêcheur à l'haveneau","douteux",
-                                            ifelse(Baie$remarques=="à 15h05. au moins 3 pêcheurs au filet fixe entre la Marina et les Chaines. ","douteux",
-                                            ifelse(Baie$remarques=="à 15h. au moins 3 pêcheurs au filet fixe entre la Marina et les Chaines. ","douteux",
-                                            ifelse(Baie$remarques=="à 14h50. au moins 3 pêcheurs au filet fixe entre la Marina et les Chaines. ","douteux",
-                                            ifelse(Baie$remarques=="Comptage partiel, brume","douteux",
-                                            ifelse(Baie$remarques=="Comptage partiel, brume. Sur les mizottes","douteux",
-                                            ifelse(Baie$remarques=="Comptage partiel, brume. Dans les mizottes","douteux",
-                                            ifelse(Baie$remarques=="Comptage partiel, brume, dont 30 dans les mizottes","douteux",
-                                            ifelse(Baie$remarques=="Travaux en cours sur la digue","douteux",
-                                            ifelse(Baie$remarques=="Dérangé par chasseur, comptage non exhaustif","douteux",
-                                            ifelse(Baie$remarques=="Dérangement le matin","douteux",
-                                            ifelse(Baie$remarques=="dérangement pêcheurs  filets calés","douteux",
-                                            ifelse(Baie$remarques=="brume de chaleur","douteux",
-                                            ifelse(Baie$remarques=="8 filets sur les vases, 2 pêcheurs","douteux",
-                                            ifelse(Baie$remarques=="comptage partiel (travaux)","douteux","ok"))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
-
-
-#Lié à certaines espèces et pas au site : 
-Baie$qualite_comptage <- with(Baie,ifelse(Baie$remarques=="sous estimé","douteux",
-                                          ifelse(Baie$remarques=="Estimation pour les bécasseaux car tout ce merdier était bien mélangé et compact.","douteux",
-                                          ifelse(Baie$remarques=="Sous estimation avec poste des Chaines","douteux",
-                                          ifelse(Baie$remarques=="principalement macreuse noires, 21 surfeurs","douteux",
-                                          ifelse(Baie$remarques=="Difficulté d’estimer les BV/PA/ BM entre la bosse et le mirador"&Baie$espece=="becasseau_variable","douteux"))))))
-                                                 
-                                                 
-                                                 
-                                                 #ifelse(Baie$remarques=="Difficulté d’estimer les BV/PA/ BM entre la bosse et le mirador"& Baie$espece=="pluvier_argente","douteux",
-                                                  #ifelse(Baie$remarques=="Difficulté d’estimer les BV/PA/ BM entre la bosse et le mirador"&Baie$espece=="becasseau_maubeche","douteux",
-                                                  
-                                              #ifelse(Baie$remarques=="Sous estimation","douteux",
-                                               #   ifelse(Baie$remarques=="en vol, peut-être une sous estimation","douteux",
-                                                #  ifelse(Baie$remarques=="probablement du chipeau","douteux",
-                                                 # ifelse(Baie$remarques=="possible sous estimation, difficiles à compter","douteux",
-                                                  #ifelse(Baie$remarques=="en vol, très mauvaises conditions (pluie et vent), effectifs minimum","douteux",
-                                                  #ifelse(Baie$remarques=="plus de 100 le matin au niveau digue, très mauvaises conditions (pluie et vent), effectifs minimum","douteux",
-                                                #  ifelse(Baie$remarques=="dont 3400 envolé à 15h45. au moins 3 pêcheurs au filet fixe entre la Marina et les Chaines. ","douteux",
-                                                #  ifelse(Baie$remarques=="groupe mixte BV/maubèche décollant de la pointe de l'aiguillon à 14h48, qui s'est posé sur tous les postes vendéens, mais compté au final sur la Bosse","douteux",
-                                                 # ifelse(Baie$remarques=="Par ailleurs j'ai un vol d'environ 1000 oiseaux (maubeches et PA à priori) à 14h47 partant vers Charlotte. Je n'ai pas pu le compter correctement mais à priori Charlotte non plus. ","douteux",
-                                                  #ifelse(Baie$remarques)=="surtout BV et PA","douteux",
-                                                  #ifelse(Baie$remarques=="BV et PA","douteux",
-                                                  #ifelse(Baie$remarques=="300 en vol non intégrées","douteux",
-                                                  #ifelse(Baie$remarques=="sous-estimés","douteux",
-                                                  #ifelse(Baie$remarques=="sous-estimé","douteux",)))))))))))))))))))))
-
-Baie$qualite_comptage <- with(Baie, ifelse(Baie$site=="arcay"& Baie$date=="2019-10-14","douteux","ok"))
-
-
-unique(Baie$site)
+#Rajout de la colonne qualité de comptage : 
+Baie$qualite_comptage <- with(Baie, ifelse(Baie$site=="arcay" & Baie$date=="2019-10-14" , "douteux",
+                                      ifelse(Baie$remarques=="diff_coeff_maree","douteux",
+                                      ifelse(Baie$remarques=="conditions_meteo_pas_fav","douteux",
+                                      ifelse(Baie$remarques=="derangement_travaux","douteux",
+                                      ifelse(Baie$remarques=="derangement_peche","douteux",
+                                      ifelse(Baie$remarques=="sous_estimation","douteux",
+                                      ifelse(Baie$remarques=="mauvaise_visibilite","douteux",
+                                      ifelse(Baie$remarques=="derangement_loisir","douteux",
+                                      ifelse(Baie$remarques=="brume_de_chaleur","douteux",
+                                      ifelse(Baie$remarques=="derangement","douteux",
+                                      ifelse(Baie$remarques=="derangement_chasse","douteux",
+                                      ifelse(Baie$remarques=="comptage_partiel","douteux",
+                                      ifelse(Baie$remarques=="mer_montee_vite","douteux",
+                                      ifelse(Baie$remarques=="en_vol,_peut-etre_une_sous_estimation","douteux","ok")))))))))))))))
 
 # Rajouter une colonne avec le nom du secteur : 
 Baie$secteur <- "baie_aiguillon"
 
+# Ajouter les sites non prospectés et non renseignés pour toutes les dates :  
+#site <- expand.grid(Baie$date,Baie$site)
+#id$site <- paste(Baie$date,Baie$site)
+#id$Baie <- paste(Baie$date,Baie$site)
+# Le combiner au tableau original 
+#Baie <- merge(Baie,site,by.x = "id",by.y = "id",all.x = T)
+
+
 #Enlever les colonnes qui ne servent pas à grand chose : 
-Baie <- Baie[,-c(1,2,9,15,20,21)]
+Baie <- Baie[,-c(1,2,9,10,15,16,20,21)]
 
 
-      ##########"# 4. Le cotentin : #############
+
+
+      ########## 4. Le cotentin : #############
 
 Cotentin <- read.csv("Data/donnees_cotentin.csv",header = T,fileEncoding = "utf-8",sep = ";")
 str(Cotentin)
@@ -559,6 +560,7 @@ colnames(Cotentin) [10] <- "observation_protocole"
 colnames(Cotentin) [12] <- "remarques"
 
 #Format de la date : 
+unique(Cotentin$date)
 Cotentin$date <- ymd(Cotentin$date)
 
 #Nom des espèces : 
@@ -594,6 +596,11 @@ Cotentin[,3] <- gsub("tournepierre_a_colliers","tournepierre_a_collier",Cotentin
 
 # Enlever guillemot, pinguin torda, labbe parasite :
 Cotentin <- subset(Cotentin,!(Cotentin$espece=="pingouin_torda,_petit_pingouin"|Cotentin$espece=="guillemot_de_troil"|Cotentin$espece=="labbe_parasite"))
+
+# -> Protocole remise diurne -> Anatidés comptés de manières exhaustive (pas les limicoles - sauf vanneau et pluvier doré)
+# -> Protocole limicoles côtiers -> Limicoles cotiers compté de manière exaustive + 4 anatidés : Bernache cravant ; Tadorne de B ; Eider à D ; Harle huppé
+    # -> En revanche autres anatidés pas de manière exhaustive (donc les retirer) idem pour les limicoles terrestre (bécassines + pluvier doré + vanneau)
+
 
 #Nom famille et ordre :
 
@@ -710,7 +717,288 @@ Cotentin <- subset(Cotentin, !(Cotentin$date=="2007-12-21"& Cotentin$site=="le_g
                                |Cotentin$date=="2010-01-15"&Cotentin$site=="le_gabion"
                                |Cotentin$date=="2010-01-15"&Cotentin$site=="la_dune_de_mer"
                                |Cotentin$date=="2010-01-15"&Cotentin$site=="l_ile_est"))
-                               
+
+
+            ###################### Données Arcachon ###########
+
+Arcachon <- read.csv("Data/donnees_arcachon_limicoles.csv", header = T, fileEncoding = "UTF-8", sep = ";")
+View(Arcachon)
+str(Arcachon)
+
+#Nom des colonnes : 
+
+colnames(Arcachon)[1] <- "date"
+colnames(Arcachon) [2] <- "annee"
+colnames(Arcachon) [3] <- "mois_let"
+colnames(Arcachon) [4] <- "espece"
+colnames(Arcachon) [5] <- "nom_latin"
+colnames(Arcachon) [6] <- "lieu_dit"
+colnames(Arcachon) [7] <- "site"
+colnames(Arcachon) [8] <- "commune"
+colnames(Arcachon) [9] <- "abondance"
+colnames(Arcachon) [10] <- "heure_bm"
+colnames(Arcachon) [11] <- "coeff"
+colnames(Arcachon) [12] <- "observateurs"
+colnames(Arcachon) [19] <- "derangement"                               
+colnames(Arcachon) [18] <- "remarques"
+
+#Nom des especes: 
+
+Arcachon[,4] <- tolower(Arcachon[,4])
+Arcachon[,4] <- gsub(" ","_",Arcachon[,4])
+Arcachon[,4] <- gsub("é","e",Arcachon[,4])
+Arcachon[,4] <- gsub("î","i",Arcachon[,4])
+Arcachon[,4] <- gsub("è","e",Arcachon[,4])
+Arcachon[,4] <- gsub("à","a",Arcachon[,4])
+Arcachon[,4] <-iconv(Arcachon[,4], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+sort(unique(Arcachon$espece))
+
+# Problème des espaces en fin de noms 
+
+Arcachon[,4] <- gsub("avocette_elegante_","avocette_elegante",Arcachon[,4])
+Arcachon[,4] <- gsub("becasseau_maubèche_","becasseau_maubèche",Arcachon[,4])
+Arcachon[,4] <- gsub("becasseau_variable_","becasseau_variable",Arcachon[,4])
+Arcachon[,4] <- gsub("becassine_des_marais_","becassine_des_marais",Arcachon[,4])
+Arcachon[,4] <- gsub("chevalier_aboyeur_","chevalier_aboyeur",Arcachon[,4])
+Arcachon[,4] <- gsub("chevalier_gambette_","chevalier_gambette",Arcachon[,4])
+Arcachon[,4] <- gsub("vanneau_huppe_","vanneau_huppe",Arcachon[,4])
+Arcachon[,4] <- gsub("barge_rousse_","barge_rousse",Arcachon[,4])
+Arcachon[,4] <- gsub("chevalier_culblanc_","chevalier_culblanc",Arcachon[,4])
+Arcachon[,4] <- gsub("courlis_corlieu_","courlis_corlieu",Arcachon[,4])
+Arcachon[,4] <- gsub("tournepierre_a_collier_","tournepierre_a_collier",Arcachon[,4])
+Arcachon[,4] <- gsub("barge_à_queue_noire_","barge_à_queue_noire",Arcachon[,4])
+Arcachon[,4] <- gsub("becasseau_cocorli_","becasseau_cocorli",Arcachon[,4])
+Arcachon[,4] <- gsub("becasseau_minute_","becasseau_minute",Arcachon[,4])
+Arcachon[,4] <- gsub("becasseau_sanderling_","becasseau_sanderling",Arcachon[,4])
+Arcachon[,4] <- gsub("chevalier_arlequin_","chevalier_arlequin",Arcachon[,4])
+Arcachon[,4] <- gsub("courlis_cendre_","courlis_cendre",Arcachon[,4])
+Arcachon[,4] <- gsub("grand_gravelot_","grand_gravelot",Arcachon[,4])
+
+# ATTENTION Pas que des limicoles dans le jeu de données : des ardéidés aussi ! 
+# Les retirer : 
+
+Arcachon <- subset(Arcachon, !(Arcachon$espece=="aigrette_des_recifs"|Arcachon$espece=="heron_cendre"|Arcachon$espece=="spatule_blanche"))
+
+# Case vide + NC + RAS + données sp + "Gravelot ou becasseau" 
+
+
+# Format de date : 
+unique(Arcachon$date)
+# Enlever les dates où pas de comptage à cause des mauvaises conditions météo : 
+Arcachon <- subset(Arcachon,!(Arcachon$date=="Octobre, aucun comptage tempêtes successives"|Arcachon$date=="Pas de comptage météo horrible (non représentatif)"))
+Arcachon$date <- dmy(Arcachon$date)
+
+#Ajouter le mois : en "chiffre"
+Arcachon$mois <- month(Arcachon$date)
+unique(Arcachon$mois)
+
+# -> Ne conserver que les mois pour les hivernants : 
+
+Arcachon <- subset(Arcachon,!(Arcachon$mois=="5"|Arcachon$mois=="6"|Arcachon$mois=="7"|Arcachon$mois=="8"))
+
+
+#Nom des sites :
+unique(Arcachon$site)
+Arcachon[,7] <- tolower(Arcachon[,7])
+Arcachon[,7] <- gsub(" ","_",Arcachon[,7])
+Arcachon[,7] <- gsub("é","e",Arcachon[,7])
+Arcachon[,7] <- gsub("-","_",Arcachon[,7])
+Arcachon[,7] <- gsub("'","_",Arcachon[,7])
+Arcachon[,7] <-iconv(Arcachon[,7], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+# PB avec les espaces en fin de mots : 
+# -> 
+Arcachon[,7] <- gsub("ile_aux_oiseaux_","ile_aux_oiseaux",Arcachon[,7])
+
+#Retrier les lignes où le site n'est pas renseigné : 
+Arcachon <- subset(Arcachon,!(Arcachon$site==""))
+
+# Vérification des abondances : 
+unique(Arcachon$abondance)
+unique(Arcachon[c(995:1363),9])
+#Case vide + Partiel + 0 + NC 
+# Les 0 ne correspondent pas à de vrais absence : mais à des non comptage : 
+
+Arcachon <- subset(Arcachon,!(Arcachon$abondance=="0"|Arcachon$abondance=="NC"|Arcachon$abondance==""))
+
+#Vérification des doublons + double comptage : 
+duplicated(Arcachon)
+duplicated(Arcachon[c(1000:2000),])
+duplicated(Arcachon[c(2000:3000),])
+duplicated(Arcachon[c(3000:4000),])
+duplicated(Arcachon[c(4000:5000),])
+duplicated(Arcachon[c(5000:6000),])
+duplicated(Arcachon[c(6000:7000),])
+duplicated(Arcachon[c(7000:8000),])
+duplicated(Arcachon[c(8000:8551),])
+
+# ATTENTION plusieurs comptage pour la même dans un même site => données agrégées intra-site 
+
+#Ajouter le nom du secteur : 
+
+Arcachon$secteur <- "arcachon"
+
+#Prendre en compte les remarques : 
+unique(Arcachon$remarques)
+
+Arcachon$qualite_comptage <- with(Arcachon, ifelse(Arcachon$remarques=="dérangement: engins nautiques motorisés et non motorisés","douteux",
+                                            ifelse(Arcachon$remarques=="beaucoup de promeneurs","douteux",
+                                            ifelse(Arcachon$remarques=="dérangement: engin nautique non motorisé","douteux",
+                                            ifelse(Arcachon$remarques=="dérangement chasse","douteux",
+                                             ifelse(Arcachon$remarques=="dérangements promeneurs","douteux",
+                                             ifelse(Arcachon$remarques=="dérangement engin nautique motorisé","douteux",
+                                            ifelse(Arcachon$remarques=="comptage depuis la dune, brume épaisse","douteux",
+                                              ifelse(Arcachon$remarques=="brume épaisse","douteux",
+                                              ifelse(Arcachon$remarques=="comptage partiel, 8km, trop de houle","douteux",
+                                                ifelse(Arcachon$remarques=="nbx promeneurs, chiens et kite","douteux",
+                                                ifelse(Arcachon$remarques=="comptage partiel, forte houle","douteux",
+                                                ifelse(Arcachon$remarques=="comptage partiel, panne du bateau","douteux",
+                                               ifelse(Arcachon$remarques=="dérangement bateau 278 quittent le site entre 15:20 et 15h45","douteux",
+                                               ifelse(Arcachon$remarques=="Dérangement drague en limite des reposoirs + nombreuses tonnes occupés","douteux",
+                                              ifelse(Arcachon$remarques=="quelques chasseurs sur place","douteux",
+                                              ifelse(Arcachon$remarques=="dérangements nbx promeneurs","douteux",
+                                              ifelse(Arcachon$remarques=="dérangement vélos electriques + promeneurs","douteux",
+                                              ifelse(Arcachon$remarques=="très nombreux dérangements","douteux",
+                                              ifelse(Arcachon$remarques=="dérangement par Kite","douteux",
+                                              ifelse(Arcachon$remarques=="dérangement Kite, chiens, promeneurs","douteux",
+                                              ifelse(Arcachon$remarques=="nombreux chiens","douteux",
+                                              ifelse(Arcachon$remarques=="chiens + kites","douteux",
+                                              ifelse(Arcachon$remarques=="Attaque de Faucon Pellerin, gros envol","douteux",
+                                              ifelse(Arcachon$remarques=="Attaque de chien","douteux",
+                                              ifelse(Arcachon$remarques=="Dérangement ","douteux","ok"))))))))))))))))))))))))))
+
+
+
+
+            ############## Reserve du Rhin #################
+
+
+Rhin <- read.csv("Data/donnees_reserve_rhin.csv", header = T, fileEncoding = "UTF-8", sep = ";")
+View(Rhin)
+str(Rhin)
+
+#3 sites de comptage divisé en secteurs de comptages : 
+# PB -> ces secteurs (lieux_dits_actuels) peuvent être agrégés (secteur 1+2) en raison de changement de noms
+
+colnames(Rhin) <- tolower(colnames(Rhin))
+colnames(Rhin) <- gsub("\\.","_",colnames(Rhin))
+colnames(Rhin) <- gsub("é","e",colnames(Rhin))
+colnames(Rhin) <- iconv(colnames(Rhin), from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+# Nom espece : 
+
+colnames(Rhin)[4] <- "espece" 
+Rhin[,4] <- tolower(Rhin[,4])
+Rhin[,4] <- gsub(" ","_",Rhin[,4])
+Rhin[,4] <- gsub("'","_",Rhin[,4])
+Rhin[,4] <- iconv(Rhin[,4],from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+sort(unique(Rhin$espece))
+
+# -> Ne conserver que les données pour limicoles et anatidés 
+
+unique(Rhin$famille)
+
+Rhin <- subset(Rhin, Rhin$famille=="Anatidae"|Rhin$famille=="Scolopacidae"|Rhin$famille=="Charadriidae"
+               |Rhin$famille=="Haematopodidae"|Rhin$famille=="Recurvirostridae")
+
+
+sort(unique(Rhin$espece))
+
+# -> Retirer l'oie domestique : 
+Rhin <- subset(Rhin, !(Rhin$espece=="oie_domestique"))
+# -> Retirer les especes indeterminées : 
+Rhin <- subset(Rhin,!(Rhin$espece=="becasseau_indetermine"|Rhin$espece=="chevalier_indetermine_(tringa)"
+                      |Rhin$espece=="gravelot_indetermine"|Rhin$espece=="oie_indeterminee"))
+# -> Retirer les hybrides : 
+Rhin <- subset(Rhin, !(Rhin$espece=="hybride_bernache_du_canada_x_oie_cendree"
+                       |Rhin$espece=="hybride_fuligule_milouin_x_morillon"))
+
+# Format de la date : 
+unique(Rhin$date)
+  # -> Plusieurs formats : 13-janv-19 et 13/01/2019 
+  # PB : le mois est écrit en français : 
+Rhin[,9] <- gsub("14-janv-18","14/01/2018",Rhin[,9])
+Rhin[,9] <- gsub("15-janv-18","15/01/2018",Rhin[,9])
+Rhin[,9] <- gsub("13-janv-19","13/01/2019",Rhin[,9])
+Rhin[,9] <- gsub("15-janv-19","15/01/2019",Rhin[,9])
+Rhin[,9] <- gsub("12-janv-20","12/01/2020",Rhin[,9])
+Rhin[,9] <- gsub("17-janv-21","17/01/2021",Rhin[,9])
+Rhin[,9] <- gsub("12-janv-20","12/01/2020",Rhin[,9])
+Rhin[,9] <- gsub("13-janv-22","13/01/2022",Rhin[,9])
+Rhin[,9] <- gsub("16-janv-22","16/01/2022",Rhin[,9])
+Rhin[,9] <- gsub("20-janv-22","20/01/2022",Rhin[,9])
+Rhin[,9] <- gsub("14-janv-23","14/01/2023",Rhin[,9])
+Rhin[,9] <- gsub("15-janv-23","15/01/2023",Rhin[,9])
+Rhin[,9] <- gsub("14-janv-24","14/01/2024",Rhin[,9])
+
+Rhin$date <- dmy(Rhin$date)
+
+# -> Ne retenir que les années correspondant à notre série temporelle : 
+
+Rhin <- subset(Rhin,! (Rhin$annee<2004))
+
+# -> Ne retenir que les mois pour les hivernants : 
+Rhin <- subset(Rhin, !(Rhin$mois=="5"|Rhin$mois=="6"|Rhin$mois=="7"|Rhin$mois=="8"))
+
+# Enlever les mois de janvier-février-mars et avril 2004 (première saison 2004-2005)
+
+Rhin <- subset(Rhin,!(Rhin$annee=="2004"&Rhin$mois=="1"|Rhin$annee=="2004"&Rhin$mois=="2"|Rhin$annee=="2004"&Rhin$mois=="3"|Rhin$annee=="2004"&Rhin$mois=="4"))
+
+# Noms des sites : 
+    # Pour les 3 sites : 
+unique(Rhin$site)
+Rhin[,1] <- tolower(Rhin[,1])
+
+  # Pour les "intra-sites"
+colnames(Rhin)[20] <- "intra_site"
+Rhin[,20] <- tolower(Rhin[,20])
+Rhin[,20] <- iconv(Rhin[,20], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+Rhin[,20] <- gsub("\\+","_",Rhin[,20])
+
+unique(Rhin$intra_site)
+  # Attention : au niveau des intra-sites : vieux rhin + grande alsace (agrégés) & vieux rhin et grande alsace (séparé)
+# Retirer les intra-sites non renseignés (si on choisit celle échelle) : 
+  # -> Rhin <- subset(Rhin, !(Rhin$intra_site==""))
+
+#Vérification des abondances : 
+colnames(Rhin) [31] <- "abondance"
+unique(Rhin$abondance)
+# -> Pas de 0 : on ne note pas les absences ? + pas de NC / NA 
+
+#Vérification des doublons/double passage : 
+
+duplicated(Rhin) # ok
+duplicated(Rhin[c(1000:2000),]) # ok
+duplicated(Rhin[c(2000:3000),]) # ok
+duplicated(Rhin[c(3000:3864),]) # Erreur saisie d'entrée : 
+# Deux saisies pour Secteur sud le 13/09/2022 ; Rhinland le 13/09/2022 ; Base nautique ; 13/09/2022 
+
+help("distinct")
+Rhin <- distinct(Rhin)
+
+#Ajout du nom du secteur : 
+
+Rhin$secteur <- "reserve_du_rhin"
+
+#Prendre en compte les remarques : 
+unique(Rhin$liste_complete__)
+
+unique(Rhin$remarque)
+
+Rhin$qualite_comptage <- with(Rhin, ifelse(Rhin$liste_complete__=="0","douteux",
+                                           ifelse(Rhin$remarque=="Participants : Carole BIZART, Jean-Marc BRONNER, Yann CARASCO, Luca FETIQUE, Jean-Pierre HISS, Victor ROUAULT. Météo : 10 à 15 cm de neige au sol; redoux en cours, avec températures devenant légèrement positives en journée. Ciel couvert. Quelques faibles pluies et neige mêlées, puis quelques faibles pluies éparses.","douteux",
+                                                  ifelse(Rhin$remarque=="Sous évalué en raison du vent, de nombreux individus sont à l'abri du vent derrière la digue tiroir ou ailleurs","douteux",
+                                                         ifelse(Rhin$remarque=="Mauvaises conditions d'observation. Total peut-être sous-évalué.","douteux","ok")))))
+
+
+
+
+
+
+
+
 
 #### PARTIE 2 : 
 

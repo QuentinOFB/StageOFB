@@ -176,6 +176,7 @@ data <- subset(data,!(data$site=="saint_brevin"&data$date=="2008-07-18"&data$obs
 
 ##Selectionner les espèces limicoles et anatidés et enlever les autres : 
 espece <- read.csv("Data/espece.csv")
+sort(unique(espece$french_name)) 
 View(espece)
 espece[,5] <- tolower(espece[,5])
 espece[,5] <- gsub(" ","_",espece[,5])
@@ -274,17 +275,20 @@ espece[,3] <- gsub(" ","_",espece[,3])
 # Attention au nom latin du cygne de Bewick : 
 Camargue[,8] <- gsub("cygnus_columbianus_bewickii","cygnus_columbianus",Camargue[,8])
 Camargue <- merge(Camargue,espece, by.x = "espece", by.y = "scientific_name_2")
+unique(Camargue$espece)
+# -> Retirer la foulque macroule : 
+Camargue <- subset(Camargue,!(Camargue$espece=="fulica_atra"))
 
 #Retirer les colonnes dont on a pas besoin : 
-Camargue <- Camargue[,-c(1,14,16,18:25)]
+Camargue <- Camargue[,-c(1,2,4,13,14,16,18:25)]
 
 # Remettre les noms des obs et des colonnes au propre 
-colnames(Camargue)[14] <- "espece"
-Camargue[,14] <- tolower(Camargue[,14])
-Camargue[,14] <- gsub(" ","_",Camargue[,14])
+colnames(Camargue)[11] <- "espece"
+Camargue[,11] <- tolower(Camargue[,11])
+Camargue[,11] <- gsub(" ","_",Camargue[,11])
 
-Camargue[,13] <- tolower(Camargue[,13])
-Camargue[,13] <- gsub(" ","_",Camargue[,13])
+Camargue[,10] <- tolower(Camargue[,10])
+Camargue[,10] <- gsub(" ","_",Camargue[,10])
 
 #Création d'une colonne "secteur" pour la Camargue : 
 Camargue$secteur <- "camargue"
@@ -389,6 +393,16 @@ Baie[,5] <- gsub("è","e",Baie[,5])
 Baie[,5] <- gsub("ç","c",Baie[,5])
 Baie[,5] <-iconv(Baie[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 # est-ce qu'il faut enlever les paranthèses ? 
+
+# -> Ne sélectionner que les sites avec plus de 3 comptages sur plusieurs années : 
+Baie <- subset(Baie,!(Baie$site=="communal_d_anais"|Baie$site=="communal_d_angliers"|Baie$site=="communal_de_courcon"|
+                        Baie$site=="communal_de_langon"|Baie$site=="communal_de_sainte_gemme_la_plaine"|Baie$site=="communal_du_gue_d_allere"
+                      |Baie$site=="etang_de_la_sabliere"|Baie$site=="la_dive"|Baie$site=="la_terriere"
+                      |Baie$site=="lagunage_de_l_ile_d_elle"|Baie$site=="lagunage_de_saint_michel_en_l_herm"
+                      |Baie$site=="marais_de_la_bretonniere"|Baie$site=="plan_d_eau_des_guifettes"
+                      |Baie$site=="pointe_du_payre"))
+
+Baie$site[Baie$site=="la_mare_a_2000"] <- "mare_a_2000"
 
 #Format date 
 unique(Baie$date) #de 1977 à 2024
@@ -524,9 +538,36 @@ Baie$secteur <- "baie_aiguillon"
 
 
 #Enlever les colonnes qui ne servent pas à grand chose : 
-Baie <- Baie[,-c(1,2,9,10,15,16,20,21)]
+Baie <- Baie[,-c(1,2,4,9,10,15,16,20,21)]
 
+# Vérification des doublons :
+duplicated(Baie)
+duplicated(Baie[c(1000:2000),])
+duplicated(Baie[c(2000:3000),])
+duplicated(Baie[c(3000:4000),]) # Doublon pour le bécasseau variable (12) le 2013-03-11 pour le site Communal de Lairoux
+duplicated(Baie[c(4000:5000),])
+duplicated(Baie[c(5000:6000),])
+duplicated(Baie[c(6000:7000),])
+duplicated(Baie[c(7000:8000),])
+duplicated(Baie[c(8000:9000),])
+duplicated(Baie[c(9000:10000),]) # 14 doublons 
+duplicated(Baie[c(10000:11000),])# 1 doublon : bernache cravant 
+duplicated(Baie[c(11000:12000),])
+duplicated(Baie[c(12000:13000),])
+duplicated(Baie[c(13000:14000),])
+duplicated(Baie[c(14000:15000),])# 31 doublons 
+duplicated(Baie[c(15000:16000),])
+duplicated(Baie[c(16000:17000),])#16 doublons 
+duplicated(Baie[c(17000:18000),])
+duplicated(Baie[c(18000:19000),])#10 doublons 
+duplicated(Baie[c(19000:20000),])
+duplicated(Baie[c(20000:21000),])#19 doublons 
+duplicated(Baie[c(21000:22000),])
+duplicated(Baie[c(22000:23000),])
+duplicated(Baie[c(23000:24000),])
+duplicated(Baie[c(24000:24715),])
 
+Baie <- distinct(Baie)   
 
 
       ########## 4. Le cotentin : #############
@@ -646,6 +687,10 @@ unique(Cotentin$abondance)
 # Attention à certains moments des fourchettes sont données ex : 420-440 
 # Que faire ? Prendre la moyenne, le min, le max, ou supprimer ? 
 
+Cotentin$moy <- apply(Cotentin$abondance,FUN = mean)
+
+help("apply")
+
 #sélection des années et des mois : 
 
 Cotentin$annee <- year(Cotentin$date)
@@ -661,20 +706,157 @@ Cotentin <- subset(Cotentin,!(Cotentin$mois=="5"|Cotentin$mois=="6"|Cotentin$moi
 
 
 #####Prendre en compte les remarques : (à compléter)
-Cotentin$remarques
+unique(Cotentin$remarques)
 
-#Enlever les dates où les conditions de comptage sont mauvaises : 
+Cotentin[,12] <- gsub(":","_",Cotentin[,12])
+Cotentin[,12] <- gsub("/","_",Cotentin[,12])
+Cotentin[,12] <- gsub(" ","_",Cotentin[,12])
+Cotentin[,12] <- iconv(Cotentin[,12], from = 'UTF-8', to ='ASCII//TRANSLIT')
+#Uniformisation des remarques : 
 
-Cotentin <- subset(Cotentin, !(Cotentin$date=="2021-02-12"& Cotentin$site=="polder_ste_marie_cel"|
-                               Cotentin$date=="2009-01-09"&Cotentin$site=="le_gabion"
-                                 |Cotentin$date=="2010-03-26"&Cotentin$site=="polder_ste_marie_cel"
-                               |Cotentin$date=="2011-01-13"&Cotentin$site=="la_dune_sud"
-                               |Cotentin$date=="2011-03-18"&Cotentin$site=="polder_ste_marie_cel"
-                               |Cotentin$date=="2011-03-18"&Cotentin$site=="les_grandes_iles"
-                               |Cotentin$date=="2011-03-18"&Cotentin$site=="le_gabion"
-                               |Cotentin$date=="2011-03-18"&Cotentin$site=="la_dune_sud"
-                               |Cotentin$date=="2011-03-18"&Cotentin$site=="l_ile_est"))
-  
+Cotentin$remarques[Cotentin$remarques== "Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Inondes___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_Travaux_terrassement_chemin_des_observatoires"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Conditions_de_denombrement___Mauvaises___Facteur_1___Vent___Decompte___Decompte_total___Remarque___fosses,_prairies_gelees,_froid_intense,_mer_agitee"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="___derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Petites_chutes_de_neige___"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="travaux_dans_le_polder"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="seulement_canaux_en_eau___le_suivi_de_la_mare_de_gabion_reste_difficile_et_partiel_a_partir_de_l'observatoire_de_la_dune_sud_(niveau_d'eau_faible)"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="seulement_canaux_en_eau___suivi_difficile,_probablement_moins_exhaustif_qu'habituellement_a_la_meme_epoque_(niveau_d'eau_faible)"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="seulement_canaux_en_eau"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Site_gele_a_90%_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>site_partiellement_gele_<br>_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres<br>Decompte_total<br>Site_gele_en_grande_partie._Bonne_precision__derangement__"] <- "mauvaise_condition_comptage"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Site_gele_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Site_gele_a_80%<br>Neige_au_sol_(5-6cm),_sol_couvert_a_60%_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_partiel<br>Niveau_d'eau_tres_faible_Bonne_precision__derangement__"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Site_gele_a_80%_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Site_gele_en_presque_totalite_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_(derangement)<br>Decompte_total<br>Chiens_en_divagation._Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_(derangements)<br>Decompte_total<br>Envols_massifs_Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluies)<br>Decompte_total_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vent)<br>Decompte_total_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(vent)<br>Decompte_total_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vent_et_derangements)<br>Decompte_total_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(derangements)<br>Decompte_total_Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_(derangements)<br>Decompte_total_Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Effectif_sous-estime_par_manque_d'experience_Sous_estimation__derangement__"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_partiel<br>Reserve_naturelle_non_comptee._Bonne_precision__derangement__"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(derangements)<br>Decompte_total_Bonne_precision__derangement__"] <- "dérangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres<br>Decompte_total_Bonne_precision__derangement__"] <- "mauvaise_condition_comptage"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total_Sous_estimation__derangement__"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(brouillard)<br>Decompte_total_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie)<br>Decompte_total<br>Plans_d'eau_geles_a_80%_sur_la_reserve_naturelle._Sous_estimation__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie)<br>Decompte_total<br>Plans_d'eau_geles_a_80%_sur_la_reserve_naturelle._Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(vents)<br>Decompte_total_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vent)<br>Decompte_total_Sous_estimation__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vent)<br>Decompte_total<br>Nappe_affleurante_sur_le_polder_communal._Sous_estimation__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Site_gele_a_50%_Sous_estimation__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Site_gele_a_50%_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes___Decompte_total___etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Sec"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_Pluie_Decompte_total___etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Inondes"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes__Derangements_Decompte_total___etat_plan_d'eau__Geles_partiel__etat_hors_plan_d'eau___Geles"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_Derangements_Decompte_total_helicoptere__etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Inondes"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_Pluie_Decompte_total___etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Secs"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes__vent_Decompte_total___etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Inondes"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_Vent_Decompte_total___etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Inondes"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_PluieVent_Decompte_total___etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Secs"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_Derangements_Decompte_total_Fauche_en_cours__etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Secs"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_Derangements_Decompte_total_broyage_sud_RNB__etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Secs"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_Vent_Decompte_total_"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_Vent_Decompte_total_Wetlands_Int."] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_Vent_Decompte_total_"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Normaux_Secs_Bonne_precision_Conditions_de_denombrement_bonnes__Decompte_total_Travaux_cloture_digue_de_mer"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Geles_partiel_Geles_Bonne_precision_Conditions_de_denombrement_bonnes__Decompte_total_"] <- "condition_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="ABIO_ANAT_Plansdeau___Geles_partiel___ABIO_ANAT_Horsplansdeau___Geles___Bonne_precision"] <- "condition_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)___Normaux_Eau-milieux_(hors_plans_d'eau)___Secs_Conditions_de_denombrement___Bonnes_____Decompte___Decompte_totalTravaux_en_cours_(clotures,_broyage_gabion)"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)___Normaux_Eau-milieux_(hors_plans_d'eau)___Secs_Conditions_de_denombrement___Bonnes_____Decompte___Decompte_totalEvacuation_bovins_en_cours_sur_RNN"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)___Normaux_Eau-milieux_(hors_plans_d'eau)___Inondes_Conditions_de_denombrement___Mediocres_Pluie___Decompte___Decompte_total"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Inondes___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Mauvaises___Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque__"] <- "mauvaise_condition_comptage"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Geles_partiel___Eau-milieux_(hors_plans_d'eau)___Inondes___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_42"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Inondes___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_en_cours,_comptage_apres_battue_au_sanglier"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_en_cours"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Mauvaises___Facteur_1___Pluie___Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_en_cours"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Inondes___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_en_cours"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Inondes___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1___Vent___Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_en_cours"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Inondes___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_chantier_observatoires_Taret"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_Travaux_terrassement_chemin_des_observatoires"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="seulement_canaux_en_eau___"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Site_gele_presque_en_totalite_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_(derangements)<br>Decompte_partiel<br>Envols_massifs_Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_partiel<br>Date_de_comptage_decale._Bonne_precision__derangement__"] <- "comptage_pariel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(vent)<br>Decompte_total_Sous_estimation__derangement__"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vent_et_derangements)<br>Decompte_total_Sous_estimation__derangement__"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Normaux_Secs_Ordre_de_grandeur_Conditions_de_denombrement_bonnes__Decompte_total_Travaux_cloture_digue_de_me"] <- "derabgement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Normaux_Secs_Sous_estimation_Conditions_de_denombrement_bonnes__Decompte_total_Travaux_agricoles_en_cours"] <- "derabgement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Normaux_Secs_Sous_estimation_Conditions_de_denombrement_bonnes__Decompte_total_"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Geles_partiel_Geles_Sous_estimation_Conditions_de_denombrement_bonnes__Decompte_total_"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)___Normaux_Eau-milieux_(hors_plans_d'eau)___Secs_Conditions_de_denombrement___Bonnes_____Decompte___Decompte_totalEvacuation_balles_de_foin_quart_nord_ouest"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)___Normaux_Eau-milieux_(hors_plans_d'eau)___Secs_Conditions_de_denombrement___Bonnes_____Decompte___Decompte_totalTravaux_agricoles_en_cours"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___travaux_agricoles_en_cours"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___2eme_fauche_en_cour"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_12"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_19"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_28"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_38"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_41"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Inondes___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Mauvaises___Facteur_1___Pluie___Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_en_cours"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Ordre_de_grandeur___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN__estimation_en_vol"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_chantier_observatoires_Taret"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Niveaux_d'eau_tres_bas_Sous_estimation__derangement__"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(derangements)<br>Decompte_total_Sous_estimation__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(brouillard)<br>Decompte_total_Non_compte__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(vents)<br>Decompte_total_Sous_estimation__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(derangements)<br>Decompte_total_Sous_estimation__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_10"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_17"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_25"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_34"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_40"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(derangements)<br>Decompte_total<br>1_marquee_\"BZH\"_Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>En_groupe_avec_les_oies_cendrees_Sous_estimation__derangement__"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="_Sous_estimation__derangement__"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Inondes___Precision_du_denombrement___Sous_estimation___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_en_cours"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(brouillard)_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="nappe_affleurante___Sous_estimation"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(vent)<br>Decompte_total<br>Double_comptage_probable_!_Sous_estimation__derangement__"] <- "condition_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes___Decompte_total_mauvaise_visibilite__etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Secs"] <- "mauvaise_condition_comptage"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_20"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="_Bonne_precision__derangement__pluie"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Vent_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Bonne_precision_Conditions_de_denombrement_moyennes_Pluie+Vent_Couverture_du_site_totale_"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Bonne_precision_Conditions_de_denombrement_mediocres_Pluie+Vent_Couverture_du_site_totale_"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Bonne_precision___Conditions_de_denombrement_mediocres_Vent_Couverture_du_site_totale_"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Sous_estimation___Conditions_de_denombrement_bonnes___Couverture_du_site_totale_"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Conditions_de_denombrement___Mediocres___Facteur_1___Vent+Pluie___Decompte___Decompte_total___Remarque__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Conditions_de_denombrement___Mediocres___Facteur_1___Vent___Decompte___Decompte_total___Remarque___tempete"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Conditions_de_denombrement___Mediocres___Facteur_1___Vent___Decompte___Decompte_total___Remarque__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Conditions_de_denombrement___Mauvaises___Facteur_1___Pluie___Decompte___Decompte_total___Remarque__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Conditions_de_denombrement___Mauvaises___Facteur_1___Vent___Decompte___Decompte_total___Remarque__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="_Sous_estimation__derangement__pluie"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Comptage_incomplet_Sous_estimation__derangement__"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes__vent_Decompte_total_non_comptes__etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Inondes"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(brouillard)<br>Decompte_total<br>Couple_nicheur_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vent)<br>Decompte_total<br>Nid_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(derangements)<br>Decompte_total<br>4_ad_et_2_imm_Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_35"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_11"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_18"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_26"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_36"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(derangements)<br>Decompte_total_Non_compte__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)___Normaux_Eau-milieux_(hors_plans_d'eau)___Inondes_Conditions_de_denombrement___Bonnes_____Decompte___Decompte_partiel"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_33"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie_et_vent)<br>Couverture_du_site_totale_Sous_estimation__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie_et_vent)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(Pluies_et_vent)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(pluie_et_vent)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(derangements)<br>Decompte_total<br>Femelle_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Bonne_precision___Conditions_de_denombrement_bonnes___Couverture_du_site_totale_rapaces,_promeneurs"] <- "derangement_loisirs"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Conditions_de_denombrement___Mauvaises___Facteur_1___Derangements___Decompte___Decompte_total___Remarque___Jet-skis_(X4)"] <- "derangement_loisirs"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_27"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_37"] <- "derangement_chasse"
+
+
 #Chute de neige pendant le comptage : 
 
 Cotentin <- subset(Cotentin, !(Cotentin$date=="2006-02-24"|Cotentin$site=="les_grandes_iles"

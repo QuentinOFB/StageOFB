@@ -32,7 +32,7 @@ colnames(data)[5] <- "site"
 colnames(data) [4] <- "secteur"
 colnames(data) [6] <- "espece"
 colnames(data) [7] <- "abondance"
-colnames(data) [8] <- "observateur" 
+colnames(data) [8] <- "obs" 
 
 # -> Noms de colonnes (pas de point, pas d'espace, pas d'accents) : 
 colnames(data) <- tolower(colnames(data))
@@ -47,7 +47,7 @@ data[,6] <- gsub("\\.","", data[,6])
 data[,6] <- gsub("'","_",data[,6])
 data[,6] <-iconv(data[,6], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
-unique(data$espece)
+sort(unique(data$espece))
 
 # -> Remplacer chevalier combattant par combattant varié :
 
@@ -58,7 +58,7 @@ data[,6] <- gsub("tournepierre","tournepierre_a_collier", data[,6])
 # Forme des dates: regarder les formats (JJ/MM/YYYY)
 class(data$date)
 unique(data$date)
-# Enlever les lignes qui ne continnent pas des dates mais : "comptage annulé + date) 
+# Enlever les lignes qui ne continnent pas des dates : "comptage annulé + date) 
 data <- subset(data, !(data$date=="Jeudi 15 mars 2018 comptage annulé"|data$date=="Comptage octobre 2013 : annulé cause de mauvais temps"
                        |data$date=="Comptage du 19 avril 2016 annulé condition climatique défavorable"|data$date=="Comptage du 19 mai 2016 annulé pas de pilote bateau"
                        |data$date=="Comptage du 20 juin 2016 annulé pas de pilote bateau"|data$date=="Vendredu 13 avril  2018 comptage annulé"
@@ -97,7 +97,7 @@ data$secteur[data$secteur == ""] <- "estuaire"
 # Uniformiser les noms des observateurs : ## Compliqué d'unifier les noms (des fois il y'a les initiales du prénom, des fois pas, plusieurs cas de figures)
 data[,8] <- tolower(data[,8])
 data[,8] <-iconv(data[,8], from = 'UTF-8', to = 'ASCII//TRANSLIT')
-unique(data$observateur)
+unique(data$obs)
 
 #Création d'une colonne qualité comptage : ok et douteux 
 data[,9] <- tolower(data[,9])
@@ -113,13 +113,9 @@ data$qualite_comptage <- with(data, ifelse(data$remarques=="comptage partiel",'d
 unique(data$qualite_comptage)
 
 
-
-
-
-
 #Vérifier les abondances : 
 unique(data$abondance) 
-# Enlever les NC (non compté) à cause d'une remorque cassée, ou annulé pour cause de tir d'ibis la veille du comptage : 
+# Enlever les NC (sites non comptés) à cause d'une remorque cassée, ou annulé pour cause de tir d'ibis la veille du comptage : 
 
 data <- subset(data, !(data$abondance=="NC"|data$abondance=="nc"|data$abondance=="Nc"|data$abondance=="non compté"|data$abondance=="Non dénombré"|data$abondance=="w"))
 
@@ -146,6 +142,7 @@ data <- subset(data, !(data$site==""))
 # De plus, j'enlèverai aussi le site Baracon : c'est une réserve de chasse où les comptages sont centrés sur les espèces gibiers
 
 data <- subset(data, !(data$site=="baracon"|data$site=="estuaire"))
+# data <- subset(data,!(data$site=="migron"))
 
 # Ne conserver que les mois où les hivernants sont présents ? (oct-nov-dec-janv-fev-mars)
 # + septembre et avril pour se laisser une marge ? 
@@ -170,13 +167,14 @@ data <- subset(data,!(data$date=="2008-11-10"))
 data <- distinct(data)
 help("distinct")
 
-data <- subset(data,!(data$site=="saint_brevin"&data$date=="2008-07-18"&data$observateur=="potiron"))
+data <- subset(data,!(data$site=="saint_brevin"&data$date=="2008-07-18"&data$obs=="potiron"))
 
 # Voir pour les doubles comptages avec Matthieu Bécot sur Pierre Rouge : 
 
 ##Selectionner les espèces limicoles et anatidés et enlever les autres : 
 espece <- read.csv("Data/espece.csv")
 sort(unique(espece$french_name)) 
+
 View(espece)
 espece[,5] <- tolower(espece[,5])
 espece[,5] <- gsub(" ","_",espece[,5])
@@ -208,7 +206,7 @@ unique(data$espece)
 # -> 53 espèces anatidés/limicoles recensées sur tous les comptages estuaire Loire
 ## Retrier les colonnes qui ne servent pas à grand chose : 
 
-data <- data[,-c(15,16,18,20:29)]
+data <- data[,-c(15,16,18,20:31)]
 
 data[,16] <- tolower(data[,16])
 
@@ -240,7 +238,7 @@ colnames(Camargue) [6] <- "annee"
 colnames(Camargue) [7] <- "saison"
 colnames(Camargue) [8] <- "espece" 
 colnames(Camargue) [9] <- "abondance" 
-colnames(Camargue) [10] <- "observateur"
+colnames(Camargue) [10] <- "obs"
 colnames(Camargue) [11] <- "niveau_eau"
 colnames(Camargue) [12] <- "gel"
 
@@ -321,12 +319,12 @@ str(Baie)
 #Changer le nom des colonnes : 
 colnames(Baie)[3] <- "espece"
 colnames(Baie)[5] <- "site"
-colnames(Baie)[6] <- "observateur"
+colnames(Baie)[6] <- "obs"
 colnames(Baie)[7] <- "observateur_det"
 colnames(Baie)[8] <- "date"
 colnames(Baie)[9] <- "confidentialite"
 colnames(Baie)[10] <- "validation"
-colnames(Baie)[11] <- "protocole"
+colnames(Baie)[11] <- "type_protocole"
 colnames(Baie)[12] <- "abondance"
 colnames(Baie)[13] <- "precision"
 colnames(Baie)[14] <- "remarques"
@@ -352,7 +350,7 @@ Baie[,3] <- gsub("â","a",Baie[,3])
 Baie[,3] <- gsub("\\.","",Baie[,3])
 Baie[,3] <-iconv(Baie[,3], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
-unique(Baie$espece)
+sort(unique(Baie$espece))
 
 #Ne sélectionner que les anatidés/limicoles : 
 
@@ -376,7 +374,7 @@ Baie[,3] <- gsub("tournepierre_a_collier,_pluvier_des_salines","tournepierre_a_c
 
 # retirer les espèces inderterminées : 
 Baie <- subset(Baie, !(Baie$espece=="anatides_sp"|Baie$espece=="barge_sp"|Baie$espece=="canard_sp"|Baie$espece=="courlis_sp"|
-                       Baie$espece=="macreuse_sp"|Baie$espece=="oie_sp"))
+                       Baie$espece=="macreuse_sp"|Baie$espece=="oie_sp"|Baie$espece=="becasses"|Baie$espece=="fuligule_sp"|Baie$espece=="limicole_sp"))
 
 # retirer les hybrides : 
 Baie <- subset(Baie, !(Baie$espece=="hybride_tadorne_de_casarca_x_belon"))
@@ -410,15 +408,15 @@ Baie$date <- dmy(Baie$date)
 
 #Nom des observateurs : 
 Baie[,6] <- tolower(Baie[,6])
-unique(Baie$observateur)
-sort(unique(Baie$observateur))
+Baie[,6] <- iconv(Baie[,6], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
 
 Baie[,6] <- gsub(" lpo 17","lpo 17",Baie[,6])
 
 #Les différents protocoles : 
-unique(Baie$protocole)
+unique(Baie$type_protocole)
 # -> Dans comptage simultané grues : 2 observations :  bécassine des marais + colvert 
-Baie <- subset(Baie, !(Baie$protocole=="Comptage simultané grues"))
+Baie <- subset(Baie, !(Baie$type_protocole=="Comptage simultané grues"))
 
 # Selection des années : 
 Baie <- subset(Baie, !(Baie$annee<2004))
@@ -437,7 +435,7 @@ Baie <- subset(Baie, !(Baie$mois=="5"|Baie$mois=="6"|Baie$mois=="7"|Baie$mois=="
 unique(Baie$abondance)
 unique(Baie$abondance[1000:1595])
 
-#Présence de NA : les supprimer ? 
+#Présence de NA : les supprimer ? (correspond à une "non prospection")
 Baie <- subset(Baie,!(Baie$abondance=="NA"))
 
 #Prendre en compte les remarques : 
@@ -529,6 +527,9 @@ Baie$qualite_comptage <- with(Baie, ifelse(Baie$site=="arcay" & Baie$date=="2019
 # Rajouter une colonne avec le nom du secteur : 
 Baie$secteur <- "baie_aiguillon"
 
+#Créer une colonne protocole : 
+Baie$protocole <- "terrestre"
+
 # Ajouter les sites non prospectés et non renseignés pour toutes les dates :  
 #site <- expand.grid(Baie$date,Baie$site)
 #id$site <- paste(Baie$date,Baie$site)
@@ -591,8 +592,8 @@ Cotentin <- Cotentin[,-c(1,2,3,4,5,6,7,10,15,17,19,21,24)]
 colnames(Cotentin)[1] <- "family_tax"
 colnames(Cotentin) [2] <- "order_tax"
 colnames(Cotentin) [3] <- "espece"
-colnames(Cotentin) [4] <- "protocole"
-colnames(Cotentin) [5] <- "observateur"
+colnames(Cotentin) [4] <- "suivi"
+colnames(Cotentin) [5] <- "obs"
 colnames(Cotentin) [6] <- "observateur_org"
 colnames(Cotentin) [7] <- "date"
 colnames(Cotentin) [8] <- "site"
@@ -643,6 +644,7 @@ Cotentin <- subset(Cotentin,!(Cotentin$espece=="pingouin_torda,_petit_pingouin"|
     # -> En revanche autres anatidés pas de manière exhaustive (donc les retirer) idem pour les limicoles terrestre (bécassines + pluvier doré + vanneau)
 
 
+
 #Nom famille et ordre :
 
 Cotentin[,1] <- tolower(Cotentin[,1])
@@ -653,29 +655,20 @@ Cotentin[,6] <- tolower(Cotentin[,6])
 Cotentin[,8] <- tolower(Cotentin[,8])
 
 #Nom observateurs 
-unique(Cotentin$observateur)
-Cotentin[,5] <- gsub(" ","_",Cotentin[,5])
-Cotentin[,5] <- gsub("-","_",Cotentin[,5])
-Cotentin[,5] <- gsub("'","_",Cotentin[,5])
-Cotentin[,5] <- gsub("é","e",Cotentin[,5])
-Cotentin[,5] <- gsub("è","e",Cotentin[,5])
-Cotentin[,5] <- gsub("î","i",Cotentin[,5])
-Cotentin[,5] <- gsub("à","a",Cotentin[,5])
-Cotentin[,5] <- gsub("ê","e",Cotentin[,5])
-Cotentin[,5] <- gsub("â","a",Cotentin[,5])
-Cotentin[,5] <- gsub("\\.","",Cotentin[,5])
+unique(Cotentin$obs)
+Cotentin[,5] <- tolower(Cotentin[,5])
 Cotentin[,5] <-iconv(Cotentin[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
 #Nom des sites : 
 unique(Cotentin$site)
 # C'est ok ! 
-# Supprimer le Polder_Sainte_Marie 
+# Supprimer le Polder_Sainte_Marie : changement de gestion au cours du temps 
 
-Cotentin <- subset(Cotentin, !(Cotentin$site=="polder_ste_marie_cel"))
+#Cotentin <- subset(Cotentin, !(Cotentin$site=="polder_ste_marie_cel"))
 unique(Cotentin$site)
 
 #Supprimer les données agrégées 2004 et 2008 : 
-Cotentin <- subset(Cotentin, !(Cotentin$site=="rnn_beauguillot"))
+#Cotentin <- subset(Cotentin, !(Cotentin$site=="rnn_beauguillot"))
 
 #Séparer les données des deux protocoles 
 # Suivi des remises -> Se concentrer uniquement sur les anatidés 
@@ -855,53 +848,159 @@ Cotentin$remarques[Cotentin$remarques=="Bonne_precision___Conditions_de_denombre
 Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Conditions_de_denombrement___Mauvaises___Facteur_1___Derangements___Decompte___Decompte_total___Remarque___Jet-skis_(X4)"] <- "derangement_loisirs"
 Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_27"] <- "derangement_chasse"
 Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_37"] <- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Pluie_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes__Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes___Couverture_du_site_partielle"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Derangements_Couverture_du_site_totale"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres__Couverture_du_site_totale"] <- "mauvaise_condition_comptage"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes__Vent_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_Vent+Pluie_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau) _____Eau-milieux_(hors_plans_d'eau) _____Eau-milieux_(hors_plans_d'eau) _____Conditions_de_denombrement __Mediocres___Facteur_1 __Vent___Decompte __Decompte_total___Remarque __en_vol"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau) _____Eau-milieux_(hors_plans_d'eau) _____Eau-milieux_(hors_plans_d'eau) _____Conditions_de_denombrement __Bonnes____Facteur_1 _____Decompte __Decompte_partiel___Remarque _"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_partiel<br>Reserve_naturelle_non_comptee._Non_compte__derangement__"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Couverture_du_site_partielle_Bonne_precision__derangement__"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(derangements)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(derangements)<br>Couverture_du_site_totale___derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(brouillard)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(derangements)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(derangements)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Couverture_du_site_totale_Sous_estimation__derangement__"] <- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(derangements)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"] <- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(pluie,_vent_et_derangements)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(vent_et_turbulences)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(derangements)<br>Couverture_du_site_totale_Sous_estimation__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(turbulences_et_derangements)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(turbulences_et_derangements)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "mauvaise_condition_comptage"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(turbulences)<br>Couverture_du_site_totale___derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(vent)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vent)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_(pluie,_vent_et_derangements)<br>Decompte_partiel_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(vent)<br>Couverture_du_site_totale___derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vent)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau) _____Eau-milieux_(hors_plans_d'eau) _____Eau-milieux_(hors_plans_d'eau) _____Conditions_de_denombrement __Bonnes____Facteur_1 _____Decompte __Decompte_total___Remarque __2eme_fauche_en_cours"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau) _____Eau-milieux_(hors_plans_d'eau) _____Eau-milieux_(hors_plans_d'eau) _____Conditions_de_denombrement __Bonnes____Facteur_1 _____Decompte __Decompte_total___Remarque __Travaux_amenagement_reserve_en_cours"] <- "derangement_travaux"
+Cotentin$remarques[Cotentin$remarques=="Bonne_precision_Conditions_de_denombrement_moyennes_Pluie+Vent_Couverture_du_site_totale_en_vol"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Sous_estimation_Conditions_de_denombrement_bonnes___Couverture_du_site_totale_"]<- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_Vent_Couverture_du_site_totale"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_Pluie+Vent_Couverture_du_site_totale"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Niveau_d'eau_en_hausse_sur_le_polder_communal._Sous_estimation__derangement__"]<- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Pluie_Couverture_du_site_partielle"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(vent)<br>Decompte_total<br>+_de_2000_oiseaux_Non_compte__derangement__"]<- "conditions__meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_(derangements)<br>Decompte_total_Sous_estimation__derangement__"]<- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres<br>Decompte_total_Sous_estimation__derangement__"]<- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vent)<br>Decompte_total<br>Nappe_affleurante_sur_le_polder_communal._Non_compte__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau) _Normaux___Eau-milieux_(hors_plans_d'eau) __Secs___Precision_du_denombrement __Bonne_precision___Conditions_de_denombrement __Bonnes____Facteur_1 _____Facteur_2 _____Facteur_3 _____Decompte _____Remarque __battue_administrative_le_08_15"]<- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau) _Normaux___Eau-milieux_(hors_plans_d'eau) __Secs___Precision_du_denombrement __Bonne_precision___Conditions_de_denombrement __Bonnes____Facteur_1 _____Facteur_2 _____Facteur_3 _____Decompte _____Remarque __battue_administrative_le_08_24"]<- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau) _Normaux___Eau-milieux_(hors_plans_d'eau) __Secs___Precision_du_denombrement __Bonne_precision___Conditions_de_denombrement __Bonnes____Facteur_1 _____Facteur_2 _____Facteur_3 _____Decompte _____Remarque __battue_administrative_le_08_30"]<- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau) _Normaux___Eau-milieux_(hors_plans_d'eau) __Secs___Precision_du_denombrement __Bonne_precision___Conditions_de_denombrement __Bonnes____Facteur_1 _____Facteur_2 _____Facteur_3 _____Decompte _____Remarque __battue_administrative_le_08_39"]<- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(derangements)<br>Couverture_du_site_totale_Sous_estimation__derangement__"]<- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(vent_et_derangements)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(vent)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(pluie)<br>Couverture_du_site_totale_Sous_estimation__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie_et_vent)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie)<br>Couverture_du_site_totale<br>Juveniles_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(pluie)<br>Couverture_du_site_totale<br>En_vol_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie,_vent_et_derangements)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(vent)<br>Couverture_du_site_totale___derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(pluie)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(Pluie_et_vent)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Couverture_du_site_totale<br>Coefficient_de_maree_de_49_!_Bonne_precision__derangement__"]<- "diff_coeff_maree"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_Pluie+Derangements_Couverture_du_site_totale"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_Pluie_Couverture_du_site_totale"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie_et_vent)___derangement__pluie"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(pluie)_Bonne_precision__derangement__pluie"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(pluie_et_vent)_Bonne_precision__derangement__pluie"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(derangements)_Bonne_precision__derangement___derangement_(inconnu)"]<- "derangement"
+Cotentin$remarques[Cotentin$remarques=="_Bonne_precision__derangement__vent"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="___derangement__vent"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="_Bonne_precision__derangement__Chasseurs"]<- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="ras___derangement__vent"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="___derangement__activites_de_plage"]<- "derangement_loisirs"
+Cotentin$remarques[Cotentin$remarques=="visibilite_moyenne_Bonne_precision__derangement__indetermine"]<- "mauvaise_visibilite"
+Cotentin$remarques[Cotentin$remarques=="_Bonne_precision__derangement__brouillard"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="_Bonne_precision__derangement___vent"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Sous_estimation_Conditions_de_denombrement_mediocres_Pluie+Vent_Couverture_du_site_totale_"]<- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="_Bonne_precision__derangement___pluie"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_Bonne_precision__derangement__pluie"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(derangements)_Bonne_precision__derangement__derangement_(inconnu)"]<- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(turbulences)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(Pluie_et_vent)<br>Couverture_du_site_totale_Sous_estimation__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Vent+Pluie_Couverture_du_site_totale"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Decompte_total<br>Site_gele_a_90%_Sous_estimation__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau) _Normaux___Eau-milieux_(hors_plans_d'eau) __Secs___Precision_du_denombrement __Bonne_precision___Conditions_de_denombrement __Bonnes____Facteur_1 _____Facteur_2 _____Facteur_3 _____Decompte _____Remarque __battue_administrative_le_08_16"]<- "derangement_chasse"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(derangements)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"]<- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie_et_vent)<br>Couverture_du_site_totale<br>En_vol_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(derangements)<br>Couverture_du_site_totale_Sous_estimation__derangement__"]<- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(pluie)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(pluie)<br>Couverture_du_site_totale<br>dont_3_juv_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(turbulences)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vents)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="_Precision_<_10%__derangement__"]<- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(Vent_et_turbulences)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(Vent_et_turbulences)<br>Couverture_du_site_totale___derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(vent)<br>Couverture_du_site_partielle_Sous_estimation__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(pluie_et_vent)<br>Couverture_du_site_totale<br>En_vol_Sous-estimation__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(Pluies_et_vent)<br>Couverture_du_site_totale___derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(Pluies_et_vent)<br>Couverture_du_site_totale_Sous_estimation__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mauvaises_Vent_Decompte_total_au_dortoir_(16h00)"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(turbulences)<br>Couverture_du_site_totale___derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(turbulences)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(brouillard,_pluie_et_vent)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(Pluie_et_vent)<br>Couverture_du_site_totale_Sous_estimation__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(Pluie)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(Pluie)<br>Couverture_du_site_totale_Sous_estimation__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Couverture_du_site_partielle<br>En_vol_Bonne_precision__derangement__"]<- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes<br>Couverture_du_site_totale<br>En_vol_Sous_estimation__derangement__"]<- "sous_estimation"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(Vent)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(Pluie_et_vents)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(Pluie_et_vents)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_(vent)<br>Couverture_du_site_partielle_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(Pluie_et_derangements)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(Pluie_et_derangements)<br>Couverture_du_site_totale_Sous_estimation__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(Pluie_et_brouillard)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(Pluie_)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Vent_Couverture_du_site_totale_En_vol_vers_le_nord"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Vent_Couverture_du_site_totale_Poses_sur_la_partie_terrestre_lors_de_la_passee."]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Vent_Couverture_du_site_totale_En_vol_vers_l'est"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Vent_Couverture_du_site_totale_Poses_sur_le_polder_lors_de_la_passee"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Bonne_precision_Conditions_de_denombrement_mediocres_Pluie+Vent_Couverture_du_site_totale_a_la_passee_du_matin_(74_NO,_11_SE,_78_E)"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes__Derangements_Decompte_total_4060_a_la_passee_du_matin___etat_plan_d'eau__Geles_partiel__etat_hors_plan_d'eau___Geles"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau) __Normaux_Eau-milieux_(hors_plans_d'eau) __Inondes_Conditions_de_denombrement __Bonnes_____Decompte __Decompte_partielvers_le_sud"]<- "comptage_partiel"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(Vent)<br>Couverture_du_site_totale_Bonne_precision__derangement__"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_Brouillard_Couverture_du_site_totale"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Brouillard_Couverture_du_site_totale"]<- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Brouillard_Couverture_du_site_partielle"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_(Derangements)<br>Couverture_du_site_totale_Bonne_precision__derangement__"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Pluie+Vent_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_Derangements_Couverture_du_site_totale"] <- "derangement"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Pluie+Vent_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Brouillard+Derangements_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes__Couverture_du_site_partielle"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres_Pluie+Vent+Derangements_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Vent_Couverture_du_site_partielle"] <- "conditions_meteo_pas_fav"
+Cotentin$remarques[Cotentin$remarques=="Sous_estimation_Conditions_de_denombrement_moyennes_Pluie+Vent_Couverture_du_site_totale_"] <- "conditions_meteo_pas_fav"
 
+Cotentin$qualite_comptage <- with(Cotentin, ifelse(Cotentin$remarques=="derangement","douteux",
+                                            ifelse(Cotentin$remarques=="derangement_chasse","douteux",
+                                            ifelse(Cotentin$remarques=="derangement_travaux","douteux",
+                                            ifelse(Cotentin$remarques=="conditions_meteo_pas_fav","douteux",
+                                            ifelse(Cotentin$remarques=="comptage_partiel","douteux",
+                                            ifelse(Cotentin$remarques=="mauvaise_condition_comptage","douteux",
+                                            ifelse(Cotentin$remarques=="derangement_loisirs","douteux",
+                                            ifelse(Cotentin$remarques=="mauvaise_visibilite","douteux",
+                                            ifelse(Cotentin$remarques=="sous_estimation","douteux",
+                                            ifelse(Cotentin$remarques=="diff_coeff_maree","douteux","ok")))))))))))
 
-#Chute de neige pendant le comptage : 
+#Création d'une colonne secteur
 
-Cotentin <- subset(Cotentin, !(Cotentin$date=="2006-02-24"|Cotentin$site=="les_grandes_iles"
-                               |Cotentin$date=="2006-02-24"|Cotentin$site=="la_dune_sud"
-                               |Cotentin$date=="2006-02-24"|Cotentin$site=="la_dune_de_mer"))
-#Travaux : 
+Cotentin$secteur <- "cotentin"
 
-Cotentin <- subset(Cotentin, !(Cotentin$date=="2006-02-15"& Cotentin$site=="les_grandes_iles"
-                               |Cotentin$date=="2006-02-15"& Cotentin$site=="la_dune_sud"
-                               |Cotentin$date=="2006-02-15"& Cotentin$site=="la_dune_de_mer"
-                               |Cotentin$date=="2006-02-15"& Cotentin$site=="l_ile_est"))
+# Ajout protocole : 
+Cotentin$protocole <- "terrestre"
 
-#Suivi difficile : 
-
-Cotentin <- subset(Cotentin, !(Cotentin$date=="2004-11-04"& Cotentin$site=="le_grand_etang"
-                               |Cotentin$date=="2004-11-04"& Cotentin$site=="la_dune_sud"
-                               |Cotentin$date=="2004-11-04"& Cotentin$site=="l_ile_est"
-                               |Cotentin$date=="2004-11-14"& Cotentin$site=="les_grandes_iles"
-                               |Cotentin$date=="2004-11-14"& Cotentin$site=="le_grand_etang"
-                               |Cotentin$date=="2004-11-14"& Cotentin$site=="le_gabion"
-                               |Cotentin$date=="2004-11-14"& Cotentin$site=="la_dune_sud"
-                               |Cotentin$date=="2004-11-14"& Cotentin$site=="l_ile_est"))
-#Site gelé : 
-Cotentin <- subset(Cotentin, !(Cotentin$date=="2007-12-21"& Cotentin$site=="le_gabion"
-                               |Cotentin$date=="2007-12-21"& Cotentin$site=="la_dune_sud"
-                               |Cotentin$date=="2007-12-14"& Cotentin$site=="l_ile_est"
-                               |Cotentin$date=="2007-12-14"& Cotentin$site=="les_grandes_iles"
-                               |Cotentin$date=="2007-12-14"& Cotentin$site=="la_dune_de_mer"
-                               |Cotentin$date=="2007-12-14"& Cotentin$site=="la_dune_sud"
-                               |Cotentin$date=="2008-12-30"&Cotentin$site=="le_gabion"
-                               |Cotentin$date=="2010-01-12"&Cotentin$site=="le_grand_etang"
-                               |Cotentin$date=="2009-12-23"&Cotentin$site=="les_grandes_iles"
-                               |Cotentin$date=="2009-12-23"&Cotentin$site=="le_gabion"
-                               |Cotentin$date=="2009-12-23"&Cotentin$site=="l_ile_est"
-                               |Cotentin$date=="2009-12-23"&Cotentin$site=="la_dune_sud"
-                               |Cotentin$date=="2010-01-05"&Cotentin$site=="le_gabion"
-                               |Cotentin$date=="2010-01-15"&Cotentin$site=="les_grandes_iles"
-                               |Cotentin$date=="2010-01-15"&Cotentin$site=="polder_ste_marie_cel"
-                               |Cotentin$date=="2010-01-15"&Cotentin$site=="le_milieu"
-                               |Cotentin$date=="2010-01-15"&Cotentin$site=="le_gabion"
-                               |Cotentin$date=="2010-01-15"&Cotentin$site=="la_dune_de_mer"
-                               |Cotentin$date=="2010-01-15"&Cotentin$site=="l_ile_est"))
-
-
-            ###################### Données Arcachon ###########
+            ###################### 5. Bassin Arcachon ###########
 
 Arcachon <- read.csv("Data/donnees_arcachon_limicoles.csv", header = T, fileEncoding = "UTF-8", sep = ";")
 View(Arcachon)
@@ -919,8 +1018,8 @@ colnames(Arcachon) [7] <- "site"
 colnames(Arcachon) [8] <- "commune"
 colnames(Arcachon) [9] <- "abondance"
 colnames(Arcachon) [10] <- "heure_bm"
-colnames(Arcachon) [11] <- "coeff"
-colnames(Arcachon) [12] <- "observateurs"
+colnames(Arcachon) [11] <- "coef_de_marree"
+colnames(Arcachon) [12] <- "obs"
 colnames(Arcachon) [19] <- "derangement"                               
 colnames(Arcachon) [18] <- "remarques"
 
@@ -949,7 +1048,7 @@ Arcachon[,4] <- gsub("barge_rousse_","barge_rousse",Arcachon[,4])
 Arcachon[,4] <- gsub("chevalier_culblanc_","chevalier_culblanc",Arcachon[,4])
 Arcachon[,4] <- gsub("courlis_corlieu_","courlis_corlieu",Arcachon[,4])
 Arcachon[,4] <- gsub("tournepierre_a_collier_","tournepierre_a_collier",Arcachon[,4])
-Arcachon[,4] <- gsub("barge_à_queue_noire_","barge_à_queue_noire",Arcachon[,4])
+Arcachon[,4] <- gsub("barge_a_queue_noire_","barge_a_queue_noire",Arcachon[,4])
 Arcachon[,4] <- gsub("becasseau_cocorli_","becasseau_cocorli",Arcachon[,4])
 Arcachon[,4] <- gsub("becasseau_minute_","becasseau_minute",Arcachon[,4])
 Arcachon[,4] <- gsub("becasseau_sanderling_","becasseau_sanderling",Arcachon[,4])
@@ -964,6 +1063,8 @@ Arcachon <- subset(Arcachon, !(Arcachon$espece=="aigrette_des_recifs"|Arcachon$e
 
 # Case vide + NC + RAS + données sp + "Gravelot ou becasseau" 
 
+Arcachon <- subset(Arcachon,!(Arcachon$espece=="gravelot_sp"|Arcachon$espece=="becasseau_sp"|Arcachon$espece=="becasseau_ou_gravelot"
+                   |Arcachon$espece=="courlis_sp"|Arcachon$espece=="chevalier_sp"|Arcachon$espece=="barge_sp"))
 
 # Format de date : 
 unique(Arcachon$date)
@@ -1021,6 +1122,10 @@ duplicated(Arcachon[c(8000:8551),])
 
 Arcachon$secteur <- "arcachon"
 
+#Ajouter le protocole : 
+
+Arcachon$protocole <- "NA"
+
 #Prendre en compte les remarques : 
 unique(Arcachon$remarques)
 
@@ -1053,7 +1158,7 @@ Arcachon$qualite_comptage <- with(Arcachon, ifelse(Arcachon$remarques=="dérange
 
 
 
-            ############## Reserve du Rhin #################
+            ############## 6. Reserve du Rhin #################
 
 
 Rhin <- read.csv("Data/donnees_reserve_rhin.csv", header = T, fileEncoding = "UTF-8", sep = ";")
@@ -1164,15 +1269,39 @@ Rhin <- distinct(Rhin)
 
 Rhin$secteur <- "reserve_du_rhin"
 
+# Ajout protocole : 
+unique(Rhin$protocole)
+colnames(Rhin) [40] <- "suivi"
+
+Rhin$protocole <- "terrestre"
+
+
+
 #Prendre en compte les remarques : 
 unique(Rhin$liste_complete__)
+colnames(Rhin) [37] <- "remarques"
 
-unique(Rhin$remarque)
+unique(Rhin$remarques)
 
 Rhin$qualite_comptage <- with(Rhin, ifelse(Rhin$liste_complete__=="0","douteux",
-                                           ifelse(Rhin$remarque=="Participants : Carole BIZART, Jean-Marc BRONNER, Yann CARASCO, Luca FETIQUE, Jean-Pierre HISS, Victor ROUAULT. Météo : 10 à 15 cm de neige au sol; redoux en cours, avec températures devenant légèrement positives en journée. Ciel couvert. Quelques faibles pluies et neige mêlées, puis quelques faibles pluies éparses.","douteux",
-                                                  ifelse(Rhin$remarque=="Sous évalué en raison du vent, de nombreux individus sont à l'abri du vent derrière la digue tiroir ou ailleurs","douteux",
-                                                         ifelse(Rhin$remarque=="Mauvaises conditions d'observation. Total peut-être sous-évalué.","douteux","ok")))))
+                                    ifelse(Rhin$remarques=="Participants : Carole BIZART, Jean-Marc BRONNER, Yann CARASCO, Luca FETIQUE, Jean-Pierre HISS, Victor ROUAULT. Météo : 10 à 15 cm de neige au sol; redoux en cours, avec températures devenant légèrement positives en journée. Ciel couvert. Quelques faibles pluies et neige mêlées, puis quelques faibles pluies éparses.","douteux",
+                                    ifelse(Rhin$remarques=="Sous évalué en raison du vent, de nombreux individus sont à l'abri du vent derrière la digue tiroir ou ailleurs","douteux",
+                                  ifelse(Rhin$remarques=="Mauvaises conditions d'observation. Total peut-être sous-évalué.","douteux","ok")))))
+
+
+
+
+
+
+              ################### FUSION TABLEAU DONNEES ##############
+help("rbind")
+help("bind_rows")
+
+Camargue$abondance <- as.character(Camargue$abondance)
+Cotentin$abondance <- as.character(Cotentin$abondance)
+Baie$abondance <- as.character(Baie$abondance)
+Rhin$abondance <- as.character(Rhin$abondance)
+data_f <- bind_rows(data,Camargue,Cotentin,Baie,Arcachon,Rhin)
 
 
 
@@ -1182,7 +1311,13 @@ Rhin$qualite_comptage <- with(Rhin, ifelse(Rhin$liste_complete__=="0","douteux",
 
 
 
-#### PARTIE 2 : 
+
+
+
+
+
+
+
 
 # Création d'un ID qui va permettre de compiler les trois tables : 
 ID <- paste(data$site,data$date)

@@ -142,7 +142,7 @@ data <- subset(data, !(data$site==""))
 # De plus, j'enlèverai aussi le site Baracon : c'est une réserve de chasse où les comptages sont centrés sur les espèces gibiers
 
 data <- subset(data, !(data$site=="baracon"|data$site=="estuaire"))
-# data <- subset(data,!(data$site=="migron"))
+data <- subset(data,!(data$site=="migron"))
 
 # Ne conserver que les mois où les hivernants sont présents ? (oct-nov-dec-janv-fev-mars)
 # + septembre et avril pour se laisser une marge ? 
@@ -435,6 +435,10 @@ Baie <- subset(Baie, !(Baie$mois=="5"|Baie$mois=="6"|Baie$mois=="7"|Baie$mois=="
 unique(Baie$abondance)
 unique(Baie$abondance[1000:1595])
 
+# Ils ont mis les valeurs de comptage dans les remarques.... 
+
+
+
 #Présence de NA : les supprimer ? (correspond à une "non prospection")
 Baie <- subset(Baie,!(Baie$abondance=="NA"))
 
@@ -621,7 +625,7 @@ Cotentin[,3] <-iconv(Cotentin[,3], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
 sort(unique(Cotentin$espece))
 
-Cotentin <- subset(Cotentin,!(Cotentin$espece==""))
+#Cotentin <- subset(Cotentin,!(Cotentin$espece=="")) 
 
 Cotentin[,3] <- gsub("bernache_cravant_du_pacifique,_bernache_du_pacifique","bernache_du_pacifique",Cotentin[,3])
 Cotentin[,3] <- gsub("canard_des_bahamas,_pilet_des_bahamas","canard_des_bahamas",Cotentin[,3])
@@ -664,11 +668,11 @@ unique(Cotentin$site)
 # C'est ok ! 
 # Supprimer le Polder_Sainte_Marie : changement de gestion au cours du temps 
 
-#Cotentin <- subset(Cotentin, !(Cotentin$site=="polder_ste_marie_cel"))
+Cotentin <- subset(Cotentin, !(Cotentin$site=="polder_ste_marie_cel"))
 unique(Cotentin$site)
 
 #Supprimer les données agrégées 2004 et 2008 : 
-#Cotentin <- subset(Cotentin, !(Cotentin$site=="rnn_beauguillot"))
+Cotentin <- subset(Cotentin, !(Cotentin$site=="rnn_beauguillot"))
 
 #Séparer les données des deux protocoles 
 # Suivi des remises -> Se concentrer uniquement sur les anatidés 
@@ -1061,7 +1065,7 @@ Arcachon[,4] <- gsub("grand_gravelot_","grand_gravelot",Arcachon[,4])
 
 Arcachon <- subset(Arcachon, !(Arcachon$espece=="aigrette_des_recifs"|Arcachon$espece=="heron_cendre"|Arcachon$espece=="spatule_blanche"))
 
-# Case vide + NC + RAS + données sp + "Gravelot ou becasseau" 
+# données sp + "Gravelot ou becasseau" 
 
 Arcachon <- subset(Arcachon,!(Arcachon$espece=="gravelot_sp"|Arcachon$espece=="becasseau_sp"|Arcachon$espece=="becasseau_ou_gravelot"
                    |Arcachon$espece=="courlis_sp"|Arcachon$espece=="chevalier_sp"|Arcachon$espece=="barge_sp"))
@@ -1275,8 +1279,6 @@ colnames(Rhin) [40] <- "suivi"
 
 Rhin$protocole <- "terrestre"
 
-
-
 #Prendre en compte les remarques : 
 unique(Rhin$liste_complete__)
 colnames(Rhin) [37] <- "remarques"
@@ -1301,102 +1303,62 @@ Camargue$abondance <- as.character(Camargue$abondance)
 Cotentin$abondance <- as.character(Cotentin$abondance)
 Baie$abondance <- as.character(Baie$abondance)
 Rhin$abondance <- as.character(Rhin$abondance)
+data$coef_de_marree <- as.character(data$coef_de_marree)
 data_f <- bind_rows(data,Camargue,Cotentin,Baie,Arcachon,Rhin)
 
 
 
+        ############### Ajouter les véritables absences au jeu de données #####
 
 
+# 1. Création d'un identifiant pour compiler les tables : 
+id <- paste(data_f$site,data_f$date)
 
+# 2. Création de la table "site" : 
+site <- data.frame(id, data_f$site,data_f$secteur,data_f$protocole)
+site <- unique(site) 
 
+# 3. Création de la table inventaire : 
 
-
-
-
-
-
-
-
-
-
-# Création d'un ID qui va permettre de compiler les trois tables : 
-ID <- paste(data$site,data$date)
-
-site <- data.frame(ID,data$site,data$secteur)
-site <- unique(site)
-
-# Création table inventaire : 
-
-date_jj <- yday(data$date)
-mois <- month(data$date)
-annee <- year(data$date)
-
-inv <- data.frame(ID,data$date, date_jj,mois,annee)
+inv <- data.frame(id,data_f$date,data_f$obs)
+  # -> ajouter les mois + années +jours juliens
+inv$date_jj <- yday(inv$data_f.date)
+inv$mois <- month(inv$data_f.date)
+inv$annee <- year(inv$data_f.date)
 inv <- unique(inv)
 
-#Partie observateurs : Problème du double comptage pour St-Brévin 2008-07-18 (ligne 16793 et 17471) 
-# supposition : comptage dans la même journée, ils ont refait un comptage pour avoir de la donnée car pas d'observation pour le 1er comptage
-# Décider quel jour on garde ? 
-obs <- data.frame(ID,data$observateur)
-obs <- unique(obs)
-                        # Compiler observateurs et inv :
-duplicated(obs$ID)
-duplicated(obs$ID[1000:2009])
-sum(duplicated(obs$ID))
-View(obs[1000:2009,])
+  # Compilation des deux tables : 
+data_inv <- merge(site,inv,by.x = "id", by.y = "id")
 
-# Compilation des deux tables : Table invXsite : 
-data_inv <- merge(site,inv, by.x = "ID",by.y = "ID")
+# 4. Création de la table comptage (table d'observation) : 
+  # -> création d'un id pour fusionner les tables (avec les espèces)
+data_f$id <- paste(data_f$espece,data_f$site,data_f$date)
 
+  #Création du tableau inventaire qu'on va croiser avec le jeu de données : 
 
+data_f$id <- paste(data_f$site,data_f$date)
+id <- unique(data_f$id)
+sp <- unique(data_f$espece)
 
-
-
-  # Tentative d'ajout des lignes espèces manquantes dans le jeu de données : (faire la table d'observation)
-
-# Création d'un ID dans data pour pouvoir ensuite "fusionner" les deux tableaux :
-data$ID <- paste(data$secteur,data$date,data$espece)
-
-# Création du tableau "inventaire" à croiser avec le jeu de données Data :
-
-data$ID <- paste(data$secteur,data$date)
-
-ID <- unique(data$ID)
-sp <- unique(data$espece)
-
-# Construction inventaire (pour chaque ID = la liste des 53 espèces anatidés limicoles)
-inventaire <- expand.grid(ID, sp) # [RL] très bien
+inventaire <- expand.grid(id, sp) # [RL] très bien
 View(inventaire)
 
 # Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
 # dans les data
 
-inventaire$ID_Sp <- paste(inventaire$Var1,inventaire$Var2)
+inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
 
-# Création de l'ID espece dans le jeu de données :
+# Combinaison des deux tableaux : 
 
-data$ID_Sp <- paste(data$ID,data$espece)
-
-# Combinaison des deux tableaux :
-data <- merge(inventaire, data, by.x = "ID_Sp", by.y = "ID_Sp", all.x = T)
+data_f <- merge(inventaire, data_f, by.x = "id_sp", by.y = "id", all.x = T)
 View(data)
 
-# Utilisation de cette fonction pour séparer la date et les secteurs dans l'ID :
-
-library(tidyr)
-#data <- separate(data_F, col = "Var1",into = c("secteur_v","date_v"),sep = " ",remove =T)
-#help("separate")
-
-# Faire en sorte que le site "estuaire" soit renseigné dans toute la colonne :
-data$site <- replace_na(data$site,"estuaire")
-
 # Remplacement des NA par des 0
-data$effectif[is.na(data$effectif)] = 0
+data_f$abondace[is.na(data_f$abondance)] = 0
 View(data)
 
 # On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
   # pour obtenir la table observation : 
-data <- data[,-c(1,4,5,6,7,8,9,11:34)]
 
 # Var 2 -> espece :
 colnames(data)[names(data)== "Var2"] <- "espece"
@@ -1409,7 +1371,7 @@ data <- data[,-c(4,6,7:15)]
 
 # Combinaison de tous les table : 
 
-data_fin <- merge(data,data_inv,by.x="id",by.y="ID")
+data_fin <- merge(data_f,data_inv,by.x="id",by.y="id")
 unique(data_fin$espece)
 
 

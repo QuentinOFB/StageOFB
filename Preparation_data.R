@@ -115,10 +115,9 @@ unique(data$qualite_comptage)
 
 #Vérifier les abondances : 
 unique(data$abondance) 
+class(data$abondance)
 # Enlever les NC (sites non comptés) à cause d'une remorque cassée, ou annulé pour cause de tir d'ibis la veille du comptage : 
-
 data <- subset(data, !(data$abondance=="NC"|data$abondance=="nc"|data$abondance=="Nc"|data$abondance=="non compté"|data$abondance=="Non dénombré"|data$abondance=="w"))
-
 
 # Supprimer les données agrégées entre Imperlay et Saint-Nicolas (une autre option serait d'agrégér Imperlay/St Nicolas pour toutes les dates ?)
  
@@ -132,42 +131,47 @@ data <- subset(data, !(data$date=="2022-01-20" & data$site=="imperlay"|data$date
 data[,8] <- gsub("guenezan m ","guenezan m",data[,8])
 data[,8] <- gsub(" guenezan m","guenezan m",data[,8])
 
-  #Erreur d'entrée de date : 2017-12-15 au lieu de 2017-11-15
-data[59432,1] <- gsub("2017-12-15","2017-11-15",data[59432,1])
-
 # Enlever les noms de sites absents : 
 data <- subset(data, !(data$site==""))
 
-#Je serais d'avis d'enlever le site "Estuaire" car personne ne sait à quoi il correspond sur la carte des sites. 
-# De plus, j'enlèverai aussi le site Baracon : c'est une réserve de chasse où les comptages sont centrés sur les espèces gibiers
-
-data <- subset(data, !(data$site=="baracon"|data$site=="estuaire"))
-data <- subset(data,!(data$site=="migron"))
-
-# Ne conserver que les mois où les hivernants sont présents ? (oct-nov-dec-janv-fev-mars)
-# + septembre et avril pour se laisser une marge ? 
-
+# Colonne mois + années 
 unique(data$mois)
 data$mois <- month(data$date)
 
-data <- subset(data, !(data$mois=="5"|data$mois=="6"|data$mois=="7"|data$mois=="8"))
-
 unique(data$annee)
 data$annee <- year(data$date)
-#Retirer les sites qui sont sur moins de 3 saisons : Lavau, Chevalier et Saint_brévin/méan : 
 
-data <- subset(data, !(data$site=="lavau"|data$site=="chevallier"|data$site=="saint_brevin_mean"))
+#Création d'une colonne site_retenu 
+help("count")
 
+nb_suivi_site <-  
+  data %>% 
+  count(site, annee)
+
+nb_suivi_site <- 
+  nb_suivi_site %>%
+  count(site)
+
+data <- merge(data,nb_suivi_site, by.x = "site", by.y = "site")
+
+colnames(data)[18] <- "occurence_site"
+
+data$site_retenu <- with(data, ifelse(data$occurence_site < 3,"non",
+                                ifelse(data$site=="migron","non",
+                                 ifelse(data$site=="baracon","non",
+                                  ifelse(data$site=="estuaire","non","oui")))))  
+
+
+  
 # Enlever le comptage du 10/11/2008 : X2 passage sur tous les sites, avec des conditions météo nulles
 # + comptage partiel -> remplacé par les comptages du 12/11 et du 24/11 : 
-
 data <- subset(data,!(data$date=="2008-11-10"))
 
 # Double comptage Corsept 18/07/2008 -> erreur de saisi des données, c'est un doublon !
 data <- distinct(data)
 help("distinct")
 
-data <- subset(data,!(data$site=="saint_brevin"&data$date=="2008-07-18"&data$obs=="potiron"))
+data <- subset(data,!(data$site=="saint_brevin"& data$date=="2008-07-18"& data$obs=="potiron"))
 
 # Voir pour les doubles comptages avec Matthieu Bécot sur Pierre Rouge : 
 
@@ -188,9 +192,22 @@ espece <- espece[-c(98),]
 
 #Combinaison des deux tableaux : 
 help("merge")
-data_esp <- merge(data,espece, by.x = "espece", by.y = "french_name")
+data_esp <- merge(data,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
 View(data_esp)
 unique(data_esp$espece)
+unique(data_esp$order_tax)
+unique(data$family_tax)
+data_esp$order_tax[data_esp$espece=="barges_sp"] <- "Charadriiformes"
+data_esp$order_tax[data_esp$espece=="becasseau_sp"] <- "Charadriiformes"
+data_esp$order_tax[data_esp$espece=="canard_sp"] <- "Ansériformes"
+data_esp$order_tax[data_esp$espece=="courlis_sp"] <- "Charadriiformes"
+data_esp$order_tax[data_esp$espece=="gravelot_sp"] <- "Charadriiformes"
+
+data_esp$family_tax[data_esp$espece=="barges_sp"] <- "Scolopacidés"
+data_esp$family_tax[data_esp$espece=="becasseau_sp"] <- "Scolopacidés"
+data_esp$family_tax[data_esp$espece=="canard_sp"] <- "Anatidés"
+data_esp$family_tax[data_esp$espece=="courlis_sp"] <- "Scolopacidés"
+data_esp$family_tax[data_esp$espece=="gravelot_sp"] <- "Charadriidés"
 
 # Selectionnner les espèces qui nous intéressent : Anatidés + Limicoles
 # -> Choix des Ansériformes + Charadriiformes
@@ -203,13 +220,46 @@ unique(data$espece)
 
 data <- subset(data, !(data$family_tax=="Laridés"|data$family_tax=="Sternidés"))
 unique(data$espece)
-# -> 53 espèces anatidés/limicoles recensées sur tous les comptages estuaire Loire
+# -> 53 espèces anatidés/limicoles recensées sur tous les comptages estuaire Loire (+ 5 sp indeterminé)
+
+#Ajouter une colonne pour le nombre d'observation : 
+
+nb_observation <- data %>%
+  count(espece)
+
+data <- merge(data,nb_observation, by.x = "espece",by.y = "espece")
+colnames(data)[34] <- "nb_observations"
+
+#Valeur médiane des abondances 
+
+data$abondance <- as.numeric(data$abondance)
+
+median_ab <- data %>%
+group_by(espece,mois,site,annee) %>%
+summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
+
+median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
+
+data$id_ab <- paste(data$espece,data$site,data$mois,data$annee)
+
+data <- merge(data,median_ab,by.x = "id_ab",by.y="id")
+
+
 ## Retrier les colonnes qui ne servent pas à grand chose : 
 
-data <- data[,-c(15,16,18,20:31)]
+data <- data[,-c(1,16,17,21,23:32,36:39)]
 
-data[,16] <- tolower(data[,16])
+colnames(data)[1] <- "espece"
+colnames(data)[2] <- "site"
+colnames(data)[13] <- "mois"
+colnames(data)[14] <- "annee"
 
+data[,18] <- tolower(data[,18])
+data[,18] <- gsub(" ","_",data[,18])
+
+#Ajouter une colonne groupe fonctionnel : 
+
+data$grp_fonctionnel <- with(data, ifelse(data$order_tax=="Charadriiformes","limicole","anatidae"))
 
 #Ajouter colonne protocole 
 
@@ -218,8 +268,12 @@ data$protocole <- with(data, ifelse(data$site=="pierre_rouge","bateau",ifelse(
                                               ifelse(data$site=="pipy","bateau",
                                                 ifelse(data$site=="marechale","bateau",
                                                 ifelse(data$site=="donges","bateau","terrestre")))))))
+#Ajouter une colonne "Voie de migration 
 
-  #Jeux de données nettoyé (si rien n'a été oublié) pour estuaire de la Loire ! 
+data$voie_migr <- "est_atlantique"  
+
+
+#Jeux de données ok (si rien n'a été oublié) pour estuaire de la Loire ! 
 
 
       ######## 2. La Camargue #############

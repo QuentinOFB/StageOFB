@@ -711,7 +711,7 @@ nb_observation <- Baie %>%
   count(espece)
 
 Baie <- merge(Baie,nb_observation, by.x = "espece",by.y = "espece")
-colnames(Camargue)[22] <- "nb_observations"     
+colnames(Baie)[22] <- "nb_observations"     
 
 
             ########## 4. Le cotentin : #############
@@ -1248,12 +1248,12 @@ Arcachon[,4] <- gsub("grand_gravelot_","grand_gravelot",Arcachon[,4])
 # ATTENTION Pas que des limicoles dans le jeu de données : des ardéidés aussi ! 
 # Les retirer : 
 
-Arcachon <- subset(Arcachon, !(Arcachon$espece=="aigrette_des_recifs"|Arcachon$espece=="heron_cendre"|Arcachon$espece=="spatule_blanche"))
+Arcachon <- subset(Arcachon, !(Arcachon$espece=="aigrette_des_recifs"|Arcachon$espece=="heron_cendre"|Arcachon$espece=="spatule_blanche"|Arcachon$espece==""))
 
 # données sp + "Gravelot ou becasseau" 
 
-Arcachon <- subset(Arcachon,!(Arcachon$espece=="gravelot_sp"|Arcachon$espece=="becasseau_sp"|Arcachon$espece=="becasseau_ou_gravelot"
-                   |Arcachon$espece=="courlis_sp"|Arcachon$espece=="chevalier_sp"|Arcachon$espece=="barge_sp"))
+Arcachon$espece[Arcachon$espece=="barge_sp"] <- "barges_sp"
+Arcachon$espece[Arcachon$espece=="becasseau_ou_gravelot"]<- "limicole_sp"
 
 # Format de date : 
 unique(Arcachon$date)
@@ -1264,11 +1264,6 @@ Arcachon$date <- dmy(Arcachon$date)
 #Ajouter le mois : en "chiffre"
 Arcachon$mois <- month(Arcachon$date)
 unique(Arcachon$mois)
-
-# -> Ne conserver que les mois pour les hivernants : 
-
-Arcachon <- subset(Arcachon,!(Arcachon$mois=="5"|Arcachon$mois=="6"|Arcachon$mois=="7"|Arcachon$mois=="8"))
-
 
 #Nom des sites :
 unique(Arcachon$site)
@@ -1292,7 +1287,7 @@ unique(Arcachon[c(995:1363),9])
 #Case vide + Partiel + 0 + NC 
 # Les 0 ne correspondent pas à de vrais absence : mais à des non comptage : 
 
-Arcachon <- subset(Arcachon,!(Arcachon$abondance=="0"|Arcachon$abondance=="NC"|Arcachon$abondance==""))
+Arcachon <- subset(Arcachon,!(Arcachon$abondance=="NC"|Arcachon$abondance==""))
 
 #Vérification des doublons + double comptage : 
 duplicated(Arcachon)
@@ -1317,8 +1312,10 @@ Arcachon$protocole <- "NA"
 
 #Prendre en compte les remarques : 
 unique(Arcachon$remarques)
-
-Arcachon$qualite_comptage <- with(Arcachon, ifelse(Arcachon$remarques=="dérangement: engins nautiques motorisés et non motorisés","douteux",
+unique(Arcachon$derangement)
+Arcachon$qualite_comptage <- with(Arcachon, ifelse(Arcachon$remarques=="dérangements promeneurs, vélos, chiens, plagistes","douteux",
+                                            ifelse(Arcachon$remarques=="que des chiens","douteux",
+                                            ifelse(Arcachon$remarques=="dérangement: engins nautiques motorisés et non motorisés","douteux",
                                             ifelse(Arcachon$remarques=="beaucoup de promeneurs","douteux",
                                             ifelse(Arcachon$remarques=="dérangement: engin nautique non motorisé","douteux",
                                             ifelse(Arcachon$remarques=="dérangement chasse","douteux",
@@ -1342,10 +1339,66 @@ Arcachon$qualite_comptage <- with(Arcachon, ifelse(Arcachon$remarques=="dérange
                                               ifelse(Arcachon$remarques=="chiens + kites","douteux",
                                               ifelse(Arcachon$remarques=="Attaque de Faucon Pellerin, gros envol","douteux",
                                               ifelse(Arcachon$remarques=="Attaque de chien","douteux",
-                                              ifelse(Arcachon$remarques=="Dérangement ","douteux","ok"))))))))))))))))))))))))))
+                                              ifelse(Arcachon$remarques=="Dérangement ","douteux",
+                                              ifelse(Arcachon$derangement=="Attaque de chien","douteux",
+                                               ifelse(Arcachon$derangement=="kite surf + chasse","douteux",
+                                              ifelse(Arcachon$derangement=="Dérangement bateau chasseur","douteux",
+                                              ifelse(Arcachon$derangement=="Surcote","douteux",
+                                              ifelse(Arcachon$derangement=="Attaque de Faucon Pellerin, gros envol","douteux",
+                                              ifelse(Arcachon$derangement=="nbx promeneurs","douteux",
+                                              ifelse(Arcachon$derangement=="Engin nautique motorisé et non mototrisé","douteux","ok")))))))))))))))))))))))))))))))))))
 
+#Ajout colonne suivi site : 
 
+nb_suivi_site <-  
+  Arcachon %>% 
+  count(site, annee)
 
+nb_suivi_site <- 
+  nb_suivi_site %>%
+  count(site)
+
+Arcachon <- merge(Arcachon,nb_suivi_site, by.x = "site", by.y = "site")
+
+colnames(Arcachon)[24] <- "occurence_site"
+
+#Colonne site retenu: 
+Arcachon$site_retenu <- with(Arcachon, ifelse(Arcachon$occurence_site < 3, "non","oui"))
+
+#Colonne nombre d'observation espèces : 
+nb_observation <- Arcachon %>%
+  count(espece)
+
+Arcachon <- merge(Arcachon,nb_observation, by.x = "espece",by.y = "espece")
+colnames(Arcachon)[26] <- "nb_observations"
+
+#Colonne valeur médiane, moy ... 
+Arcachon$abondance <- as.numeric(Arcachon$abondance)
+
+median_ab <- Arcachon %>%
+  group_by(espece,mois,site,annee) %>%
+  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
+
+median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
+
+Arcachon$id_ab <- paste(Arcachon$espece,Arcachon$site,Arcachon$mois,Arcachon$annee)
+
+Arcachon <- merge(Arcachon,median_ab,by.x = "id_ab",by.y="id")
+
+#On renomme bien les colonnes : 
+colnames(Arcachon)[2] <- "espece"
+colnames(Arcachon)[3] <- "site"
+colnames(Arcachon)[5] <- "annee"
+colnames(Arcachon)[21] <- "mois"
+
+#Tri final des colonnes : 
+Arcachon <- Arcachon[,-c(1,6,28,29,30,31)]
+
+# Voie migration 
+Arcachon$voie_migr <- "est_atlantique"
+
+#Groupe fonctionnel 
+Arcachon$grp_fonctionnel <- "limicoles"
 
             ############## 6. Reserve du Rhin #################
 
@@ -1384,12 +1437,11 @@ sort(unique(Rhin$espece))
 
 # -> Retirer l'oie domestique : 
 Rhin <- subset(Rhin, !(Rhin$espece=="oie_domestique"))
-# -> Retirer les especes indeterminées : 
-Rhin <- subset(Rhin,!(Rhin$espece=="becasseau_indetermine"|Rhin$espece=="chevalier_indetermine_(tringa)"
-                      |Rhin$espece=="gravelot_indetermine"|Rhin$espece=="oie_indeterminee"))
-# -> Retirer les hybrides : 
-Rhin <- subset(Rhin, !(Rhin$espece=="hybride_bernache_du_canada_x_oie_cendree"
-                       |Rhin$espece=="hybride_fuligule_milouin_x_morillon"))
+# 
+Rhin$espece[Rhin$espece=="becasseau_indetermine"] <- "becasseau_sp"
+Rhin$espece[Rhin$espece=="chevalier_indetermine_(tringa)"] <- "chevalier_sp"
+Rhin$espece[Rhin$espece=="gravelot_indetermine"] <- "gravelot_sp"
+Rhin$espece[Rhin$espece=="oie_indeterminee"] <- "oie_sp"
 
 # Format de la date : 
 unique(Rhin$date)
@@ -1411,32 +1463,24 @@ Rhin[,9] <- gsub("14-janv-24","14/01/2024",Rhin[,9])
 
 Rhin$date <- dmy(Rhin$date)
 
-# -> Ne retenir que les années correspondant à notre série temporelle : 
-
-Rhin <- subset(Rhin,! (Rhin$annee<2004))
-
-# -> Ne retenir que les mois pour les hivernants : 
-Rhin <- subset(Rhin, !(Rhin$mois=="5"|Rhin$mois=="6"|Rhin$mois=="7"|Rhin$mois=="8"))
-
-# Enlever les mois de janvier-février-mars et avril 2004 (première saison 2004-2005)
-
-Rhin <- subset(Rhin,!(Rhin$annee=="2004"&Rhin$mois=="1"|Rhin$annee=="2004"&Rhin$mois=="2"|Rhin$annee=="2004"&Rhin$mois=="3"|Rhin$annee=="2004"&Rhin$mois=="4"))
-
 # Noms des sites : 
     # Pour les 3 sites : 
 unique(Rhin$site)
+colnames(Rhin) [1] <- "grand_site"
 Rhin[,1] <- tolower(Rhin[,1])
 
   # Pour les "intra-sites"
-colnames(Rhin)[20] <- "intra_site"
+colnames(Rhin)[20] <- "site"
 Rhin[,20] <- tolower(Rhin[,20])
 Rhin[,20] <- iconv(Rhin[,20], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 Rhin[,20] <- gsub("\\+","_",Rhin[,20])
 
 unique(Rhin$intra_site)
   # Attention : au niveau des intra-sites : vieux rhin + grande alsace (agrégés) & vieux rhin et grande alsace (séparé)
-# Retirer les intra-sites non renseignés (si on choisit celle échelle) : 
-  # -> Rhin <- subset(Rhin, !(Rhin$intra_site==""))
+
+  # -> Si on choisit de ne pas aggréger les "intra_sites" on perd 800 données syr les 4733 concernant anatidés/limicoles
+  # Uniquement des données au mois de janvier entre 2001 et 2013  
+
 
 #Vérification des abondances : 
 colnames(Rhin) [31] <- "abondance"
@@ -1469,16 +1513,57 @@ unique(Rhin$liste_complete__)
 colnames(Rhin) [37] <- "remarques"
 
 unique(Rhin$remarques)
-
+unique(Rhin$commentaire_de_la_liste)
 Rhin$qualite_comptage <- with(Rhin, ifelse(Rhin$liste_complete__=="0","douteux",
                                     ifelse(Rhin$remarques=="Participants : Carole BIZART, Jean-Marc BRONNER, Yann CARASCO, Luca FETIQUE, Jean-Pierre HISS, Victor ROUAULT. Météo : 10 à 15 cm de neige au sol; redoux en cours, avec températures devenant légèrement positives en journée. Ciel couvert. Quelques faibles pluies et neige mêlées, puis quelques faibles pluies éparses.","douteux",
                                     ifelse(Rhin$remarques=="Sous évalué en raison du vent, de nombreux individus sont à l'abri du vent derrière la digue tiroir ou ailleurs","douteux",
                                   ifelse(Rhin$remarques=="Mauvaises conditions d'observation. Total peut-être sous-évalué.","douteux","ok")))))
 
 
+#Ajout colonne suivi site : 
 
+nb_suivi_site <-  
+  Rhin %>% 
+  count(site, annee)
 
+nb_suivi_site <- 
+  nb_suivi_site %>%
+  count(site)
 
+Rhin <- merge(Rhin,nb_suivi_site, by.x = "site", by.y = "site")
+
+colnames(Rhin)[46] <- "occurence_site"
+
+#Colonne site retenu: 
+Rhin$site_retenu <- with(Rhin, ifelse(Rhin$occurence_site < 3, "non","oui"))
+
+#Colonne nombre d'observation espèces : 
+nb_observation <- Rhin %>%
+  count(espece)
+
+Rhin <- merge(Rhin,nb_observation, by.x = "espece",by.y = "espece")
+colnames(Rhin)[48] <- "nb_observations"
+
+#Colonne valeur médiane, moy ... 
+Rhin$abondance <- as.numeric(Rhin$abondance)
+
+median_ab <- Rhin %>%
+  group_by(espece,mois,site,annee) %>%
+  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
+
+median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
+
+Rhin$id_ab <- paste(Rhin$espece,Rhin$site,Rhin$mois,Rhin$annee)
+
+Rhin <- merge(Rhin,median_ab,by.x = "id_ab",by.y="id")
+
+#Ajout colonne voie migration : 
+
+Rhin$voie_migr <- "est_atlantique/mediterranee"
+
+#Tri des colonnes 
+
+Rhin <- Rhin[,-c()]
 
               ################### FUSION TABLEAU DONNEES ##############
 help("rbind")

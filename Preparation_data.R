@@ -304,6 +304,8 @@ Camargue[,8] <- tolower(Camargue[,8])
 Camargue[,8] <-iconv(Camargue[,8], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 unique(Camargue$espece)
 
+Camargue$espece[Camargue$espece=="duck_ind."] <- "canard_sp"
+
 #Nom des sites : 
 Camargue[,4] <- tolower(Camargue[,4])
 Camargue[,4] <-iconv(Camargue[,4], from = 'UTF-8', to = 'ASCII//TRANSLIT')
@@ -319,28 +321,43 @@ Camargue$date <- dmy(Camargue$date)
 Camargue[,10] <- tolower(Camargue[,10])
 ## Initiales des observateurs : AT = Alain Tamisier ; JBM = Jean-Baptiste Mouronval ; Michel Gauthier-Clerc 
 
+Camargue$obs[Camargue$obs=="at"] <- "alain_tamisier"
+Camargue$obs[Camargue$obs=="jbm"] <- "jean_baptiste_mouronval"
+Camargue$obs[Camargue$obs=="mgc"] <- "michel_gauthier_clerc"
+
 # -> Avoir les noms vernaculaires des espèces : 
+espece <- read.csv("Data/espece.csv")
 espece[,3] <- tolower(espece[,3])
 espece[,3] <- gsub(" ","_",espece[,3])
 # Prendre "scientific name 2 car il y a d'anciens noms latins dans le jeu de données Camargue : 
 #  Mareca penelope et mareca strepera 
 # Attention au nom latin du cygne de Bewick : 
 Camargue[,8] <- gsub("cygnus_columbianus_bewickii","cygnus_columbianus",Camargue[,8])
-Camargue <- merge(Camargue,espece, by.x = "espece", by.y = "scientific_name_2")
+Camargue <- merge(Camargue,espece, by.x = "espece", by.y = "scientific_name_2", all.x = T)
 unique(Camargue$espece)
 # -> Retirer la foulque macroule : 
 Camargue <- subset(Camargue,!(Camargue$espece=="fulica_atra"))
 
-#Retirer les colonnes dont on a pas besoin : 
-Camargue <- Camargue[,-c(1,2,4,13,14,16,18:25)]
+Camargue$order_tax[Camargue$espece=="canard_sp"] <- "Ansériformes"
+Camargue$family_tax[Camargue$espece=="canard_sp"] <- "Anatidés"
+Camargue$grp_fonctionnel <- "anatidae"
 
-# Remettre les noms des obs et des colonnes au propre 
-colnames(Camargue)[11] <- "espece"
-Camargue[,11] <- tolower(Camargue[,11])
-Camargue[,11] <- gsub(" ","_",Camargue[,11])
+#Retirer les colonnes dont on a pas besoin : 
+Camargue <- Camargue[,-c(1,2,4,11,12,13,14,16,18:25)]
 
 Camargue[,10] <- tolower(Camargue[,10])
-Camargue[,10] <- gsub(" ","_",Camargue[,10])
+Camargue[,10] <- iconv(Camargue[,10], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+Camargue[,11] <- tolower(Camargue[,11])
+Camargue[,11] <- iconv(Camargue[,11], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+# Remettre les noms des obs et des colonnes au propre 
+colnames(Camargue)[9] <- "espece"
+Camargue[,9] <- tolower(Camargue[,9])
+Camargue[,9] <- gsub(" ","_",Camargue[,9])
+
+Camargue[,8] <- tolower(Camargue[,8])
+Camargue[,8] <- gsub(" ","_",Camargue[,8])
 
 #Création d'une colonne "secteur" pour la Camargue : 
 Camargue$secteur <- "camargue"
@@ -348,9 +365,26 @@ Camargue$secteur <- "camargue"
 #Sélection des années qui correspondent avec celle de l'estuaire de la Loire 
 # à partir de 2004-2005 
 # Sélectionner saison 2004 : 
-
-Camargue <- subset(Camargue, !(Camargue$saison<2004))
+unique(Camargue$annee)
+# Enlever les dix premières années : problème lié à une méthodologie changeante 
+Camargue <- subset(Camargue, !(Camargue$saison<1986))
 unique(Camargue$date)
+
+#Création d'une colonne site retenu :
+
+nb_suivi_site <-  
+  Camargue %>% 
+  count(site, annee)
+
+nb_suivi_site <- 
+  nb_suivi_site %>%
+  count(site)
+
+Camargue <- merge(Camargue,nb_suivi_site, by.x = "site", by.y = "site")
+
+colnames(Camargue)[14] <- "occurence_site"
+
+Camargue$site_retenu <- with(Camargue, ifelse(Camargue$saison < 2004,"non","oui"))
 
 # NA Dans les abondances, pour le coups il s'agit de vrais NA, dans la mesure ou quand une espèce n'est pas comptée elle est notée
 unique(Camargue$abondance)
@@ -358,9 +392,38 @@ unique(Camargue$abondance)
 #Faut-il retirer ces données NA ? 
 Camargue <- subset(Camargue, !(Camargue$abondance=="NA"))
 
+#Colonne sur les observations des espèces : 
+Camargue$abondance <- as.numeric(Camargue$abondance)
+
+median_ab <- Camargue %>%
+  group_by(espece,mois,site,annee) %>%
+  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
+
+median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
+
+Camargue$id_ab <- paste(Camargue$espece,Camargue$site,Camargue$mois,Camargue$annee)
+
+Camargue <- merge(Camargue,median_ab,by.x = "id_ab",by.y="id")
+
 #Ajout colonne protocole : 
 Camargue$protocole <- "avion"
 
+#Ajout de la voie de migration :
+
+Camargue$voie_migr <- "est_atlantique/mediterranee"
+
+Camargue <- Camargue[,-c(1,17,18,19,20)]
+colnames(Camargue) [1] <- "site"
+colnames(Camargue) [3] <- "mois"
+colnames(Camargue) [4] <- "annee"
+colnames(Camargue) [9] <- "espece"
+
+#Nombre d'observation des espèces 
+nb_observation <- Camargue %>%
+  count(espece)
+
+Camargue <- merge(Camargue,nb_observation, by.x = "espece",by.y = "espece")
+colnames(Camargue)[22] <- "nb_observations"
 
       ######## 3. La Baie de l'Aiguillon #############
 #Attention depuis 2020 seulement les sites sans effectifs sont saisis !!! 
@@ -427,11 +490,8 @@ Baie[,3] <- gsub("tadorne_casarca,_casarca_roux","tadorne_casarca",Baie[,3])
 Baie[,3] <- gsub("tournepierre_a_collier,_pluvier_des_salines","tournepierre_a_collier",Baie[,3])
 
 # retirer les espèces inderterminées : 
-Baie <- subset(Baie, !(Baie$espece=="anatides_sp"|Baie$espece=="barge_sp"|Baie$espece=="canard_sp"|Baie$espece=="courlis_sp"|
-                       Baie$espece=="macreuse_sp"|Baie$espece=="oie_sp"|Baie$espece=="becasses"|Baie$espece=="fuligule_sp"|Baie$espece=="limicole_sp"))
 
-# retirer les hybrides : 
-Baie <- subset(Baie, !(Baie$espece=="hybride_tadorne_de_casarca_x_belon"))
+Baie[,3] <- gsub("barge_sp","barges_sp",Baie[,3])
 
 #noms des sites : 
 unique(Baie$site)
@@ -444,17 +504,27 @@ Baie[,5] <- gsub("é","e",Baie[,5])
 Baie[,5] <- gsub("è","e",Baie[,5])
 Baie[,5] <- gsub("ç","c",Baie[,5])
 Baie[,5] <-iconv(Baie[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
-# est-ce qu'il faut enlever les paranthèses ? 
-
-# -> Ne sélectionner que les sites avec plus de 3 comptages sur plusieurs années : 
-Baie <- subset(Baie,!(Baie$site=="communal_d_anais"|Baie$site=="communal_d_angliers"|Baie$site=="communal_de_courcon"|
-                        Baie$site=="communal_de_langon"|Baie$site=="communal_de_sainte_gemme_la_plaine"|Baie$site=="communal_du_gue_d_allere"
-                      |Baie$site=="etang_de_la_sabliere"|Baie$site=="la_dive"|Baie$site=="la_terriere"
-                      |Baie$site=="lagunage_de_l_ile_d_elle"|Baie$site=="lagunage_de_saint_michel_en_l_herm"
-                      |Baie$site=="marais_de_la_bretonniere"|Baie$site=="plan_d_eau_des_guifettes"
-                      |Baie$site=="pointe_du_payre"))
 
 Baie$site[Baie$site=="la_mare_a_2000"] <- "mare_a_2000"
+
+# -> Ne sélectionner que les sites avec plus de 3 comptages sur plusieurs années : 
+
+nb_suivi_site <-  
+  Baie %>% 
+  count(site, annee)
+
+nb_suivi_site <- 
+  nb_suivi_site %>%
+  count(site)
+
+Baie <- merge(Baie,nb_suivi_site, by.x = "site", by.y = "site")
+
+colnames(Baie)[22] <- "occurence_site"
+
+# Création d'une colonne site retenu 
+
+Baie$site_retenu <- with(Baie, ifelse(Baie$annee < 2004,"non",
+                                ifelse(Baie$occurence_site<3,"non","oui")))
 
 #Format date 
 unique(Baie$date) #de 1977 à 2024
@@ -472,34 +542,36 @@ unique(Baie$type_protocole)
 # -> Dans comptage simultané grues : 2 observations :  bécassine des marais + colvert 
 Baie <- subset(Baie, !(Baie$type_protocole=="Comptage simultané grues"))
 
-# Selection des années : 
-Baie <- subset(Baie, !(Baie$annee<2004))
-unique(Baie$date)
-#Enlever Janvier, février, mars, avril, mai, juin, juillet et aout 2004
-# Car le début du jeu de donnée estuaire correspond à la saison 2004-2005 (sept)
-
-Baie <- subset(Baie, !(Baie$annee=="2004"& Baie$mois=="1"|Baie$annee=="2004"& Baie$mois=="2"|Baie$annee=="2004"& Baie$mois=="3"
-                       |Baie$annee=="2004"& Baie$mois=="4"|Baie$annee=="2004"& Baie$mois=="5"|Baie$annee=="2004"& Baie$mois=="6"|Baie$annee=="2004"& Baie$mois=="7"
-                       |Baie$annee=="2004"& Baie$mois=="8"))
-
-#Sélection des mois qui nous intéressent, c'est à dire les mois où on voit les hivernants : 
-Baie <- subset(Baie, !(Baie$mois=="5"|Baie$mois=="6"|Baie$mois=="7"|Baie$mois=="8"))
-
 #Voir les abondance : 
 unique(Baie$abondance)
 unique(Baie$abondance[1000:1595])
 
-# Ils ont mis les valeurs de comptage dans les remarques.... 
-
-
-
 #Présence de NA : les supprimer ? (correspond à une "non prospection")
 Baie <- subset(Baie,!(Baie$abondance=="NA"))
 
+#Création d'une colonne observations pour les espèces : 
+Baie$abondance <- as.numeric(Baie$abondance)
+
+median_ab <- Baie %>%
+  group_by(espece,mois,site,annee) %>%
+  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
+
+median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
+
+Baie$id_ab <- paste(Baie$espece,Baie$site,Baie$mois,Baie$annee)
+
+Baie <- merge(Baie,median_ab,by.x = "id_ab",by.y="id")
+#Remise les noms au propre :
+colnames(Baie) [2] <- "site"
+colnames(Baie) [5] <- "espece"
+colnames(Baie) [19] <- "mois"
+colnames(Baie) [20] <- "annee"
+
+
 #Prendre en compte les remarques : 
 unique(Baie$remarques)
-Baie[,14]<- iconv(Baie[,14], from = 'UTF-8', to = 'ASCII//TRANSLIT')
-Baie[,14] <- gsub(" ","_",Baie[,14])
+Baie[,15]<- iconv(Baie[,15], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+Baie[,15] <- gsub(" ","_",Baie[,15])
 #Ajouter la colonne qualité du comptage : 
 
 # Uniformisation des remarques (pour que ça passe avec ifelse) 
@@ -597,7 +669,7 @@ Baie$protocole <- "terrestre"
 
 
 #Enlever les colonnes qui ne servent pas à grand chose : 
-Baie <- Baie[,-c(1,2,4,9,10,15,16,20,21)]
+Baie <- Baie[,-c(1,3,4,6,8,10,11,12,16,17,21,22,25,26,27)]
 
 # Vérification des doublons :
 duplicated(Baie)
@@ -628,8 +700,21 @@ duplicated(Baie[c(24000:24715),])
 
 Baie <- distinct(Baie)   
 
+#Création colonne groupe fonctionnel :
+Baie$grp_fonctionnel <- with(Baie, ifelse(Baie$family_tax=="Anatidae","anatidae","limicole"))
 
-      ########## 4. Le cotentin : #############
+#Création colonne voie de migration : 
+Baie$voie_migr <- "est_atlantique"
+
+#Nombre d'observation des espèces 
+nb_observation <- Baie %>%
+  count(espece)
+
+Baie <- merge(Baie,nb_observation, by.x = "espece",by.y = "espece")
+colnames(Camargue)[22] <- "nb_observations"     
+
+
+            ########## 4. Le cotentin : #############
 
 Cotentin <- read.csv("Data/donnees_cotentin.csv",header = T,fileEncoding = "utf-8",sep = ";")
 str(Cotentin)
@@ -679,7 +764,7 @@ Cotentin[,3] <-iconv(Cotentin[,3], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
 sort(unique(Cotentin$espece))
 
-#Cotentin <- subset(Cotentin,!(Cotentin$espece=="")) 
+Cotentin <- subset(Cotentin,!(Cotentin$espece=="")) 
 
 Cotentin[,3] <- gsub("bernache_cravant_du_pacifique,_bernache_du_pacifique","bernache_du_pacifique",Cotentin[,3])
 Cotentin[,3] <- gsub("canard_des_bahamas,_pilet_des_bahamas","canard_des_bahamas",Cotentin[,3])
@@ -702,7 +787,6 @@ Cotentin <- subset(Cotentin,!(Cotentin$espece=="pingouin_torda,_petit_pingouin"|
     # -> En revanche autres anatidés pas de manière exhaustive (donc les retirer) idem pour les limicoles terrestre (bécassines + pluvier doré + vanneau)
 
 
-
 #Nom famille et ordre :
 
 Cotentin[,1] <- tolower(Cotentin[,1])
@@ -722,41 +806,69 @@ unique(Cotentin$site)
 # C'est ok ! 
 # Supprimer le Polder_Sainte_Marie : changement de gestion au cours du temps 
 
-Cotentin <- subset(Cotentin, !(Cotentin$site=="polder_ste_marie_cel"))
+#Cotentin <- subset(Cotentin, !(Cotentin$site=="polder_ste_marie_cel"))
 unique(Cotentin$site)
 
 #Supprimer les données agrégées 2004 et 2008 : 
-Cotentin <- subset(Cotentin, !(Cotentin$site=="rnn_beauguillot"))
-
-#Séparer les données des deux protocoles 
-# Suivi des remises -> Se concentrer uniquement sur les anatidés 
-# Suivi limicoles côtiers -> se concentrer uniquement sur les limicoles 
-
-
-#Vérification abondance : 
-unique(Cotentin$abondance)
-# Attention à certains moments des fourchettes sont données ex : 420-440 
-# Que faire ? Prendre la moyenne, le min, le max, ou supprimer ? 
-
-Cotentin$moy <- apply(Cotentin$abondance,FUN = mean)
-
-help("apply")
-
-#sélection des années et des mois : 
+#Cotentin <- subset(Cotentin, !(Cotentin$site=="rnn_beauguillot"))
 
 Cotentin$annee <- year(Cotentin$date)
 Cotentin$mois <- month(Cotentin$date)
 
 unique(Cotentin$annee) #De 2004 à 2023
 unique(Cotentin$mois)
-# -> Ne sélectionner que les mois où on trouve les hivernants 
 
-Cotentin <- subset(Cotentin,!(Cotentin$mois=="5"|Cotentin$mois=="6"|Cotentin$mois=="7"|Cotentin$mois=="8"))
+nb_suivi_site <-  
+  Cotentin %>% 
+  count(site, annee)
+
+nb_suivi_site <- 
+  nb_suivi_site %>%
+  count(site)
+
+Cotentin <- merge(Cotentin,nb_suivi_site, by.x = "site", by.y = "site")
+
+colnames(Cotentin)[15] <- "occurence_site"
+
+# Création d'une colonne site retenu 
 
 
+Cotentin$site_retenu <- with(Cotentin, ifelse(Cotentin$site=="polder_ste_marie_cel","non",
+                                    ifelse(Cotentin$site=="rnn_beauguillot","non",      
+                                    ifelse(Cotentin$occurence_site < 3,"non","oui"))))
+  
+#Vérification abondance : 
+unique(Cotentin$abondance)
+# Attention à certains moments des fourchettes sont données ex : 420-440 
+# Que faire ? Prendre la moyenne, le min, le max, ou supprimer ? 
+
+Cotentin$abondance[Cotentin$abondance=="420-440"] <- "440"
+Cotentin$abondance[Cotentin$abondance=="380-420"] <- "420"
+Cotentin$abondance[Cotentin$abondance=="15-20"] <- "20"
 
 
-#####Prendre en compte les remarques : (à compléter)
+Cotentin$abondance <- as.numeric(Cotentin$abondance)
+
+median_ab <- Cotentin %>%
+  group_by(espece,mois,site,annee) %>%
+  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
+
+median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
+
+Cotentin$id_ab <- paste(Cotentin$espece,Cotentin$site,Cotentin$mois,Cotentin$annee)
+
+Cotentin <- merge(Cotentin,median_ab,by.x = "id_ab",by.y="id")
+
+#Nombre d'observation des espèces : 
+
+
+#Remettre en forme les noms des colonnes :
+colnames(Cotentin) [2] <- "site"
+colnames(Cotentin) [5] <- "espece"
+colnames(Cotentin) [14] <- "mois"
+colnames(Cotentin) [15] <- "annee"
+
+#####Prendre en compte les remarques :
 unique(Cotentin$remarques)
 
 Cotentin[,12] <- gsub(":","_",Cotentin[,12])
@@ -1057,6 +1169,25 @@ Cotentin$secteur <- "cotentin"
 
 # Ajout protocole : 
 Cotentin$protocole <- "terrestre"
+
+#Ajout colonne voie migration : 
+Cotentin$voie_migr <- "est_atlantique"
+
+#Ajout colonne groupe fonctionnel :
+Cotentin$grp_fonctionnel <- with(Cotentin, ifelse(Cotentin$family_tax=="anatidae","anatidae","limicole"))
+unique(Cotentin$family_tax)
+
+#Tri final des colonnes : 
+Cotentin <- Cotentin[,-c(1,11,18,19,20,21)]
+
+#Nombre d'observation des espèces 
+nb_observation <- Cotentin %>%
+  count(espece)
+
+Cotentin <- merge(Cotentin,nb_observation, by.x = "espece",by.y = "espece")
+colnames(Cotentin)[25] <- "nb_observations"
+
+
 
             ###################### 5. Bassin Arcachon ###########
 

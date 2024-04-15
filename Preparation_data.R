@@ -981,8 +981,6 @@ duplicated(Baie[c(24000:24715),])
 
 Baie <- distinct(Baie)   
 
-#Création colonne groupe fonctionnel :
-Baie$grp_fonctionnel <- with(Baie, ifelse(Baie$family_tax=="Anatidae","anatidae","limicole"))
 
 #Création colonne voie de migration : 
 Baie$voie_migr <- "est_atlantique"
@@ -992,7 +990,7 @@ nb_observation <- Baie %>%
   count(espece)
 
 Baie <- merge(Baie,nb_observation, by.x = "espece",by.y = "espece")
-colnames(Baie)[23] <- "nb_observations"     
+colnames(Baie)[22] <- "nb_observations"     
 
 
             ########## 4. Le cotentin : #############
@@ -2459,6 +2457,13 @@ data_f[,19] <- iconv(data_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
 data_f[,20] <- tolower(data_f[,20])
 data_f[,20] <- iconv(data_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
 
+
+nb_observation <- data %>%
+  count(espece)
+data_f <- merge(data_f, nb_observation, by.x = "espece", by.y = "espece")
+colnames(data_f) [22] <- "nombre_observation"
+
+
 ############# Baie de l'Aiguillon : 
 # 1. Création d'un identifiant pour compiler les tables : 
 id <- paste(Baie$site,Baie$date)
@@ -2481,7 +2486,7 @@ duplicated(Baie_inv$id)
 
 # 4. Création de la table comptage (table d'observation) : 
 # -> création d'un id pour fusionner les tables (avec les espèces)
-Baie$id <- paste(Baie$espece,Baie$site,data$date)
+Baie$id <- paste(Baie$espece,Baie$site,Baie$date)
 Baie$id_inv <- paste(Baie$site,Baie$date)
 
 #Création du tableau inventaire qu'on va croiser avec le jeu de données : 
@@ -2509,7 +2514,7 @@ View(data)
 # On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
 # pour obtenir la table observation : 
 
-Baie_f <- Baie_f[,-c(4,5,6,7,8,9,11:32)]
+Baie_f <- Baie_f[,-c(4,5,6,7,9:26)]
 
 
 # Var 2 -> espece :
@@ -2522,61 +2527,431 @@ Baie_f <- merge(Baie_f, Baie_inv, by.x = "id", by.y = "id")
 #Rajouter les valeurs moy, miw, max et median abondance : 
 
 val <- data.frame(Baie$id, Baie$abondance_max, Baie$abondance_median, Baie$abondance_min, Baie$abondance_moy)
-Baie_f <- merge(Baie_f, val, by.x = "id_sp","data.id", all.x = T)
+Baie_f <- merge(Baie_f, val, by.x = "id_sp","Baie.id", all.x = T)
 Baie_f <- distinct(Baie_f)
 
-Baie_f$data.abondance_max[is.na(data_f$data.abondance_max)] = 0
-Baie_f$data.abondance_min[is.na(data_f$data.abondance_min)] = 0
-Baie_f$data.abondance_median[is.na(data_f$data.abondance_median)] = 0
-Baie_f$data.abondance_moy[is.na(data_f$data.abondance_moy)] = 0
+Baie_f$Baie.abondance_max[is.na(Baie_f$Baie.abondance_max)] = 0
+Baie_f$Baie.abondance_min[is.na(Baie_f$Baie.abondance_min)] = 0
+Baie_f$Baie.abondance_median[is.na(Baie_f$Baie.abondance_median)] = 0
+Baie_f$Baie.abondance_moy[is.na(Baie_f$Baie.abondance_moy)] = 0
 # On remet les noms latins + famille + ordre
 
 Baie_f <- merge(Baie_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
 
 Baie_f <- Baie_f[,-c(2,3,20,22:31)]
 colnames(Baie_f) [3] <- "site"
-colnames(data_f) [4] <- "secteur"
-colnames(data_f) [5] <- "protocole"
-colnames(data_f) [6] <- "occurence_site"
-colnames(data_f) [7] <- "qualite_comptage"
-colnames(data_f) [8] <- "voie_migratoire"
-colnames(data_f) [9] <- "site_retenu"
-colnames(data_f) [10] <- "date"
-colnames(data_f) [11] <- "observateurs"
-colnames(data_f) [12] <- "mois"
-colnames(data_f) [13] <- "annee"
-colnames(data_f) [14] <- "abondance_max"
-colnames(data_f) [15] <- "abondance_mediane"
-colnames(data_f) [16] <- "abondance_min"
-colnames(data_f) [17] <- "abondance_moy"
-colnames(data_f) [18] <- "nom_latin"
-colnames(data_f) [19] <- "ordre"
-colnames(data_f) [20] <- "famille"
+colnames(Baie_f) [4] <- "secteur"
+colnames(Baie_f) [5] <- "protocole"
+colnames(Baie_f) [6] <- "occurence_site"
+colnames(Baie_f) [7] <- "qualite_comptage"
+colnames(Baie_f) [8] <- "voie_migratoire"
+colnames(Baie_f) [9] <- "site_retenu"
+colnames(Baie_f) [10] <- "date"
+colnames(Baie_f) [11] <- "observateurs"
+colnames(Baie_f) [12] <- "mois"
+colnames(Baie_f) [13] <- "annee"
+colnames(Baie_f) [14] <- "abondance_max"
+colnames(Baie_f) [15] <- "abondance_mediane"
+colnames(Baie_f) [16] <- "abondance_min"
+colnames(Baie_f) [17] <- "abondance_moy"
+colnames(Baie_f) [18] <- "nom_latin"
+colnames(Baie_f) [19] <- "ordre"
+colnames(Baie_f) [20] <- "famille"
 
-data_f$ordre[data_f$espece=="canard_sp"] <- "Ansériformes"
-data_f$famille[data_f$espece=="canard_sp"] <- "Anatidés"
+Baie_f$ordre[Baie_f$espece=="canard_sp"] <- "Ansériformes"
+Baie_f$famille[Baie_f$espece=="canard_sp"] <- "Anatidés"
 
-data_f$ordre[data_f$espece=="barges_sp"] <- "Charadriiformes"
-data_f$famille[data_f$espece=="barges_sp"] <- "Scolopacidés"
+Baie_f$ordre[Baie_f$espece=="barges_sp"] <- "Charadriiformes"
+Baie_f$famille[Baie_f$espece=="barges_sp"] <- "Scolopacidés"
 
-data_f$ordre[data_f$espece=="becasseau_sp"] <- "Charadriiformes"
-data_f$famille[data_f$espece=="becasseau_sp"] <- "Scolopacidés"
+Baie_f$ordre[Baie_f$espece=="becasseau_sp"] <- "Charadriiformes"
+Baie_f$famille[Baie_f$espece=="becasseau_sp"] <- "Scolopacidés"
 
-data_f$ordre[data_f$espece=="courlis_sp"] <- "Charadriiformes"
-data_f$famille[data_f$espece=="courlis_sp"] <- "Scolopacidés"
+Baie_f$ordre[Baie_f$espece=="courlis_sp"] <- "Charadriiformes"
+Baie_f$famille[Baie_f$espece=="courlis_sp"] <- "Scolopacidés"
 
-data_f$grp_fonctionnel <- with(data_f, ifelse(data_f$ordre=="Charadriiformes","limicoles","anatidae"))
+Baie_f$ordre[Baie_f$espece=="limicole_sp"] <- "Charadriiformes"
+Baie_f$ordre[Baie_f$espece=="anatides_sp"] <- "Ansériformes"
+Baie_f$famille[Baie_f$espece=="anatides_sp"] <- "Anatidés"
 
-data_f[,18] <- tolower(data_f[,18])
-data_f[,18] <- gsub(" ","_", data_f[,18])
+Baie_f$ordre[Baie_f$espece=="becasses"] <- "Charadriiformes"
+Baie_f$famille[Baie_f$espece=="becasses"] <- "Scolopacidés"
 
-data_f[,19] <- tolower(data_f[,19])
-data_f[,19] <- iconv(data_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
+Baie_f$ordre[Baie_f$espece=="oie_sp"] <- "Ansériformes"
+Baie_f$famille[Baie_f$espece=="oie_sp"] <- "Anatidés"
 
-data_f[,20] <- tolower(data_f[,20])
-data_f[,20] <- iconv(data_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
+Baie_f$ordre[Baie_f$espece=="macreuse_sp"] <- "Ansériformes"
+Baie_f$famille[Baie_f$espece=="macreuse_sp"] <- "Anatidés"
+
+Baie_f$grp_fonctionnel <- with(Baie_f, ifelse(Baie_f$ordre=="Charadriiformes","limicoles","anatidae"))
+
+Baie_f[,18] <- tolower(Baie_f[,18])
+Baie_f[,18] <- gsub(" ","_", Baie_f[,18])
+
+Baie_f[,19] <- tolower(Baie_f[,19])
+Baie_f[,19] <- iconv(Baie_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+Baie_f[,20] <- tolower(Baie_f[,20])
+Baie_f[,20] <- iconv(Baie_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+nb_observation <- Baie %>%
+  count(espece)
+Baie_f <- merge(Baie_f, nb_observation, by.x = "espece", by.y = "espece")
+colnames(Baie_f) [22] <- "nombre_observation"
 
 
+########### Le cotentin 
+
+id <- paste(Cotentin$site,Cotentin$date)
+unique(id)
+# 2. Création de la table "site" : 
+site <- data.frame(id, Cotentin$site, Cotentin$secteur, Cotentin$protocole, Cotentin$occurence_site, Cotentin$qualite_comptage, Cotentin$voie_migr, Cotentin$site_retenu)
+site <- unique(site) 
+duplicated(site$id)
+
+
+# 3. Création de la table inventaire : 
+
+inv <- data.frame(id,Cotentin$date,Cotentin$obs,Cotentin$mois,Cotentin$annee)
+inv <- unique(inv)
+
+# Compilation des deux tables : 
+Cotentin_inv <- merge(site,inv,by.x = "id", by.y = "id")
+
+
+# 4. Création de la table comptage (table d'observation) : 
+# -> création d'un id pour fusionner les tables (avec les espèces)
+Cotentin$id <- paste(Cotentin$espece,Cotentin$site,Cotentin$date)
+Cotentin$id_inv <- paste(Cotentin$site,Cotentin$date)
+
+#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
+
+id_inv <- unique(Cotentin$id_inv)
+sp <- unique(Cotentin$espece)
+
+inventaire <- expand.grid(id_inv, sp) # [RL] très bien
+View(inventaire)
+
+# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
+# dans les data
+
+inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
+
+# Combinaison des deux tableaux : 
+
+Cotentin_f <- merge(inventaire, Cotentin, by.x = "id_sp", by.y = "id", all.x = T)
+
+# Remplacement des NA par des 0
+Cotentin_f$abondance[is.na(Cotentin_f$abondance)] = 0
+
+# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
+# pour obtenir la table observation : 
+
+Cotentin_f <- Cotentin_f[,-c(4:11,13:27)]
+
+
+# Var 2 -> espece :
+colnames(Cotentin_f)[names(Cotentin_f)== "Var2"] <- "espece"
+colnames(Cotentin_f)[names(Cotentin_f)== "Var1"] <- "id"
+
+#
+Cotentin_f <- merge(Cotentin_f, Cotentin_inv, by.x = "id", by.y = "id")
+
+#Rajouter les valeurs moy, miw, max et median abondance : 
+
+val <- data.frame(Cotentin$id, Cotentin$abondance_max, Cotentin$abondance_median, Cotentin$abondance_min, Cotentin$abondance_moy)
+Cotentin_f <- merge(Cotentin_f, val, by.x = "id_sp","Cotentin.id", all.x = T)
+
+Cotentin_f$Cotentin.abondance_max[is.na(Cotentin_f$Cotentin.abondance_max)] = 0
+Cotentin_f$Cotentin.abondance_min[is.na(Cotentin_f$Cotentin.abondance_min)] = 0
+Cotentin_f$Cotentin.abondance_median[is.na(Cotentin_f$Cotentin.abondance_median)] = 0
+Cotentin_f$Cotentin.abondance_moy[is.na(Cotentin_f$Cotentin.abondance_moy)] = 0
+# On remet les noms latins + famille + ordre
+
+Cotentin_f <- merge(Cotentin_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
+
+Cotentin_f <- Cotentin_f[,-c(2,3,20,22:31)]
+colnames(Cotentin_f) [3] <- "site"  
+colnames(Cotentin_f) [4] <- "secteur"
+colnames(Cotentin_f) [5] <- "protocole"
+colnames(Cotentin_f)  [6] <- "occurence_site"
+colnames(Cotentin_f) [7] <- "qualite_comptage"
+colnames(Cotentin_f) [8] <- "voie_migratoire"
+colnames(Cotentin_f) [9] <- "site_retenu"
+colnames(Cotentin_f) [10] <- "date"
+colnames(Cotentin_f)  [11] <- "observateurs"
+colnames(Cotentin_f) [12] <- "mois"
+colnames(Cotentin_f) [13] <- "annee"
+colnames(Cotentin_f) [14] <- "abondance_max"
+colnames(Cotentin_f) [15] <- "abondance_mediane"
+colnames(Cotentin_f) [16] <- "abondance_min"
+colnames(Cotentin_f) [17] <- "abondance_moy"
+colnames(Cotentin_f) [18] <- "nom_latin"
+colnames(Cotentin_f) [19] <- "ordre"
+colnames(Cotentin_f) [20] <- "famille"
+
+Cotentin_f$grp_fonctionnel <- with(Cotentin_f, ifelse(Cotentin_f$ordre=="Charadriiformes","limicoles","anatidae"))
+
+Cotentin_f[,18] <- tolower(Cotentin_f[,18])
+Cotentin_f[,18] <- gsub(" ","_", Cotentin_f[,18])
+
+Cotentin_f[,19] <- tolower(Cotentin_f[,19])
+Cotentin_f[,19] <- iconv(Cotentin_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+Cotentin_f[,20] <- tolower(Cotentin_f[,20])
+Cotentin_f[,20] <- iconv(Cotentin_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+nb_observation <- Cotentin %>%
+  count(espece)
+Cotentin_f <- merge(Cotentin_f, nb_observation, by.x = "espece", by.y = "espece")
+colnames(Cotentin_f) [22] <- "nombre_observation"
+
+
+#Réserve du Rhin : 
+
+id <- paste(Rhin$site,Rhin$date)
+unique(id)
+# 2. Création de la table "site" : 
+site <- data.frame(id, Rhin$site,Rhin$secteur, Rhin$protocole, Rhin$occurence_site, Rhin$qualite_comptage, Rhin$voie_migr, Rhin$site_retenu)
+site <- unique(site) 
+duplicated(site$id)
+
+
+# 3. Création de la table inventaire : 
+
+inv <- data.frame(id,Rhin$date,Rhin$obs,Rhin$mois,Rhin$annee)
+inv <- unique(inv)
+
+# Compilation des deux tables : 
+Rhin_inv <- merge(site,inv,by.x = "id", by.y = "id")
+
+
+# 4. Création de la table comptage (table d'observation) : 
+# -> création d'un id pour fusionner les tables (avec les espèces)
+Rhin$id <- paste(Rhin$espece,Rhin$site,Rhin$date)
+Rhin$id_inv <- paste(Rhin$site,Rhin$date)
+
+#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
+
+id_inv <- unique(Rhin$id_inv)
+sp <- unique(Rhin$espece)
+
+inventaire <- expand.grid(id_inv, sp) # [RL] très bien
+View(inventaire)
+
+# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
+# dans les data
+
+inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
+
+# Combinaison des deux tableaux : 
+
+Rhin_f <- merge(inventaire, Rhin, by.x = "id_sp", by.y = "id", all.x = T)
+
+# Remplacement des NA par des 0
+Rhin_f$abondance[is.na(Rhin_f$abondance)] = 0
+
+# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
+# pour obtenir la table observation : 
+
+Rhin_f <- Rhin_f[,-c(4:19,21:34)]
+
+
+# Var 2 -> espece :
+colnames(Rhin_f)[names(Rhin_f)== "Var2"] <- "espece"
+colnames(Rhin_f)[names(Rhin_f)== "Var1"] <- "id"
+
+#
+Rhin_f <- merge(Rhin_f, Rhin_inv, by.x = "id", by.y = "id")
+
+#Rajouter les valeurs moy, miw, max et median abondance : 
+
+val <- data.frame(Rhin$id, Rhin$abondance_max, Rhin$abondance_median, Rhin$abondance_min, Rhin$abondance_moy)
+Rhin_f <- merge(Rhin_f, val, by.x = "id_sp","Rhin.id", all.x = T)
+
+Rhin_f$Rhin.abondance_max[is.na(Rhin_f$Rhin.abondance_max)] = 0
+Rhin_f$Rhin.abondance_min[is.na(Rhin_f$Rhin.abondance_min)] = 0
+Rhin_f$Rhin.abondance_median[is.na(Rhin_f$Rhin.abondance_median)] = 0
+Rhin_f$Rhin.abondance_moy[is.na(Rhin_f$Rhin.abondance_moy)] = 0
+# On remet les noms latins + famille + ordre
+
+Rhin_f <- merge(Rhin_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
+
+Rhin_f <- Rhin_f[,-c(2,3,20,22:31)]
+colnames(Rhin_f) [3] <- "site"  
+colnames(Rhin_f) [4] <- "secteur"
+colnames(Rhin_f) [5] <- "protocole"
+colnames(Rhin_f)  [6] <- "occurence_site"
+colnames(Rhin_f) [7] <- "qualite_comptage"
+colnames(Rhin_f) [8] <- "voie_migratoire"
+colnames(Rhin_f) [9] <- "site_retenu"
+colnames(Rhin_f) [10] <- "date"
+colnames(Rhin_f)  [11] <- "observateurs"
+colnames(Rhin_f) [12] <- "mois"
+colnames(Rhin_f) [13] <- "annee"
+colnames(Rhin_f) [14] <- "abondance_max"
+colnames(Rhin_f) [15] <- "abondance_mediane"
+colnames(Rhin_f) [16] <- "abondance_min"
+colnames(Rhin_f) [17] <- "abondance_moy"
+colnames(Rhin_f) [18] <- "nom_latin"
+colnames(Rhin_f) [19] <- "ordre"
+colnames(Rhin_f) [20] <- "famille"
+
+unique(Rhin_f$espece)
+
+Rhin_f$ordre[Rhin$espece=="becasseau_sp"] <- "Charadriiformes"
+Rhin_f$famille[Rhin$espece=="becasseau_sp"] <- "Scolopacidés"
+
+Rhin_f$ordre[Rhin$espece=="chevalier_sp"] <- "Charadriiformes"
+Rhin_f$famille[Rhin$espece=="chevalier_sp"] <- "Scolopacidés"
+
+Rhin_f$ordre[Rhin$espece=="gravelot_sp"] <- "Charadriiformes"
+Rhin_f$famille[Rhin$espece=="gravelot_sp"] <- "Charadriidés"
+
+Rhin_f$ordre[Rhin$espece=="oie_sp"] <- "Ansériformes"
+Rhin_f$famille[Rhin$espece=="oie_sp"] <- "Anatidés"
+
+Rhin_f$grp_fonctionnel <- with(Rhin_f, ifelse(Rhin_f$ordre=="Charadriiformes","limicoles","anatidae"))
+
+Rhin_f[,18] <- tolower(Rhin_f[,18])
+Rhin_f[,18] <- gsub(" ","_", Rhin_f[,18])
+
+Rhin_f[,19] <- tolower(Rhin_f[,19])
+Rhin_f[,19] <- iconv(Rhin_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+Rhin_f[,20] <- tolower(Rhin_f[,20])
+Rhin_f[,20] <- iconv(Rhin_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+nb_observation <- Rhin %>%
+  count(espece)
+
+Rhin_f <- merge(Rhin_f, nb_observation, by.x = "espece", by.y = "espece")
+colnames(Rhin_f) [22] <- "nombre_observation"
+
+#Bassin d'arcachon : 
+
+id <- paste(Arcachon$site,Arcachon$date)
+unique(id)
+# 2. Création de la table "site" : 
+site <- data.frame(id, Arcachon$site, Arcachon$secteur, Arcachon$protocole, Arcachon$occurence_site, Arcachon$qualite_comptage, Arcachon$voie_migr, Arcachon$site_retenu)
+site <- unique(site) 
+duplicated(site$id)
+
+
+# 3. Création de la table inventaire : 
+
+inv <- data.frame(id,Arcachon$date,Arcachon$obs,Arcachon$mois,Arcachon$annee)
+inv <- unique(inv)
+
+# Compilation des deux tables : 
+Arcachon_inv <- merge(site,inv,by.x = "id", by.y = "id")
+
+
+# 4. Création de la table comptage (table d'observation) : 
+# -> création d'un id pour fusionner les tables (avec les espèces)
+Arcachon$id <- paste(Arcachon$espece,Arcachon$site,Arcachon$date)
+Arcachon$id_inv <- paste(Arcachon$site,Arcachon$date)
+
+#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
+
+id_inv <- unique(Arcachon$id_inv)
+sp <- unique(Arcachon$espece)
+
+inventaire <- expand.grid(id_inv, sp) # [RL] très bien
+View(inventaire)
+
+# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
+# dans les data
+
+inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
+
+# Combinaison des deux tableaux : 
+
+Arcachon_f <- merge(inventaire, Arcachon, by.x = "id_sp", by.y = "id", all.x = T)
+
+# Remplacement des NA par des 0
+Arcachon_f$abondance[is.na(Arcachon_f$abondance)] = 0
+
+# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
+# pour obtenir la table observation : 
+
+Arcachon_f <- Arcachon_f[,-c(4:10,12:34)]
+
+
+# Var 2 -> espece :
+colnames(Arcachon_f)[names(Arcachon_f)== "Var2"] <- "espece"
+colnames(Arcachon_f)[names(Arcachon_f)== "Var1"] <- "id"
+
+#
+Arcachon_f <- merge(Arcachon_f, Arcachon_inv, by.x = "id", by.y = "id")
+
+#Rajouter les valeurs moy, miw, max et median abondance : 
+
+val <- data.frame(Arcachon$id, Arcachon$abondance_max, Arcachon$abondance_median, Arcachon$abondance_min, Arcachon$abondance_moy)
+Arcachon_f <- merge(Arcachon_f, val, by.x = "id_sp","Arcachon.id", all.x = T)
+
+Arcachon_f$Arcachon.abondance_max[is.na(Arcachon_f$Arcachon.abondance_max)] = 0
+Arcachon_f$Arcachon.abondance_min[is.na(Arcachon_f$Arcachon.abondance_min)] = 0
+Arcachon_f$Arcachon.abondance_median[is.na(Arcachon_f$Arcachon.abondance_median)] = 0
+Arcachon_f$Arcachon.abondance_moy[is.na(Arcachon_f$Arcachon.abondance_moy)] = 0
+# On remet les noms latins + famille + ordre
+
+Arcachon_f <- merge(Arcachon_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
+
+Arcachon_f <- Arcachon_f[,-c(2,3,20,22:31)]
+colnames(Arcachon_f) [3] <- "site"  
+colnames(Arcachon_f) [4] <- "secteur"
+colnames(Arcachon_f) [5] <- "protocole"
+colnames(Arcachon_f)  [6] <- "occurence_site"
+colnames(Arcachon_f) [7] <- "qualite_comptage"
+colnames(Arcachon_f) [8] <- "voie_migratoire"
+colnames(Arcachon_f) [9] <- "site_retenu"
+colnames(Arcachon_f) [10] <- "date"
+colnames(Arcachon_f)  [11] <- "observateurs"
+colnames(Arcachon_f) [12] <- "mois"
+colnames(Arcachon_f) [13] <- "annee"
+colnames(Arcachon_f) [14] <- "abondance_max"
+colnames(Arcachon_f) [15] <- "abondance_mediane"
+colnames(Arcachon_f) [16] <- "abondance_min"
+colnames(Arcachon_f) [17] <- "abondance_moy"
+colnames(Arcachon_f) [18] <- "nom_latin"
+colnames(Arcachon_f) [19] <- "ordre"
+colnames(Arcachon_f) [20] <- "famille"
+
+unique(Arcachon_f$espece)
+
+Arcachon$ordre[Arcachon$espece=="barges_sp"] <- "Charadriiformes"
+Arcachon$famille[Arcachon$espece=="barges_sp"] <- "Scolopacidés"
+
+Arcachon$ordre[Arcachon$espece=="becasseau_sp"] <- "Charadriiformes"
+Arcachon$famille[Arcachon$espece=="becasseau_sp"] <- "Scolopacidés"
+
+Arcachon$ordre[Arcachon$espece=="chevalier_sp"] <- "Charadriiformes"
+Arcachon$famille[Arcachon$espece=="chevalier_sp"] <- "Scolopacidés"
+
+Arcachon$ordre[Arcachon$espece=="courlis_sp"] <- "Charadriiformes"
+Arcachon$famille[Arcachon$espece=="courlis_sp"] <- "Scolopacidés"
+
+Arcachon$ordre[Arcachon$espece=="limicole_sp"] <- "Charadriiformes"
+
+Arcachon$ordre[Arcachon$espece=="gravelot_sp"] <- "Charadriiformes"
+Arcachon$famille[Arcachon$espece=="gravelot_sp"] <- "Charadriidés"
+
+Arcachon_f$grp_fonctionnel <- with(Arcachon_f, ifelse(Arcachon_f$ordre=="Charadriiformes","limicoles","anatidae"))
+
+Arcachon_f[,18] <- tolower(Arcachon_f[,18])
+Arcachon_f[,18] <- gsub(" ","_", Arcachon_f[,18])
+
+Arcachon_f[,19] <- tolower(Arcachon_f[,19])
+Arcachon_f[,19] <- iconv(Arcachon_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+Arcachon_f[,20] <- tolower(Arcachon_f[,20])
+Arcachon_f[,20] <- iconv(Arcachon_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+nb_observation <- Arcachon %>%
+  count(espece)
+Arcachon_f <- merge(Arcachon_f, nb_observation, by.x = "espece", by.y = "espece")
+colnames(Arcachon_f) [22] <- "nombre_observation"
 
 ################### FUSION TABLEAU DONNEES ##############
 help("rbind")

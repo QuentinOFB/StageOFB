@@ -99,6 +99,7 @@ data[,8] <- tolower(data[,8])
 data[,8] <-iconv(data[,8], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 unique(data$obs)
 
+data$obs[data$obs=="h vergereau"] <- "vergereau"
 data$obs[data$obs==" pilvin; cabelguen; chery"] <- "pilvin, cabelguen, chery"
 data$obs[data$obs=="allain j.p; bodineau p; cabelguen j; drouyer l"] <- "allain, bodineau, cabelguen, drouyer"
 data$obs[data$obs=="lacourpaille; potiron"] <- "lacourpaille, potiron"
@@ -314,7 +315,7 @@ nb_suivi_site <-
 
 data <- merge(data,nb_suivi_site, by.x = "site", by.y = "site")
 
-colnames(data)[18] <- "occurence_site"
+colnames(data)[17] <- "occurence_site"
 
 data$site_retenu <- with(data, ifelse(data$occurence_site < 3,"non",
                                 ifelse(data$site=="migron","non",
@@ -388,7 +389,7 @@ nb_observation <- data %>%
   count(espece)
 
 data <- merge(data,nb_observation, by.x = "espece",by.y = "espece")
-colnames(data)[34] <- "nb_observations"
+colnames(data)[33] <- "nb_observations"
 
 #Valeur médiane des abondances 
 
@@ -407,15 +408,12 @@ data <- merge(data,median_ab,by.x = "id_ab",by.y="id")
 
 ## Retrier les colonnes qui ne servent pas à grand chose : 
 
-data <- data[,-c(1,16,17,21,23:32,36:39)]
+data <- data[,-c(1,16,17,20,22:31,35:38)]
 
 colnames(data)[1] <- "espece"
 colnames(data)[2] <- "site"
 colnames(data)[13] <- "mois"
 colnames(data)[14] <- "annee"
-
-data[,18] <- tolower(data[,18])
-data[,18] <- gsub(" ","_",data[,18])
 
 #Ajouter colonne protocole 
 
@@ -426,7 +424,7 @@ data$protocole <- with(data, ifelse(data$site=="pierre_rouge","bateau",ifelse(
                                                 ifelse(data$site=="donges","bateau","terrestre")))))))
 #Ajouter une colonne "Voie de migration 
 
-data$voie_migr <- "est_atlantique"  
+data$voie_migration <- "est_atlantique"  
 
 
 #Jeux de données ok (si rien n'a été oublié) pour estuaire de la Loire ! 
@@ -1539,7 +1537,7 @@ Cotentin$secteur <- "cotentin"
 Cotentin$protocole <- "terrestre"
 
 #Ajout colonne voie migration : 
-Cotentin$voie_migr <- "est_atlantique"
+Cotentin$voie_migration <- "est_atlantique"
 
 #Tri final des colonnes : 
 Cotentin <- Cotentin[,-c(1,11,12,18,19,20,21)]
@@ -1840,7 +1838,8 @@ Arcachon <- merge(Arcachon,nb_suivi_site, by.x = "site", by.y = "site")
 colnames(Arcachon)[24] <- "occurence_site"
 
 #Colonne site retenu: 
-Arcachon$site_retenu <- with(Arcachon, ifelse(Arcachon$occurence_site < 3, "non","oui"))
+Arcachon$site_retenu <- with(Arcachon, ifelse(Arcachon$occurence_site < 3, "non",
+                                              ifelse(Arcachon$annee < 2004, "non", "oui")))
 
 #Colonne nombre d'observation espèces : 
 nb_observation <- Arcachon %>%
@@ -2304,7 +2303,8 @@ Rhin <- merge(Rhin,nb_suivi_site, by.x = "site", by.y = "site")
 colnames(Rhin)[47] <- "occurence_site"
 
 #Colonne site retenu: 
-Rhin$site_retenu <- with(Rhin, ifelse(Rhin$occurence_site < 3, "non","oui"))
+Rhin$site_retenu <- with(Rhin, ifelse(Rhin$occurence_site < 3, "non",
+                                ifelse(Rhin$annee < 2004, "non", "oui")))
 
 #Colonne nombre d'observation espèces : 
 nb_observation <- Rhin %>%
@@ -2347,7 +2347,7 @@ colnames(Rhin)[8] <- "mois"
 id <- paste(data$site,data$date)
 
 # 2. Création de la table "site" : 
-site <- data.frame(id, data$site,data$secteur,data$protocole, data$occurence_site, data$qualite_comptage,data$voie_migr, data$site_retenu)
+site <- data.frame(id, data$site,data$secteur,data$protocole, data$occurence_site, data$qualite_comptage,data$voie_migration, data$site_retenu)
 site <- unique(site) 
 duplicated(site$id)
 # 3. Création de la table inventaire : 
@@ -2382,7 +2382,7 @@ inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
 
 data_f <- merge(inventaire, data, by.x = "id_sp", by.y = "id", all.x = T)
 View(data)
-data_f <- distinct(data_f)
+
 # Remplacement des NA par des 0
 data_f$abondance[is.na(data_f$abondance)] = 0
 View(data)
@@ -2952,6 +2952,16 @@ nb_observation <- Arcachon %>%
   count(espece)
 Arcachon_f <- merge(Arcachon_f, nb_observation, by.x = "espece", by.y = "espece")
 colnames(Arcachon_f) [22] <- "nombre_observation"
+
+#Camargue 
+
+colnames(Camargue) [8] <- "observateurs"
+colnames(Camargue) [9] <- "nom_latin"
+colnames(Camargue) [10] <- "ordre"
+colnames(Camargue) [11] <- "famille"
+colnames(Camargue) [22] <- "nombre_observation"
+colnames(Camargue) [21] <- "voie_migration"
+colnames(Camargue) [19] <- "abondance_mediane"
 
 ################### FUSION TABLEAU DONNEES ##############
 help("rbind")

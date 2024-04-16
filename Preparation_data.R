@@ -2,7 +2,7 @@ setwd("C:/Users/quentin.petit/Documents/Git/StageOFB")
 
 library(lubridate)
 library(dplyr)
-library(tydyr)
+library(data.table)
 library(stringr)
 # Ouverture du jeu de données estuaire de la Loire : 
 data <- read.csv("Data/Comptage_estuaire_2004_2024.csv", header = T, fileEncoding = "utf-8", sep = ";")
@@ -288,6 +288,8 @@ data <- subset(data, !(data$date=="2022-01-20" & data$site=="imperlay"|data$date
 
 #Les erreurs d'entrée de données qui bloquent la création des tables inv et sites : 
 
+data$date[data$site=="migron" & data$obs =="guenezan, potiron" & data$espece=="canard_pilet"] <- "2017-11-15"
+
 # Lié au nom d'observateur (avec des espaces avant et après)
 #data[,8] <- gsub("guenezan m ","guenezan m",data[,8])
 #data[,8] <- gsub(" guenezan m","guenezan m",data[,8])
@@ -302,6 +304,8 @@ data$mois <- month(data$date)
 unique(data$annee)
 data$annee <- year(data$date)
 
+data$jour_julien <- yday(data$date)
+
 #Création d'une colonne site_retenu 
 help("count")
 
@@ -315,15 +319,11 @@ nb_suivi_site <-
 
 data <- merge(data,nb_suivi_site, by.x = "site", by.y = "site")
 
-colnames(data)[17] <- "occurence_site"
+colnames(data)[19] <- "nb_annee_suivie"
 
-data$site_retenu <- with(data, ifelse(data$occurence_site < 3,"non",
-                                ifelse(data$site=="migron","non",
-                                 ifelse(data$site=="baracon","non",
-                                  ifelse(data$site=="estuaire","non","oui")))))  
+data$site_retenu <- with(data, ifelse(nb_annee_suivie < 3,"non",
+    ifelse(data$site=="baracon","non","oui")))  
 
-
-  
 # Enlever le comptage du 10/11/2008 : X2 passage sur tous les sites, avec des conditions météo nulles
 # + comptage partiel -> remplacé par les comptages du 12/11 et du 24/11 : 
 data <- subset(data,!(data$date=="2008-11-10"))
@@ -385,52 +385,106 @@ unique(data$espece)
 
 #Ajouter une colonne pour le nombre d'observation : 
 
-nb_observation <- data %>%
+nb_observation <- data %>% subset(abondance > 0) %>%
   count(espece)
 
 data <- merge(data,nb_observation, by.x = "espece",by.y = "espece")
-colnames(data)[33] <- "nb_observations"
-
-#Valeur médiane des abondances 
-
-data$abondance <- as.numeric(data$abondance)
-
-median_ab <- data %>%
-group_by(espece,mois,site,annee) %>%
-summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
-
-median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
-
-data$id_ab <- paste(data$espece,data$site,data$mois,data$annee)
-
-data <- merge(data,median_ab,by.x = "id_ab",by.y="id")
-
-
-## Retrier les colonnes qui ne servent pas à grand chose : 
-
-data <- data[,-c(1,16,17,20,22:31,35:38)]
-
-colnames(data)[1] <- "espece"
-colnames(data)[2] <- "site"
-colnames(data)[13] <- "mois"
-colnames(data)[14] <- "annee"
+colnames(data)[35] <- "occurence_sp"
 
 #Ajouter colonne protocole 
 
 data$protocole <- with(data, ifelse(data$site=="pierre_rouge","bateau",ifelse(
-                                    data$site=="nord_cordemais","bateau", ifelse(data$site=="carnet","bateau",
-                                              ifelse(data$site=="pipy","bateau",
-                                                ifelse(data$site=="marechale","bateau",
-                                                ifelse(data$site=="donges","bateau","terrestre")))))))
+  data$site=="nord_cordemais","bateau", ifelse(data$site=="carnet","bateau",
+                                               ifelse(data$site=="pipy","bateau",
+                                                      ifelse(data$site=="marechale","bateau",
+                                                             ifelse(data$site=="donges","bateau","terrestre")))))))
 #Ajouter une colonne "Voie de migration 
 
 data$voie_migration <- "est_atlantique"  
 
+# 1. Création d'un identifiant pour compiler les tables : 
+id <- paste0(data$site,data$date)
 
-#Jeux de données ok (si rien n'a été oublié) pour estuaire de la Loire ! 
+# 2. Création de la table "site" : 
+site <- data.frame(id, data$site,data$secteur,data$protocole, data$nb_annee_suivie, data$qualite_comptage,data$voie_migration, data$site_retenu)
+site <- unique(site) 
+table(duplicated(site$id))
+# 3. Création de la table inventaire : 
+
+inv <- data.frame(id,data$date,data$obs,data$mois,data$annee)
+inv <- unique(inv)
+table(duplicated(inv$id))
+
+# Compilation des deux tables : 
+data_inv <- merge(site,inv,by.x = "id", by.y = "id")
+table(duplicated(data_inv$id))
+data_inv <- subset(data_inv, !(data_inv$id=="migron 2017-12-15"&data_inv$data.obs=="guenezan, potiron"))
+
+# 4. Création de la table comptage (table d'observation) : 
+# -> création d'un id pour fusionner les tables (avec les espèces)
+data$id <- paste0(data$espece,data$site,data$date)
+data$id_inv <- paste0(data$site,data$date)
+
+#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
+
+id_inv <- unique(data$id_inv)
+sp <- unique(data$espece)
+unique(data$espece)
+inventaire <- expand.grid(id_inv, sp) # [RL] très bien
+View(inventaire)
+
+data_obs <- data.frame(data$abondance,data$id)
+data_obs <- aggregate(data_obs, data.abondance ~ data.id, median)
+
+warning(data_obs)
+
+# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
+# dans les data
+
+inventaire$id_sp <- paste0(inventaire$Var2,inventaire$Var1)
+
+# Combinaison des deux tableaux : 
+
+data_f <- merge(inventaire, data_obs, by.x = "id_sp", by.y = "data.id", all.x = T)
+View(data)
+data_f[is.na(data_f)] <- 0
+# Remplacement des NA par des 0
+
+View(data)
+
+# Var 2 -> espece :
+colnames(data_f)[names(data_f)== "Var2"] <- "espece"
+colnames(data_f)[names(data_f)== "Var1"] <- "id"
+
+#
+data_f <- merge(data_f, data_inv, by.x = "id", by.y = "id")
+table(duplicated(data_f$id_sp))
+
+# Voir ou sont les doublons 
+data_f %>%
+  group_by(id_sp) %>%
+  filter(n()>1) %>%
+  ungroup()
+ ######
+
+colnames(data_f) <- gsub("data.","",colnames(data_f))
+
+# On remet les noms latins + famille + ordre
+
+#data_f <- merge(data_f,espece[,c("scientific_name","french_name","family_tax","order_tax")], by.x = "espece", by.y = "french_name", all.x = TRUE)
+
+#Package data.table : d
+data_f$abondance <- as.numeric(data_f$abondance)
+setDT(data_f)
+data_f[, abondance_tot:= sum(abondance), by = .(espece,site)]
+setDF(data_f)
+data_f <- subset(data_f, abondance_tot > 0)
+
+write.csv2(data_f,"Data/estuaire_loire.csv")
 
 
       ######## 2. La Camargue #############
+
 ## -> Pour le protocole, il s'agit bien d'un comptage mensuel réalisé par avion 
 ## -> Ecarte les 10 premières années en raison de changement de méthodologie 
 ## Les comptages sont effectués sur 150 polygones avec certains qui ont été rajouté au cours des suivis : 
@@ -494,24 +548,11 @@ Camargue <- subset(Camargue,!(Camargue$espece=="fulica_atra"))
 
 Camargue$order_tax[Camargue$espece=="canard_sp"] <- "Ansériformes"
 Camargue$family_tax[Camargue$espece=="canard_sp"] <- "Anatidés"
-Camargue$grp_fonctionnel <- "anatidae"
 
-#Retirer les colonnes dont on a pas besoin : 
-Camargue <- Camargue[,-c(1,2,4,11,12,13,14,16,18:25)]
 
-Camargue[,10] <- tolower(Camargue[,10])
-Camargue[,10] <- iconv(Camargue[,10], from = 'UTF-8', to = 'ASCII//TRANSLIT')
-
-Camargue[,11] <- tolower(Camargue[,11])
-Camargue[,11] <- iconv(Camargue[,11], from = 'UTF-8', to = 'ASCII//TRANSLIT')
-
-# Remettre les noms des obs et des colonnes au propre 
-colnames(Camargue)[9] <- "espece"
-Camargue[,9] <- tolower(Camargue[,9])
-Camargue[,9] <- gsub(" ","_",Camargue[,9])
-
-Camargue[,8] <- tolower(Camargue[,8])
-Camargue[,8] <- gsub(" ","_",Camargue[,8])
+Camargue[,17] <- tolower(Camargue[,17])
+Camargue[,17] <- iconv(Camargue[,17], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+Camargue[,17] <- gsub(" ","_",Camargue[,17]) 
 
 #Création d'une colonne "secteur" pour la Camargue : 
 Camargue$secteur <- "camargue"
@@ -536,48 +577,47 @@ nb_suivi_site <-
 
 Camargue <- merge(Camargue,nb_suivi_site, by.x = "site", by.y = "site")
 
-colnames(Camargue)[14] <- "occurence_site"
+colnames(Camargue)[29] <- "nb_annee_suivi"
 
-Camargue$site_retenu <- with(Camargue, ifelse(Camargue$saison < 2004,"non","oui"))
+Camargue$site_retenu <- with(Camargue, ifelse(Camargue$nb_annee_suivi < 3 ,"non","oui"))
 
 # NA Dans les abondances, pour le coups il s'agit de vrais NA, dans la mesure ou quand une espèce n'est pas comptée elle est notée
 unique(Camargue$abondance)
 
-#Faut-il retirer ces données NA ? 
+#retier les NA
 Camargue <- subset(Camargue, !(Camargue$abondance=="NA"))
 
-#Colonne sur les observations des espèces : 
+
 Camargue$abondance <- as.numeric(Camargue$abondance)
+setDT(Camargue)
+Camargue[, abondance_tot:= sum(abondance), by = .(espece,site)]
+setDF(Camargue)
+Camargue <- subset(Camargue, abondance_tot > 0)
 
-median_ab <- Camargue %>%
-  group_by(espece,mois,site,annee) %>%
-  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
+Camargue$id <- paste0(Camargue$site,Camargue$date)
+Camargue$id_sp <- paste0(Camargue$french_name,Camargue$site,Camargue$date)
 
-median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
-
-Camargue$id_ab <- paste(Camargue$espece,Camargue$site,Camargue$mois,Camargue$annee)
-
-Camargue <- merge(Camargue,median_ab,by.x = "id_ab",by.y="id")
+table(duplicated(Camargue$id_sp))
 
 #Ajout colonne protocole : 
 Camargue$protocole <- "avion"
 
 #Ajout de la voie de migration :
 
-Camargue$voie_migr <- "est_atlantique/mediterranee"
+Camargue$voie_migration <- "est_atlantique/mediterranee"
 
-Camargue <- Camargue[,-c(1,17,18,19,20)]
-colnames(Camargue) [1] <- "site"
-colnames(Camargue) [3] <- "mois"
-colnames(Camargue) [4] <- "annee"
-colnames(Camargue) [9] <- "espece"
+#Transferer les canards sp -> colonnes 'french name'
+Camargue$french_name[Camargue$espece=="canard_sp"] <- "canard_sp"
 
-#Nombre d'observation des espèces 
-nb_observation <- Camargue %>%
-  count(espece)
+setDT(Camargue)
+Camargue[, c('id_nico', 'id_input','gel','niveau_eau','redistribution','espece'):=NULL]
+setDF(Camargue)
 
-Camargue <- merge(Camargue,nb_observation, by.x = "espece",by.y = "espece")
-colnames(Camargue)[22] <- "nb_observations"
+#Renommer la colonne "french_name"
+colnames(Camargue) [11] <- "espece"
+
+write.csv2(Camargue, "Data/camargue.csv")
+
 
       ######## 3. La Baie de l'Aiguillon #############
 #Attention depuis 2020 seulement les sites sans effectifs sont saisis !!! 
@@ -667,18 +707,18 @@ nb_suivi_site <-
   Baie %>% 
   count(site, annee)
 
+
 nb_suivi_site <- 
   nb_suivi_site %>%
   count(site)
 
 Baie <- merge(Baie,nb_suivi_site, by.x = "site", by.y = "site")
 
-colnames(Baie)[22] <- "occurence_site"
+colnames(Baie)[22] <- "nb_annee_suivie"
 
 # Création d'une colonne site retenu 
 
-Baie$site_retenu <- with(Baie, ifelse(Baie$annee < 2004,"non",
-                                ifelse(Baie$occurence_site<3,"non","oui")))
+Baie$site_retenu <- with(Baie, ifelse(Baie$nb_annee_suivie < 3,"non","oui"))
 
 #Format date 
 unique(Baie$date) #de 1977 à 2024
@@ -828,111 +868,72 @@ unique(Baie$abondance[1000:1595])
 #Présence de NA : les supprimer ? (correspond à une "non prospection")
 Baie <- subset(Baie,!(Baie$abondance=="NA"))
 
-#Création d'une colonne observations pour les espèces : 
-Baie$abondance <- as.numeric(Baie$abondance)
-
-median_ab <- Baie %>%
-  group_by(espece,mois,site,annee) %>%
-  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
-
-median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
-
-Baie$id_ab <- paste(Baie$espece,Baie$site,Baie$mois,Baie$annee)
-
-Baie <- merge(Baie,median_ab,by.x = "id_ab",by.y="id")
-#Remise les noms au propre :
-colnames(Baie) [2] <- "site"
-colnames(Baie) [5] <- "espece"
-colnames(Baie) [19] <- "mois"
-colnames(Baie) [20] <- "annee"
-
 
 #Prendre en compte les remarques : 
 unique(Baie$remarques)
 Baie[,15]<- iconv(Baie[,15], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 Baie[,15] <- gsub(" ","_",Baie[,15])
 #Ajouter la colonne qualité du comptage : 
-
+sort(unique(Baie$site))
 # Uniformisation des remarques (pour que ça passe avec ifelse) 
+Baie$qualite_comptage <- with(Baie, ifelse(Baie$site=="arcay" & Baie$date=="2019-10-14" , "douteux", 
+                                    ifelse(site=="arcay" & date =="2019-12-20","douteux", 
+                                    ifelse(site=="la_bosse_(rnba)" & date=="2019-12-20", "douteux",
+                                    ifelse(site=="le_cure_(rnba)" & date=="2019-12-20", "douteux",
+                                    ifelse(site=="tdcl_le_cure" & date == "2019-12-20","douteux",
+                                    ifelse(site=="tdcl_pree_mizottiere" & date =="2019-12-20","douteux",
+                                    ifelse(site=="lagunage_de_la_tranche_sur_mer" & date=="2020-01-10", "douteux", 
+                                    ifelse(site=="les_casserottes" & date=="2020-12-14","douteux", 
+                                    ifelse(site=="marais_de_la_guittiere" & date =="2013-10-17","douteux",
+                                    ifelse(site=="pointe_de_l_aiguillon_(apb)" & date =="2021-03-15","douteux",
+                                    ifelse(site=="pointe_saint_clement_(rnba)" & date == "2020-09-16","douteux",
+                                    ifelse(site=="rnr_ferme_de_choisy" & date == "2020-02-18","douteux", 
+                                    ifelse(site == "tdcl_le_cure" & date=="2020-09-16","douteux",
+                                    ifelse(site== "tdcl_le_cure" & date== "2021-09-20", "douteux",
+                                    ifelse(site== "la_bosse_(rnba)" & date == "2022-02-17", "douteux", 
+                                    ifelse(site== "le_cure_(rnba)" & date == "2022-02-17", "douteux",
+                                    ifelse(site== "les_chaines_(rnba)" & date == "2022-02-17", "douteux",
+                                    ifelse(site== "mirador_(rnba)" & date == "2022-02-17", "douteux",
+                                    ifelse(site== "transfo_(rnba)" & date == "2022-02-17", "douteux",
+                                    ifelse(site== "la_marina_(rnba)" & date == "2022-09-09", "douteux",
+                                    ifelse(site== "les_chaines_(rnba)" & date == "2022-09-09","douteux",
+                                    ifelse(site== "la_marina_(rnba)" & date == "2022-10-24", "douteux",
+                                    ifelse(site== "les_chaines_(rnba)" & date == "2022-10-24","douteux",
+                                    ifelse(site == "pointe_saint_clement_(rnba)" & date == "2022-09-09","douteux",
+                                    ifelse(site == "reposoir_principal_(rnba)" & date == "2022-10-22", "douteux",
+                                    ifelse(site == "mirador_(rnba)" & date == "2022-10-22", "douteux", 
+                                    ifelse(site == "le_cure_(rnba)" & date == "2023-01-23", "douteux",
+                                    ifelse(site == "tdcl_le_cure" & date == "2023-01-20", "douteux",
+                                    ifelse(site == "tdcl_le_cure" & date == "2023-02-23", "douteux",
+                                    ifelse(site == "le_cure_(rnba)" & date == "2023-02-23", "douteux",
+                                    ifelse(site == "les_casserottes" & date == "2022-11-22", "douteux",
+                                    ifelse(date == "2022-12-22","douteux",
+                                    ifelse(date=="1987-02-13" & site =="arcay", "douteux",
+                                    ifelse(date=="1987-02-13"& site =="rnn_baie_de_l_aiguillon","douteux",
+                                    ifelse(date=="2020-12-14" & site == "les_casserottes","douteux", 
+                                    ifelse(date=="2023-01-20" & site == "transfo_(rnba)","douteux",
+                                    ifelse(date=="2023-03-10" & site == "la_marina_(rnba)","douteux",
+                                    ifelse(date=="2023-03-10" & site == "transfo_(rnba)","douteux",
+                                    ifelse(date=="2023-03-10" & site == "pointe_saint_clement_(rnba)","douteux",
+                                    ifelse(date=="2023-02-23" & site == "reposoir_principal_(rnba)","douteux",
+                                    ifelse(date=="2023-02-23" & site == "les_chaines_(rnba)", "douteux",
+                                    ifelse(date=="2023-02-23" & site == "rcfs_pointe_d_arcay_(arcay)", "douteux",
+                                    ifelse(date=="2023-02-23" & site == "les_casserottes", "douteux", "ok"))))))))))))))))))))))))))))))))))))))))))))
+                                    
+Baie$qualite_comptage[Baie$site=="rade_d_amour_(arcay)" & Baie$date=="2023-02-23"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="plans_d_eau_de_l_aiguillon" & Baie$date=="2023-02-23"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="lagunage_de_la_tranche_sur_mer" & Baie$date=="2023-02-23"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="communal_d_angles" & Baie$date=="2023-02-23"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="lagunage_de_longeville" & Baie$date=="2023-02-23"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="pointe_saint_clement_(rnba)" & Baie$date=="2023-09-15"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="rnr_ferme_de_choisy" & Baie$date=="2023-09-20"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="pointe_saint_clement_(rnba)" & Baie$date=="2023-10-16"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="rnr_poire_sur_velluire" & Baie$date=="2023-11-17"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="la_vacherie" & Baie$date=="2023-11-17"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="communal_de_lairoux_curzon" & Baie$date=="2023-11-17"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="mirador_(rnba)" & Baie$date=="2023-12-13"] <- "douteux"                                          
+Baie$qualite_comptage[Baie$site=="la_vacherie" & Baie$date=="2023-12-14"] <- "douteux"                                          
 
-Baie$remarques[Baie$remarques=="Comptage_un_peu_galere_because_meteo._J'ai_essaye_de_tout_compter_avant_l'orage_(fin_de_comptage_vers_15H)._Par_contre,_j'ai_fait_la_partie_plage_sous_l'orage_et_le_vent_donc_les_effectifs_de_sanderling_sont_clairement_sous-estimes_(voir_Grand_Gravelot_et_BV)."] <- "conditions_meteo_pas_fav"
-Baie$remarques[Baie$remarques=="Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/20219"] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="la,_sous-estimation_claire_(je_n'ai_pas_pu_aller_a_la_prairie_la_ou_elles_se_tiennent_-_Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="la_sous_estime_severe_-_Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="sous_estime_-_Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="un_melange_de_PA,_BV_et_maubeche_certainement._Comptage_a_partir_de_la_rade_d'amour_et_de_l'estuaire_du_Lay_cote_Aiguillon_(battue_sanglier_sur_le_reste)_-_Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="sous-estimes_car_il_y_en_avait_pose_sur_les_pres_sales_-_Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019"] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="Attention_difference_avec_les_coef_habituels_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019._Eau_trop_haute_du_aux_basses_pressions,_oiseaux_deja_sur_les_mizottes_a_9h"] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="sous-estime_-_Attention_difference_avec_les_coef_habituels_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019._Eau_trop_haute_du_aux_basses_pressions,_oiseaux_deja_sur_les_mizottes_a_9h"] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="site_en_travaux"] <- "derangement_travaux"
-Baie$remarques[Baie$remarques=="Attention_difference_avec_les_coef_habituels_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2019._Eau_trop_haute_du_aux_basses_pressions,_oiseaux_deja_sur_les_mizottes_a_9h."] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="mauvaise_visibilite"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="comptage_partiel_(travaux)"] <- "derangement_travaux"
-Baie$remarques[Baie$remarques=="4_camping_car_sur_site"] <- "derangement_loisir"
-Baie$remarques[Baie$remarques=="5_camping_car_sur_site"] <- "derangement_loisir"
-Baie$remarques[Baie$remarques=="8_filets_sur_les_vases,_2_pecheurs"] <- "derangement_peche"
-Baie$remarques[Baie$remarques=="Derangement_le_matin"] <- "derangement"
-Baie$remarques[Baie$remarques=="Derange_par_chasseur,_comptage_non_exhaustif"] <- "derangement_chasse"
-Baie$remarques[Baie$remarques=="Travaux_en_cours_sur_la_digue"] <- "derangement_travaux"
-Baie$remarques[Baie$remarques=="Attention_difference_avec_les_coef_habituel_de_comptage_(59),_comptage_de_rattrapage_suite_a_l'annulation_du_comptage_12/12/2022"] <- "diff_coef_maree"
-Baie$remarques[Baie$remarques=="Par_ailleurs_j'ai_un_vol_d'environ_1000_oiseaux_(maubeches_et_PA_a_priori)_a_14h47_partant_vers_Charlotte._Je_n'ai_pas_pu_le_compter_correctement_mais_a_priori_Charlotte_non_plus._"] <- "comptage_partiel"
-Baie$remarques[Baie$remarques=="Comptage_partiel,_brume"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="Comptage_partiel,_brume._Sur_les_mizottes"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="Comptage_partiel,_brume,_dont_30_dans_les_mizottes"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="au_moins_un_pecheur_au_filet_fixe"] <- "derangement_peche"
-Baie$remarques[Baie$remarques=="au_moins_3_pecheurs_au_filet_fixe_entre_la_Marina_et_les_Chaines"] <- "derangement_peche"
-Baie$remarques[Baie$remarques=="a_14h50._au_moins_3_pecheurs_au_filet_fixe_entre_la_Marina_et_les_Chaines._"] <- "derangement_peche"
-Baie$remarques[Baie$remarques=="a_15h._au_moins_3_pecheurs_au_filet_fixe_entre_la_Marina_et_les_Chaines._"] <- "derangement_peche"
-Baie$remarques[Baie$remarques=="a_15h05._au_moins_3_pecheurs_au_filet_fixe_entre_la_Marina_et_les_Chaines._"] <- "derangement_peche"
-Baie$remarques[Baie$remarques=="1_pecheur_a_l'haveneau"] <- "derangement_peche"
-Baie$remarques[Baie$remarques=="baccage_sur_le_canal_de_Lucon"] <- "derangement_travaux"
-Baie$remarques[Baie$remarques=="Impossible_de_donner_un_chiffre_car_mer_agitee"] <- "conditions_meteo_pas_fav"
-Baie$remarques[Baie$remarques=="tres_mauvaises_conditions_(pluie_et_vent),_effectifs_minimum"] <- "conditions_meteo_pas_fav"
-Baie$remarques[Baie$remarques=="en_vol,_tres_mauvaises_conditions_(pluie_et_vent),_effectifs_minimum"] <- "conditions_meteo_pas_fav"
-Baie$remarques[Baie$remarques=="plus_de_100_le_matin_au_niveau_digue,_tres_mauvaises_conditions_(pluie_et_vent),_effectifs_minimum"] <- "conditions_meteo_pas_fav"
-Baie$remarques[Baie$remarques=="Mauvaise_visibilite_nord-ouest_du_poste_(comptage_realise_par_Anaide)"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="Oiseaux_ont_probablement_glisses_sur_la_Sevre_avant_que_le_brouillard_se_leve"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="Dont_50_jeunes._Mauvaise_visibilite_nord-ouest_du_poste_(comptage_realise_par_Anaide)"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="Baccage_du_Cure_en_cours"] <- "derangement_travaux"
-Baie$remarques[Baie$remarques=="tonnes_forts_dans_les_polders_de_Triaize"] <- "conditions_meteo_pas_fav"
-Baie$remarques[Baie$remarques=="Baccage_du_cure"] <- "derangement_travaux"
-Baie$remarques[Baie$remarques=="comptage_complique,_la_plupart_des_oiseaux_en_amont_de_l'estuaire"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="Mauvaises_conditions_de_visibilite_apres_16h15"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="Mauvaises_conditions_de_visibilite"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="pecheurs_entre_Pte_et_Cure"] <- "derangement_peche"
-Baie$remarques[Baie$remarques=="manque_d'eau_et_travaux_de_remplacement_de_l'ouvrage_hydraulique_principal"] <- "derangement_travaux"
-Baie$remarques[Baie$remarques=="Visibilite_difficile,_comptage_partiel_pour_les_especes_les_plus_petites."] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="pecheurs_au_carrelet"] <- "derangement_peche"
-Baie$remarques[Baie$remarques=="mauvaises_conditions_meteo"] <- "conditions_meteo_pas_fav"
-Baie$remarques[Baie$remarques=="2_bateaux_civelle_canal_de_lucon,_peu_d'anatides._400_sarcelles_en_arrivant_sur_poste,_parties_et_non_revu_par_les_voisins"] <- "derangement_peche"
-Baie$remarques[Baie$remarques=="Temps_maussade_et_couvert_au_debut,_mais_devenant_lumineux_et_ensoleille."] <- "conditions_meteo_pas_fav"
-Baie$remarques[Baie$remarques=="des_chasseurs_en_bordure_de_RNR__lors_du_comptage_donc_pas_mal_de_derangement_observe_"] <- "derangement_chasse"
-Baie$remarques[Baie$remarques=="mauvaise visibilite"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="sous_estime"] <- "sous_estimation"
-Baie$remarques[Baie$remarques=="Sous_estimation_avec_poste_des_Chaines"] <- "sous_estimation"
-Baie$remarques[Baie$remarques=="vol_15h02_sous_estimation_avec_poste_du_Cure"] <- "sous_estimation"
-Baie$remarques[Baie$remarques=="Comptage_partiel,_brume._Dans_les_mizottes"] <- "mauvaise_visibilite"
-Baie$remarques[Baie$remarques=="possible_sous_estimation,_difficiles_a_compter"] <- "sous_estimation"
-Baie$remarques[Baie$remarques=="en_vol,_peut-etre_une_sous_estimation"] <- "sous_estimation"
-Baie$remarques[Baie$remarques=="condition_meteo_pas_fav"] <- "conditions_meteo_pas_fav"
-
-#Rajout de la colonne qualité de comptage : 
-Baie$qualite_comptage <- with(Baie, ifelse(Baie$site=="arcay" & Baie$date=="2019-10-14" , "douteux",
-                                      ifelse(Baie$remarques=="diff_coeff_maree","douteux",
-                                      ifelse(Baie$remarques=="conditions_meteo_pas_fav","douteux",
-                                      ifelse(Baie$remarques=="derangement_travaux","douteux",
-                                      ifelse(Baie$remarques=="derangement_peche","douteux",
-                                      ifelse(Baie$remarques=="sous_estimation","douteux",
-                                      ifelse(Baie$remarques=="mauvaise_visibilite","douteux",
-                                      ifelse(Baie$remarques=="derangement_loisir","douteux",
-                                      ifelse(Baie$remarques=="brume_de_chaleur","douteux",
-                                      ifelse(Baie$remarques=="derangement","douteux",
-                                      ifelse(Baie$remarques=="derangement_chasse","douteux",
-                                      ifelse(Baie$remarques=="comptage_partiel","douteux",
-                                      ifelse(Baie$remarques=="mer_montee_vite","douteux",
-                                      ifelse(Baie$remarques=="en_vol,_peut-etre_une_sous_estimation","douteux","ok")))))))))))))))
-Baie$qualite_comptage[is.na(Baie$qualite_comptage)] = "ok"
 # Rajouter une colonne avec le nom du secteur : 
 Baie$secteur <- "baie_aiguillon"
 
@@ -948,7 +949,11 @@ Baie$protocole <- "terrestre"
 
 
 #Enlever les colonnes qui ne servent pas à grand chose : 
-Baie <- Baie[,-c(1,3,4,6,8,10,11,12,16,17,21,22,25,26,27)]
+setDT(Baie)
+Baie[, c('obse_taxo_id', 'obse_id','obse_relv_id','confidentialite','validation','obse_nom','id_habitat','x','x.1'):=NULL]
+setDF(Baie)
+
+
 
 # Vérification des doublons :
 duplicated(Baie)
@@ -981,7 +986,104 @@ Baie <- distinct(Baie)
 
 
 #Création colonne voie de migration : 
-Baie$voie_migr <- "est_atlantique"
+Baie$voie_migratoire <- "est_atlantique"
+
+# 1. Création d'un identifiant pour compiler les tables : 
+id <- paste0(Baie$site,Baie$date)
+unique(id)
+# 2. Création de la table "site" : 
+site <- data.frame(id, Baie$site, Baie$secteur, Baie$protocole, Baie$nb_annee_suivie, Baie$qualite_comptage, Baie$voie_migratoire, Baie$site_retenu)
+site <- unique(site) 
+table(duplicated(site$id))
+
+# 3. Création de la table inventaire : 
+
+inv <- data.frame(id,Baie$date,Baie$obs,Baie$mois,Baie$annee)
+inv <- unique(inv)
+table(duplicated(inv$id))
+inv %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% print(n = 42)
+
+# Régler le problème des observateurs (deux observateurs pour un même site/même date -> créer des doublons dans les lignes)
+
+inv$Baie.obs[inv$id=="arcay2019-06-18"] <- "joyeux, marquis"
+inv$Baie.obs[inv$id=="communal_de_chasnais2002-01-15"] <- "gueret, adams"
+inv$Baie.obs[inv$id=="la_marina_(rnba)2023-11-15"] <- "goossens, blanchet"
+inv$Baie.obs[inv$id=="la_marina_(rnba)2023-02-23"] <- "goossens, blanchet"
+inv$Baie.obs[inv$id=="la_marina_(rnba)2023-03-10"] <- "froud, goossens"
+inv$Baie.obs[inv$id=="la_vacherie2013-04-11"] <- "gueret, girard"
+inv$Baie.obs[inv$id=="lagunage_de_la_tranche_sur_mer2002-06-13"] <- "fouquet, marquis"
+inv$Baie.obs[inv$id=="le_cure_(rnba)2021-07-22"] <- "blanc, reynaud"
+inv$Baie.obs[inv$id=="les_chaines_(rnba)2022-11-22"] <- "blanc, goossens"
+inv$Baie.obs[inv$id=="les_chaines_(rnba)2019-08-14"] <- "moneuse, reynaud"
+inv$Baie.obs[inv$id=="marais_de_landelene2014-07-09"] <- "petit, mercier"
+inv$Baie.obs[inv$id=="mirador_(rnba)2021-12-20"] <- "lagrange, bonnin"
+inv$Baie.obs[inv$id=="mirador_(rnba)2023-02-23"] <- "froud, chenu"
+inv$Baie.obs[inv$id=="mirador_(rnba)2023-06-16"] <- "bariteau, goossens"
+inv$Baie.obs[inv$id=="pointe_saint_clement_(rnba)2019-05-17"] <- "reynaud, gueret"
+inv$Baie.obs[inv$id=="rnn_casse_de_la_belle_henriette2021-08-19"] <- "trotignon, chambrelin"
+inv$Baie.obs[inv$id=="pointe_saint_clement_(rnba)2022-11-22"] <- "caupenne, chauveau"
+inv$Baie.obs[inv$id=="reposoir_principal_(rnba)2023-12-13"] <- "gallais, chenu"
+inv$Baie.obs[inv$id=="tdcl_pree_mizottiere2024-01-11"] <- "goossens, froud"
+inv$Baie.obs[inv$id=="transfo_(rnba)2023-04-18"] <- "bariteau, goossens"
+inv$Baie.obs[inv$id=="transfo_(rnba)2021-03-15"] <- "francois, bergere"
+
+inv <- unique(inv)
+
+# Compilation des deux tables : 
+Baie_inv <- merge(site,inv,by.x = "id", by.y = "id")
+duplicated(Baie_inv$id)
+
+
+# 4. Création de la table comptage (table d'observation) : 
+# -> création d'un id pour fusionner les tables (avec les espèces)
+Baie$id <- paste0(Baie$espece,Baie$site,Baie$date)
+Baie$id_inv <- paste0(Baie$site,Baie$date)
+
+#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
+
+id_inv <- unique(Baie$id_inv)
+sp <- unique(Baie$espece)
+
+inventaire <- expand.grid(id_inv, sp) # [RL] très bien
+View(inventaire)
+
+# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
+# dans les data
+
+inventaire$id_sp <- paste0(inventaire$Var2,inventaire$Var1)
+
+Baie_obs <- data.frame(Baie$abondance,Baie$id)
+Baie_obs <- aggregate(Baie_obs, Baie.abondance ~ Baie.id, median)
+
+# Combinaison des deux tableaux : 
+
+Baie_f <- merge(inventaire, Baie_obs, by.x = "id_sp", by.y = "Baie.id", all.x = T)
+View(Baie)
+Baie_f <- distinct(Baie_f)
+# Remplacement des NA par des 0
+
+Baie_f[is.na(Baie_f)] <- 0
+
+# Var 2 -> espece :
+colnames(Baie_f)[names(Baie_f)== "Var2"] <- "espece"
+colnames(Baie_f)[names(Baie_f)== "Var1"] <- "id"
+
+# Merge des tables : 
+Baie_f <- merge(Baie_f, Baie_inv, by.x = "id", by.y = "id")
+
+colnames(Baie_f) <- gsub("Baie.","",colnames(Baie_f))
+
+# Rajouter la somme des abondances pour chaque espèce/site 
+Baie_f$abondance <- as.numeric(Baie_f$abondance)
+setDT(Baie_f)
+Baie_f[, abondance_tot:= sum(abondance), by = .(espece,site)]
+setDF(Baie_f)
+Baie_f <- subset(Baie_f, abondance_tot > 0)
+
+write.csv2(Baie_f,"Data/Baie_aiguillon.csv")
 
 #Nombre d'observation des espèces 
 nb_observation <- Baie %>%
@@ -989,6 +1091,18 @@ nb_observation <- Baie %>%
 
 Baie <- merge(Baie,nb_observation, by.x = "espece",by.y = "espece")
 colnames(Baie)[22] <- "nb_observations"     
+#Création d'une colonne observations pour les espèces : 
+Baie$abondance <- as.numeric(Baie$abondance)
+
+median_ab <- Baie %>%
+  group_by(espece,mois,site,annee) %>%
+  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
+
+median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
+
+Baie$id_ab <- paste(Baie$espece,Baie$site,Baie$mois,Baie$annee)
+
+Baie <- merge(Baie,median_ab,by.x = "id_ab",by.y="id")
 
 
             ########## 4. Le cotentin : #############
@@ -1064,7 +1178,7 @@ Cotentin <- subset(Cotentin,!(Cotentin$espece=="pingouin_torda,_petit_pingouin"|
     # -> En revanche autres anatidés pas de manière exhaustive (donc les retirer) idem pour les limicoles terrestre (bécassines + pluvier doré + vanneau)
 
 
-#Nom famille et ordre :
+#Nom minuscules :
 
 Cotentin[,1] <- tolower(Cotentin[,1])
 Cotentin[,2] <- tolower(Cotentin[,2])
@@ -1098,13 +1212,12 @@ nb_suivi_site <-
 
 Cotentin <- merge(Cotentin,nb_suivi_site, by.x = "site", by.y = "site")
 
-colnames(Cotentin)[15] <- "occurence_site"
+colnames(Cotentin)[15] <- "nb_annee_suivi"
 
 # Création d'une colonne site retenu 
 
-Cotentin$site_retenu <- with(Cotentin, ifelse(Cotentin$site=="polder_ste_marie_cel","non",
-                                    ifelse(Cotentin$site=="rnn_beauguillot","non",      
-                                    ifelse(Cotentin$occurence_site < 3,"non","oui"))))
+Cotentin$site_retenu <- with(Cotentin, ifelse(Cotentin$site=="rnn_beauguillot","non",      
+                                    ifelse(Cotentin$nb_annee_suivi < 3,"non","oui")))
   
 #Vérification abondance : 
 unique(Cotentin$abondance)
@@ -1114,18 +1227,6 @@ unique(Cotentin$abondance)
 Cotentin$abondance[Cotentin$abondance=="420-440"] <- "440"
 Cotentin$abondance[Cotentin$abondance=="380-420"] <- "420"
 Cotentin$abondance[Cotentin$abondance=="15-20"] <- "20"
-
-Cotentin$abondance <- as.numeric(Cotentin$abondance)
-
-median_ab <- Cotentin %>%
-  group_by(espece,mois,site,annee) %>%
-  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
-
-median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
-
-Cotentin$id_ab <- paste(Cotentin$espece,Cotentin$site,Cotentin$mois,Cotentin$annee)
-
-Cotentin <- merge(Cotentin,median_ab,by.x = "id_ab",by.y="id")
 
 #Les observateurs :  
 unique(Cotentin$obs)
@@ -1227,12 +1328,6 @@ Cotentin$obs[Cotentin$obs=="gabet ludivine, galloo thierry, laurent sylvain & su
 Cotentin$obs[Cotentin$obs=="gabet ludivine & parmentier emmanuel"] <- "gabet, parmentier"
 Cotentin$obs[Cotentin$obs=="schmitt emmanuel"] <- "schmitt"
 
-
-#Remettre en forme les noms des colonnes :
-colnames(Cotentin) [2] <- "site"
-colnames(Cotentin) [5] <- "espece"
-colnames(Cotentin) [14] <- "mois"
-colnames(Cotentin) [15] <- "annee"
 
 #####Prendre en compte les remarques :
 unique(Cotentin$remarques)
@@ -1538,6 +1633,118 @@ Cotentin$protocole <- "terrestre"
 
 #Ajout colonne voie migration : 
 Cotentin$voie_migration <- "est_atlantique"
+
+
+ 
+
+id <- paste0(Cotentin$site,Cotentin$date)
+unique(id)
+# 2. Création de la table "site" : 
+site <- data.frame(id, Cotentin$site, Cotentin$secteur, Cotentin$protocole, Cotentin$occurence_site, Cotentin$qualite_comptage, Cotentin$voie_migr, Cotentin$site_retenu)
+site <- unique(site) 
+duplicated(site$id)
+
+
+# 3. Création de la table inventaire : 
+
+inv <- data.frame(id,Cotentin$date,Cotentin$obs,Cotentin$mois,Cotentin$annee)
+inv <- unique(inv)
+
+# Compilation des deux tables : 
+Cotentin_inv <- merge(site,inv,by.x = "id", by.y = "id")
+
+
+# 4. Création de la table comptage (table d'observation) : 
+# -> création d'un id pour fusionner les tables (avec les espèces)
+Cotentin$id <- paste(Cotentin$espece,Cotentin$site,Cotentin$date)
+Cotentin$id_inv <- paste(Cotentin$site,Cotentin$date)
+
+#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
+
+id_inv <- unique(Cotentin$id_inv)
+sp <- unique(Cotentin$espece)
+
+inventaire <- expand.grid(id_inv, sp) # [RL] très bien
+View(inventaire)
+
+# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
+# dans les data
+
+inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
+
+# Combinaison des deux tableaux : 
+
+Cotentin_f <- merge(inventaire, Cotentin, by.x = "id_sp", by.y = "id", all.x = T)
+
+# Remplacement des NA par des 0
+Cotentin_f$abondance[is.na(Cotentin_f$abondance)] = 0
+
+# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
+# pour obtenir la table observation : 
+
+Cotentin_f <- Cotentin_f[,-c(4:11,13:27)]
+
+
+# Var 2 -> espece :
+colnames(Cotentin_f)[names(Cotentin_f)== "Var2"] <- "espece"
+colnames(Cotentin_f)[names(Cotentin_f)== "Var1"] <- "id"
+
+#
+Cotentin_f <- merge(Cotentin_f, Cotentin_inv, by.x = "id", by.y = "id")
+
+#Rajouter les valeurs moy, miw, max et median abondance : 
+
+val <- data.frame(Cotentin$id, Cotentin$abondance_max, Cotentin$abondance_median, Cotentin$abondance_min, Cotentin$abondance_moy)
+Cotentin_f <- merge(Cotentin_f, val, by.x = "id_sp","Cotentin.id", all.x = T)
+
+Cotentin_f$Cotentin.abondance_max[is.na(Cotentin_f$Cotentin.abondance_max)] = 0
+Cotentin_f$Cotentin.abondance_min[is.na(Cotentin_f$Cotentin.abondance_min)] = 0
+Cotentin_f$Cotentin.abondance_median[is.na(Cotentin_f$Cotentin.abondance_median)] = 0
+Cotentin_f$Cotentin.abondance_moy[is.na(Cotentin_f$Cotentin.abondance_moy)] = 0
+# On remet les noms latins + famille + ordre
+
+Cotentin_f <- merge(Cotentin_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
+
+Cotentin_f <- Cotentin_f[,-c(2,3,20,22:31)]
+colnames(Cotentin_f) [3] <- "site"  
+colnames(Cotentin_f) [4] <- "secteur"
+colnames(Cotentin_f) [5] <- "protocole"
+colnames(Cotentin_f)  [6] <- "occurence_site"
+colnames(Cotentin_f) [7] <- "qualite_comptage"
+colnames(Cotentin_f) [8] <- "voie_migration"
+colnames(Cotentin_f) [9] <- "site_retenu"
+colnames(Cotentin_f) [10] <- "date"
+colnames(Cotentin_f)  [11] <- "observateurs"
+colnames(Cotentin_f) [12] <- "mois"
+colnames(Cotentin_f) [13] <- "annee"
+colnames(Cotentin_f) [14] <- "abondance_max"
+colnames(Cotentin_f) [15] <- "abondance_mediane"
+colnames(Cotentin_f) [16] <- "abondance_min"
+colnames(Cotentin_f) [17] <- "abondance_moy"
+colnames(Cotentin_f) [18] <- "nom_latin"
+colnames(Cotentin_f) [19] <- "ordre"
+colnames(Cotentin_f) [20] <- "famille"
+
+Cotentin_f$grp_fonctionnel <- with(Cotentin_f, ifelse(Cotentin_f$ordre=="Charadriiformes","limicoles","anatidae"))
+
+Cotentin_f[,18] <- tolower(Cotentin_f[,18])
+Cotentin_f[,18] <- gsub(" ","_", Cotentin_f[,18])
+
+Cotentin_f[,19] <- tolower(Cotentin_f[,19])
+Cotentin_f[,19] <- iconv(Cotentin_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+Cotentin_f[,20] <- tolower(Cotentin_f[,20])
+Cotentin_f[,20] <- iconv(Cotentin_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+nb_observation <- Cotentin %>%
+  count(espece)
+Cotentin_f <- merge(Cotentin_f, nb_observation, by.x = "espece", by.y = "espece")
+colnames(Cotentin_f) [22] <- "nombre_observation"
+
+
+
+
+
 
 #Tri final des colonnes : 
 Cotentin <- Cotentin[,-c(1,11,12,18,19,20,21)]
@@ -2347,9 +2554,9 @@ colnames(Rhin)[8] <- "mois"
 id <- paste(data$site,data$date)
 
 # 2. Création de la table "site" : 
-site <- data.frame(id, data$site,data$secteur,data$protocole, data$occurence_site, data$qualite_comptage,data$voie_migration, data$site_retenu)
+site <- data.frame(id, data$site,data$secteur,data$protocole, data$nb_annee_suivie, data$qualite_comptage,data$voie_migration, data$site_retenu)
 site <- unique(site) 
-duplicated(site$id)
+table(duplicated(site$id))
 # 3. Création de la table inventaire : 
 
 inv <- data.frame(id,data$date,data$obs,data$mois,data$annee)
@@ -2373,6 +2580,9 @@ sp <- unique(data$espece)
 inventaire <- expand.grid(id_inv, sp) # [RL] très bien
 View(inventaire)
 
+data_obs <- data.frame(data$abondance,data$id)
+data_obs <- aggregate(abondace ~ id, median)
+
 # Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
 # dans les data
 
@@ -2380,18 +2590,18 @@ inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
 
 # Combinaison des deux tableaux : 
 
-data_f <- merge(inventaire, data, by.x = "id_sp", by.y = "id", all.x = T)
+data_f <- merge(inventaire, data_obs, by.x = "id_sp", by.y = "data.id", all.x = T)
+View(data)
+data_f[is.na(data_f)] <- 0
+# Remplacement des NA par des 0
+
 View(data)
 
-# Remplacement des NA par des 0
-data_f$abondance[is.na(data_f$abondance)] = 0
-View(data)
 
 # On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
   # pour obtenir la table observation : 
 
-data_f <- data_f[,-c(4,5,6,7,8,9,11:32)]
-
+#data_f <- data_f[,-c(4,5,6,7,8,9,11:32)]
 
 # Var 2 -> espece :
 colnames(data_f)[names(data_f)== "Var2"] <- "espece"
@@ -2399,6 +2609,7 @@ colnames(data_f)[names(data_f)== "Var1"] <- "id"
 
 #
 data_f <- merge(data_f, data_inv, by.x = "id", by.y = "id")
+colnames(data_f) <- gsub("data.","",colnames(data_f))
 
 #Rajouter les valeurs moy, miw, max et median abondance : 
 
@@ -2412,56 +2623,16 @@ data_f$data.abondance_median[is.na(data_f$data.abondance_median)] = 0
 data_f$data.abondance_moy[is.na(data_f$data.abondance_moy)] = 0
 # On remet les noms latins + famille + ordre
 
-data_f <- merge(data_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
+#data_f <- merge(data_f,espece[,c("scientific_name","french_name","family_tax","order_tax")], by.x = "espece", by.y = "french_name", all.x = TRUE)
 
-data_f <- data_f[,-c(2,3,20,22:31)]
-colnames(data_f) [3] <- "site"
-colnames(data_f) [4] <- "secteur"
-colnames(data_f) [5] <- "protocole"
-colnames(data_f) [6] <- "occurence_site"
-colnames(data_f) [7] <- "qualite_comptage"
-colnames(data_f) [8] <- "voie_migratoire"
-colnames(data_f) [9] <- "site_retenu"
-colnames(data_f) [10] <- "date"
-colnames(data_f) [11] <- "observateurs"
-colnames(data_f) [12] <- "mois"
-colnames(data_f) [13] <- "annee"
-colnames(data_f) [14] <- "abondance_max"
-colnames(data_f) [15] <- "abondance_mediane"
-colnames(data_f) [16] <- "abondance_min"
-colnames(data_f) [17] <- "abondance_moy"
-colnames(data_f) [18] <- "nom_latin"
-colnames(data_f) [19] <- "ordre"
-colnames(data_f) [20] <- "famille"
+#Package data.table : d
+#setDT(data_f)
+#data_f[, abondance_tot:= sum(abondance), by = .(espece,id)]
+#setDF(data_f)
+# data_f <- subset(data_f, abondance_tot > 0)
 
-data_f$ordre[data_f$espece=="canard_sp"] <- "Ansériformes"
-data_f$famille[data_f$espece=="canard_sp"] <- "Anatidés"
+write.csv2(data_f,"Data/estuaire_loire.csv")
 
-data_f$ordre[data_f$espece=="barges_sp"] <- "Charadriiformes"
-data_f$famille[data_f$espece=="barges_sp"] <- "Scolopacidés"
-
-data_f$ordre[data_f$espece=="becasseau_sp"] <- "Charadriiformes"
-data_f$famille[data_f$espece=="becasseau_sp"] <- "Scolopacidés"
-
-data_f$ordre[data_f$espece=="courlis_sp"] <- "Charadriiformes"
-data_f$famille[data_f$espece=="courlis_sp"] <- "Scolopacidés"
-
-data_f$grp_fonctionnel <- with(data_f, ifelse(data_f$ordre=="Charadriiformes","limicoles","anatidae"))
-
-data_f[,18] <- tolower(data_f[,18])
-data_f[,18] <- gsub(" ","_", data_f[,18])
-
-data_f[,19] <- tolower(data_f[,19])
-data_f[,19] <- iconv(data_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-data_f[,20] <- tolower(data_f[,20])
-data_f[,20] <- iconv(data_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-
-nb_observation <- data %>%
-  count(espece)
-data_f <- merge(data_f, nb_observation, by.x = "espece", by.y = "espece")
-colnames(data_f) [22] <- "nombre_observation"
 
 
 ############# Baie de l'Aiguillon : 
@@ -2544,7 +2715,7 @@ colnames(Baie_f) [4] <- "secteur"
 colnames(Baie_f) [5] <- "protocole"
 colnames(Baie_f) [6] <- "occurence_site"
 colnames(Baie_f) [7] <- "qualite_comptage"
-colnames(Baie_f) [8] <- "voie_migratoire"
+colnames(Baie_f) [8] <- "voie_migration"
 colnames(Baie_f) [9] <- "site_retenu"
 colnames(Baie_f) [10] <- "date"
 colnames(Baie_f) [11] <- "observateurs"
@@ -2676,7 +2847,7 @@ colnames(Cotentin_f) [4] <- "secteur"
 colnames(Cotentin_f) [5] <- "protocole"
 colnames(Cotentin_f)  [6] <- "occurence_site"
 colnames(Cotentin_f) [7] <- "qualite_comptage"
-colnames(Cotentin_f) [8] <- "voie_migratoire"
+colnames(Cotentin_f) [8] <- "voie_migration"
 colnames(Cotentin_f) [9] <- "site_retenu"
 colnames(Cotentin_f) [10] <- "date"
 colnames(Cotentin_f)  [11] <- "observateurs"
@@ -2783,7 +2954,7 @@ colnames(Rhin_f) [4] <- "secteur"
 colnames(Rhin_f) [5] <- "protocole"
 colnames(Rhin_f)  [6] <- "occurence_site"
 colnames(Rhin_f) [7] <- "qualite_comptage"
-colnames(Rhin_f) [8] <- "voie_migratoire"
+colnames(Rhin_f) [8] <- "voie_migration"
 colnames(Rhin_f) [9] <- "site_retenu"
 colnames(Rhin_f) [10] <- "date"
 colnames(Rhin_f)  [11] <- "observateurs"
@@ -2904,7 +3075,7 @@ colnames(Arcachon_f) [4] <- "secteur"
 colnames(Arcachon_f) [5] <- "protocole"
 colnames(Arcachon_f)  [6] <- "occurence_site"
 colnames(Arcachon_f) [7] <- "qualite_comptage"
-colnames(Arcachon_f) [8] <- "voie_migratoire"
+colnames(Arcachon_f) [8] <- "voie_migration"
 colnames(Arcachon_f) [9] <- "site_retenu"
 colnames(Arcachon_f) [10] <- "date"
 colnames(Arcachon_f)  [11] <- "observateurs"
@@ -2963,16 +3134,18 @@ colnames(Camargue) [22] <- "nombre_observation"
 colnames(Camargue) [21] <- "voie_migration"
 colnames(Camargue) [19] <- "abondance_mediane"
 
-################### FUSION TABLEAU DONNEES ##############
+################### FUSION TABLEAUx DONNEES ##############
 help("rbind")
 help("bind_rows")
 
-Camargue$abondance <- as.character(Camargue$abondance)
-Cotentin$abondance <- as.character(Cotentin$abondance)
-Baie$abondance <- as.character(Baie$abondance)
-Rhin$abondance <- as.character(Rhin$abondance)
-data$coef_de_marree <- as.character(data$coef_de_marree)
-data_f <- bind_rows(data,Camargue,Cotentin,Baie,Arcachon,Rhin)
+#Camargue$abondance <- as.character(Camargue$abondance)
+#Cotentin_f$abondance <- as.character(Cotentin$abondance)
+#Baie_f$abondance <- as.character(Baie$abondance)
+#Rhin_f$abondance <- as.character(Rhin$abondance)
+#data_f$coef_de_marree <- as.character(data$coef_de_marree)
+data_f <- bind_rows(data_f,Camargue_f,Cotentin_f,Baie,Arcachon_f,Rhin_f)
+
+
 
 ## Voir pour les doubles comptages
 

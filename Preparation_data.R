@@ -1819,8 +1819,8 @@ colnames(Arcachon) [2] <- "annee"
 colnames(Arcachon) [3] <- "mois_let"
 colnames(Arcachon) [4] <- "espece"
 colnames(Arcachon) [5] <- "nom_latin"
-colnames(Arcachon) [6] <- "lieu_dit"
-colnames(Arcachon) [7] <- "site"
+colnames(Arcachon) [6] <- "lieu_dit" 
+colnames(Arcachon) [7] <- "site"  
 colnames(Arcachon) [8] <- "commune"
 colnames(Arcachon) [9] <- "abondance"
 colnames(Arcachon) [10] <- "heure_bm"
@@ -1890,6 +1890,7 @@ Arcachon[,7] <- gsub("é","e",Arcachon[,7])
 Arcachon[,7] <- gsub("-","_",Arcachon[,7])
 Arcachon[,7] <- gsub("'","_",Arcachon[,7])
 Arcachon[,7] <-iconv(Arcachon[,7], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
 
 # PB avec les espaces en fin de mots : 
 # -> 
@@ -2045,13 +2046,212 @@ Arcachon$Observateur.2[Arcachon$Observateur.2=="Michelle Juino"] <- "juino"
 Arcachon$Observateur.2[Arcachon$Observateur.2=="Mali Triger"] <- "triger"
 Arcachon$Observateur.2[Arcachon$Observateur.2=="H.Dinclaux"] <- "dinclaux"
 Arcachon$Observateur.2[Arcachon$Observateur.2=="F. Christian"] <- "christian"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Christophe Cazaux"] <- "cazaux"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Caroline Micallef"] <- "cazaux"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Alexandre Bert"] <- "bert"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Eric Lenain"] <- "lenain"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Yves Braconnier"] <- "braconnier"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Thierry Duprat"] <- "duprat"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="françoise Poinfer"] <- "poinfer"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Franck Jouandoudet"] <- "jouandoudet"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Adrien de Montaudoin"] <- "de montaudoin"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="M.Cagnato"] <- "cagnato"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Richard Deneuvic"] <- "deneuvic"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Cédric Cugny"] <- "cugny"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Adrien de Montaudouin"] <- "de montaudoin"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="M.Cagnato"] <- "cagnato"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Pierre Duteau"] <- "duteau"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Emilie de Blas"] <- "de blas"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Bernard Laporte"] <- "laporte"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Grégory Boré"] <- "bore"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Céline Girardeau"] <- "girardeau"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Cassandre Even"] <- "even"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Cédric Barbeyron"] <- "barbeyron"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Simon bauvineau"] <- "bauvineau"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Claire Rougier"] <- "rougier"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Noé Metge"] <- "metge"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Yann Jacob"] <- "jacob"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Simon Bauvineau"] <- "bauvineau"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Alexandre Loiseau"] <- "loiseau"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Bernad Capdeville"] <- "capdeville"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Michel Juino"] <- "juino"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Manon Cognyl"] <- "cognyl"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Philippe  Birac"] <- "birac"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Sébastien Delahodde"] <- "delahodde"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Isabelle Thiberville"] <- "thiberville"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Anaïs Lucas"] <- "lucas"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Céline Guévara"] <- "guevara"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Leslie Stout"] <- "stout"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Benoît Fritsch"] <- "fritsch"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Ninon Durand"] <- "durand"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Thomas Boudou"] <- "boudou"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Océane Poursat"] <- "poursat"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Julian Lazard"] <- "lazard"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Céline Giradeau"] <- "girardeau"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Darieus Helou"] <- "helou"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Françoise Pointfer"] <- "poinfer"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Deneuvic Richard"] <- "deneuvic"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Matthias Grandpierre "] <- "grandpierre"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Benoit Fritsch"] <- "fritsch"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Philippe Birac"] <- "birac"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Lisa Primi"] <- "primi"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Florian Lalièvre"] <- "lalièvre"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Marion Célik"] <- "celik"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Françoise Dindinaud"] <- "dindinaud"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Thierry Duprat "] <- "duprat"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Céline Guevara"] <- "guevara"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Françoise poinfer"] <- "poinfer"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Robien Bruant"] <- "bruant"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Robin Bruant"] <- "bruant"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="François Dindinaud"] <- "dindinaud"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Vaea Bujan"] <- "bujan"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Jeremy Behamou"] <- "behamou"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Florian Papon"] <- "papon"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Justine Hazera"] <- "hazera"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Benoit Dumeau"] <- "dumeau"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Sarah Dias"] <- "dias"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="thierry duprat"] <- "duprat"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Nicolas Mokuenko"] <- "mokuenko"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Pierre Dutaut"] <- "dutaut"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Olivier Vidal"] <- "vidal"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Philippe  Birac"] <- "birac"
 
+sort(unique(Arcachon$Observateur.2))
+
+unique(Arcachon$Observateur.3)
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Daniel Baqué"] <- "baque"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Alexandre Bert"] <- "bert"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Thierry Duprat"] <- "duprat"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Marie Cazeneuve"] <- "cazeneuve"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Jean-Jacques Boubert"] <- "boubert"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Michelle Juino"] <- "juino"
+Arcachon$Observateur.3[Arcachon$Observateur.3==" Clément Oncins"] <- "oncins"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Olivier Pichon"] <- "pichon"
+Arcachon$Observateur.3[Arcachon$Observateur.3==" Laurent Chevalier"] <- "chevalier"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Alain Frelal"] <- "frelal"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Lucie Fuentes"] <- "fuentes"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Yves Braconnier"] <- "braconnier"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Philippe Birac"] <- "birac"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Chloé Maihle"] <- "maihle"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Alice Tribot"] <- "tribot"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Benoît Lujan"] <- "lujan"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Emilie de Blas"] <- "de blas"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="P.Favali"] <- "favali"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="A. Bat"] <- "bat"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Françoise Juino"] <- "f_juino"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Mathias Le Trouvé"] <- "le trouve"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Gregory Bore"] <- "bore"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Pascal Zeddam"] <- "zeddam"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Sandra De Mélo"] <- "de melo"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Cédric Barbeyron"] <- "barbeyron"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Bastien Campistron"] <- "campistron"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Florine Iaïch"] <- "iaich"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Romuald Gaubert"] <- "gaubert"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Sylvain Brun"] <- "brun"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Brun Sylvain"] <- "brun"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Michèle Juino"] <- "juino"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Olivia Tassin"] <- "tassin"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Yann Jacob"] <- "jacob"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Alexandre Loiseau"] <- "loiseau"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Clément Oncins"] <- "oncins"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Claire Rougier"] <- "rougier"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Matthias Grandpierre"] <- "grandpierre"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Cassandre Even"] <- "even"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Anais Lucas"] <- "lucas"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Manon Cognyl"] <- "cognyl"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Hubert Huguenot"] <- "huguenot"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Claude Feigné"] <- "feigne"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Anaïs Lucas"] <- "lucas"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Célia Maillotte"] <- "maillotte"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Sébastien Delahodde"] <- "delahodde"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Jean-Luc Castet"] <- "castet"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Bernard Laporte"] <- "laporte"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Laurie Landier"] <- "landier"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Manuel Donadieu"] <- "donadieu"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Thomas Boudou"] <- "boudou"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Mathilde Coursimault"] <- "coursimault"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Hubert Huguenau"] <- "huguenau"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Julian"] <- "julian"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Florian Lalièvre"] <- "lalievre"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Robon Brouat"] <- "brouat"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Marion Célik"] <- "celik"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Thomas Boubou"] <- "boubou"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="benoit Dumeau"] <- "dumeau"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Adrien de Montaudouin"] <- "de montaudoin"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Isabelle Thiberville"] <- "thiberville"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Luna Marmeuse"] <- "marmeuse"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Joris Grenon"] <- "grenon"
+Arcachon$Observateur.3[Arcachon$Observateur.3=="Inge "] <- "van halder"
+sort(unique(Arcachon$Observateur.3))
+
+Arcachon[,14] <- gsub("Départ de 1 à 9:10","",Arcachon[,14])
+Arcachon[,14] <- gsub("Départ de 14 à 8:47","",Arcachon[,14])
+Arcachon[,14] <- gsub("Départ de 23 à 9:01","",Arcachon[,14])
+Arcachon[,14] <- gsub("Départ de 28 à 8:45 vers océan","",Arcachon[,14])
+
+unique(Arcachon$Observateur.4)
+Arcachon$Observateur.4[Arcachon$Observateur.4=="F. Dissart"] <- "dissart"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Emilie de Blas"] <- "de blas"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Mathias Le Trouvé"] <- "le trouve"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Céline Girardeau"] <- "girardeau"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Cassandre Even"] <- "even"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Alexandre Bert"] <- "bert"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Christian David"] <- "david"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Yves Braconnier"] <- "braconnier"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Alexandre Loiseau"] <- "loiseau"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Claire Rougier"] <- "rougier"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Franck Jouandoudet"] <- "jouandoudet"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Sylvie Ducasse"] <- "ducasse"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Jean-Luc Castet"] <- "castet"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Céline Guévara"] <- "guevara"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Jean-Jacques Boubert"] <- "boubert"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Thierry Duprat"] <- "duprat"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Pauline Destainville"] <- "destainville"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Benoit Dumeau"] <- "dumeau"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Robien Brouat"] <- "brouat"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Charles Coup"] <- "coup"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Florian Royer"] <- "royer"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Jean Jacques Boubert"] <- "boubert"
+Arcachon$Observateur.4[Arcachon$Observateur.4=="Inge Van Halder"] <- "van halder"
+
+Arcachon[,15] <- gsub("Olivier","",Arcachon[,15])
+Arcachon[,15] <- gsub("Théo","",Arcachon[,15])
+Arcachon[,15] <- gsub("2 départ à 15h47 en direction de l'ile","",Arcachon[,15])
+Arcachon[,15] <- gsub("Olivier, Julie","",Arcachon[,15])
+Arcachon[,15] <- gsub("Mathis","",Arcachon[,15])
+Arcachon[,15] <- gsub(", Julie","",Arcachon[,15])
+
+sort(unique(Arcachon$Observateur.4))
+
+unique(Arcachon$Observateur.5)
+Arcachon[,16] <- gsub("F. Paquin","paquin",Arcachon[,16])
+Arcachon[,16] <- gsub("Alexandre Bert","bert",Arcachon[,16])
+Arcachon[,16] <- gsub("Yannick Beta-Maisonnave","beta maisonnave",Arcachon[,16])
+Arcachon[,16] <- gsub("Morgane Le Billan","le billan",Arcachon[,16])
+Arcachon[,16] <- gsub("71231","",Arcachon[,16])
+Arcachon[,16] <- gsub("1600 la veille","",Arcachon[,16])
+Arcachon[,16] <- gsub("Attaque de pèlerin sur Grand Banc","",Arcachon[,16])
+Arcachon[,16] <- gsub("Départ de 683 entre 7:15 et 7:29","",Arcachon[,16])
+Arcachon[,16] <- gsub("Départ 850 à 8h50  vers IaO","",Arcachon[,16])
+Arcachon[,16] <- gsub("Attaque de pèlerin sur Grand Banc","",Arcachon[,16])
+Arcachon[,16] <- gsub("Présence d'un Faucon Pelerin","",Arcachon[,16])
+sort(unique(Arcachon$Observateur.5))
+
+unique(Arcachon$Observateur.6)
+Arcachon$Observateur.6[Arcachon$Observateur.6=="43 partent vers l'océan à 15h + 5 vers l'ile à 14h40"] <- ""
+Arcachon[,17] <- gsub("17 départ vers l'ile à 14h55","",Arcachon[,17])
+Arcachon[,17] <- gsub("120 partent vers l'ile à 14h40","",Arcachon[,17])
+Arcachon[,17] <- gsub("3 partent vers l'ile à 6h31","",Arcachon[,17])
+Arcachon[,17] <- gsub("127 partent entre 15:00 et 15:10 ","",Arcachon[,17])
+Arcachon[,17] <- gsub("Mathys Salaud","salaud",Arcachon[,17])
+
+#Arcachon$obs <- paste(Arcachon$obs,Arcachon$Observateur.2,Arcachon$Observateur.3,Arcachon$Observateur.4,Arcachon$Observateur.5,Arcachon$Observateur.6, sep = ", ", recycle0 = T)
+help("paste")
 
 # Vérification des abondances : 
 unique(Arcachon$abondance)
 unique(Arcachon[c(995:1363),9])
 #Case vide + Partiel + 0 + NC 
-# Les 0 ne correspondent pas à de vrais absence : mais à des non comptage : 
 
 Arcachon <- subset(Arcachon,!(Arcachon$abondance=="NC"|Arcachon$abondance==""))
 
@@ -2074,7 +2274,7 @@ Arcachon$secteur <- "arcachon"
 
 #Ajouter le protocole : 
 
-Arcachon$protocole <- "NA"
+Arcachon$protocole <- "terrestre ?"
 
 #Prendre en compte les remarques : 
 unique(Arcachon$remarques)
@@ -2126,43 +2326,145 @@ nb_suivi_site <-
 
 Arcachon <- merge(Arcachon,nb_suivi_site, by.x = "site", by.y = "site")
 
-colnames(Arcachon)[24] <- "occurence_site"
+colnames(Arcachon)[24] <- "nb_annee_suivie"
 
 #Colonne site retenu: 
-Arcachon$site_retenu <- with(Arcachon, ifelse(Arcachon$occurence_site < 3, "non",
-                                              ifelse(Arcachon$annee < 2004, "non", "oui")))
-
-#Colonne nombre d'observation espèces : 
-nb_observation <- Arcachon %>%
-  count(espece)
-
-Arcachon <- merge(Arcachon,nb_observation, by.x = "espece",by.y = "espece")
-colnames(Arcachon)[26] <- "nb_observations"
-
-#Colonne valeur médiane, moy ... 
-Arcachon$abondance <- as.numeric(Arcachon$abondance)
-
-median_ab <- Arcachon %>%
-  group_by(espece,mois,site,annee) %>%
-  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
-
-median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
-
-Arcachon$id_ab <- paste(Arcachon$espece,Arcachon$site,Arcachon$mois,Arcachon$annee)
-
-Arcachon <- merge(Arcachon,median_ab,by.x = "id_ab",by.y="id")
-
-#On renomme bien les colonnes : 
-colnames(Arcachon)[2] <- "espece"
-colnames(Arcachon)[3] <- "site"
-colnames(Arcachon)[5] <- "annee"
-colnames(Arcachon)[21] <- "mois"
-
-#Tri final des colonnes : 
-Arcachon <- Arcachon[,-c(1,6,28,29,30,31)]
+Arcachon$site_retenu <- with(Arcachon, ifelse(Arcachon$nb_annee_suivie < 3, "non", "oui"))
 
 # Voie migration 
-Arcachon$voie_migr <- "est_atlantique"
+Arcachon$voie_migration <- "est_atlantique"
+
+#Bassin d'arcachon : 
+
+id <- paste0(Arcachon$site,Arcachon$date)
+unique(id)
+# 2. Création de la table "site" : 
+site <- data.frame(id, Arcachon$site, Arcachon$secteur, Arcachon$protocole, Arcachon$nb_annee_suivie, Arcachon$qualite_comptage, Arcachon$voie_migration, Arcachon$site_retenu)
+site <- unique(site) 
+table(duplicated(site$id))
+site %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
+
+# Dérangement appliqué que à  la première ligne donc création qualité comptage "ok" et "douteux" alors que c'est que "douteux"
+site$Arcachon.qualite_comptage[site$id=="andernos2017-11-15"] <- "douteux"
+site$Arcachon.qualite_comptage[site$id=="andernos2020-12-14"] <- "douteux"
+site$Arcachon.qualite_comptage[site$id=="ile_aux_oiseaux2023-12-11"] <- "douteux"
+site$Arcachon.qualite_comptage[site$id=="ile_aux_oiseaux2023-04-17"] <- "douteux"
+site$Arcachon.qualite_comptage[site$id=="rnnpsa2023-05-17"] <- "douteux"
+site$Arcachon.qualite_comptage[site$id=="rnnpsa2020-02-07"] <- "douteux"
+site$Arcachon.qualite_comptage[site$id=="rnnpsa2023-09-27"] <- "douteux"
+site$Arcachon.qualite_comptage[site$id=="rnnpsa2017-11-15"] <- "douteux"
+site$Arcachon.qualite_comptage[site$id=="rnnpsa2020-10-14"] <- "douteux"
+site$Arcachon.qualite_comptage[site$id=="rnnpsa2018-07-18"] <- "douteux"
+
+site <- unique(site)
+
+# 3. Création de la table inventaire : 
+
+inv <- data.frame(id,Arcachon$date,Arcachon$obs,Arcachon$mois,Arcachon$annee)
+inv <- unique(inv)
+table(duplicated(inv$id))
+
+inv %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
+
+# réunir les observateurs pour un même secteur de comptage : 
+inv$Arcachon.obs[inv$id=="andernos2017-01-09"] <- "mokuenko, viry"
+inv$Arcachon.obs[inv$id=="andernos2017-01-09"] <- "mokuenko, viry"
+inv$Arcachon.obs[inv$id=="andernos2015-10-09"] <- ""
+inv$Arcachon.obs[inv$id=="andernos2019-01-18"] <- "jouandoudet"
+inv$Arcachon.obs[inv$id=="andernos2020-06-09"] <- "jouandoudet, de blas"
+inv$Arcachon.obs[inv$id=="arcachon2016-01-08"] <- "revers, gergaud"
+inv$Arcachon.obs[inv$id=="arcachon2018-01-15"] <- "PNRLG, de montaudoin"
+inv$Arcachon.obs[inv$id=="certes2010-08-16"] <- "fleury, nade"
+inv$Arcachon.obs[inv$id=="certes2011-01-17"] <- "fleury, nade"
+inv$Arcachon.obs[inv$id=="certes2016-01-08"] <- "luciat labry, nade, dinclaux"
+inv$Arcachon.obs[inv$id=="certes2017-01-09"] <- "lafourcade, nade, mokuenko"
+inv$Arcachon.obs[inv$id=="certes2018-01-15"] <- "christian, revers"
+inv$Arcachon.obs[inv$id=="delta_de_l_eyre2009-12-14"] <- "fleury, lambert"
+inv$Arcachon.obs[inv$id=="delta_de_l_eyre2016-01-08"] <- "PNRLG, pere"
+inv$Arcachon.obs[inv$id=="delta_de_l_eyre2017-01-09"] <- "rigou, pere, perrier"
+inv$Arcachon.obs[inv$id=="grand_banc2011-12-21"] <- "duprat, grandpierre"
+inv$Arcachon.obs[inv$id=="grand_banc2020-08-24"] <- "grandpierre, boubert"
+inv$Arcachon.obs[inv$id=="gujan_mestras2009-12-14"] <- "laporte"
+inv$Arcachon.obs[inv$id=="gujan_mestras2017-06-15"] <- "laporte, poinfer"
+inv$Arcachon.obs[inv$id=="ile_aux_oiseaux2019-04-16"] <- "boubert, grandpierre"
+inv$Arcachon.obs[inv$id=="ile_aux_oiseaux2019-05-16"] <- "deneuvic, capdeville"
+inv$Arcachon.obs[inv$id=="la_hume2009-05-08"] <- "perrin, laporte"
+inv$Arcachon.obs[inv$id=="la_hume2016-01-08"] <- "gergaud, laporte"
+inv$Arcachon.obs[inv$id=="la_hume2016-03-21"] <- "gergaud, laporte"
+inv$Arcachon.obs[inv$id=="la_hume2016-10-13"] <- "gergaud, laporte"
+inv$Arcachon.obs[inv$id=="la_hume2017-01-09"] <- "couzi, laporte"
+inv$Arcachon.obs[inv$id=="la_hume2017-06-15"] <- "poinfer, laporte"
+inv$Arcachon.obs[inv$id=="la_hume2018-05-28"] <- "de montaudoin, laporte"
+inv$Arcachon.obs[inv$id=="la_hume2019-12-10"] <- "de montaudoin, laporte"
+inv$Arcachon.obs[inv$id=="la_hume2020-01-08"] <- "thiberville, laporte"
+inv$Arcachon.obs[inv$id=="la_hume2022-09-15"] <- "poinfer, de montaudoin"
+inv$Arcachon.obs[inv$id=="la_hume2022-11-07"] <- "poinfer, de montaudoin"
+inv$Arcachon.obs[inv$id=="la_hume2023-09-27"] <- "poinfer, latry"
+inv$Arcachon.obs[inv$id=="mimbeau2010-04-14"] <- "lagarde, billay"
+inv$Arcachon.obs[inv$id=="plage_oceane_la_teste2017-01-09"] <- "revers, sannier"
+inv$Arcachon.obs[inv$id=="plages_oceanes_du_ferret2011-04-15"] <- "gans"
+inv$Arcachon.obs[inv$id=="rnnba2012-12-11"] <- "grandpierre"
+inv$Arcachon.obs[inv$id=="rnnba2019-07-19"] <- "rougier, deneuvic"
+inv$Arcachon.obs[inv$id=="rnnba2020-11-12"] <- "grandpierre, deneuvic"
+inv$Arcachon.obs[inv$id=="ro_du_teich2023-05-17"] <- "rot"
+
+inv <- unique(inv)
+
+# Compilation des deux tables : 
+Arcachon_inv <- merge(site,inv,by.x = "id", by.y = "id")
+
+
+# 4. Création de la table comptage (table d'observation) : 
+# -> création d'un id pour fusionner les tables (avec les espèces)
+Arcachon$id <- paste0(Arcachon$espece,Arcachon$site,Arcachon$date)
+Arcachon$id_inv <- paste0(Arcachon$site,Arcachon$date)
+
+#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
+
+id_inv <- unique(Arcachon$id_inv)
+sp <- unique(Arcachon$espece)
+
+inventaire <- expand.grid(id_inv, sp) # [RL] très bien
+View(inventaire)
+
+# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
+# dans les data
+
+inventaire$id_sp <- paste0(inventaire$Var2,inventaire$Var1)
+
+Arcachon_obs <- data.frame(Arcachon$abondance, Arcachon$id)
+Arcachon_obs <- aggregate(Arcachon_obs, Arcachon.abondance ~ Arcachon.id, median)
+
+# Combinaison des deux tableaux : 
+
+Arcachon_f <- merge(inventaire, Arcachon_obs, by.x = "id_sp", by.y = "Arcachon.id", all.x = T)
+
+#remplacer les na par les 0 
+Arcachon_f[is.na(Arcachon_f)] <- 0
+
+# Var 2 -> espece :
+colnames(Arcachon_f)[names(Arcachon_f)== "Var2"] <- "espece"
+colnames(Arcachon_f)[names(Arcachon_f)== "Var1"] <- "id"
+
+# Merge des tables : 
+Arcachon_f <- merge(Arcachon_f, Arcachon_inv, by.x = "id", by.y = "id")
+
+colnames(Arcachon_f) <- gsub("Arcachon.","",colnames(Arcachon_f))
+
+# Rajouter la somme des abondances pour chaque espèce/site 
+Arcachon_f$abondance <- as.numeric(Arcachon_f$abondance)
+setDT(Arcachon_f)
+Arcachon_f[, abondance_tot:= sum(abondance), by = .(espece,site)]
+setDF(Arcachon_f)
+Arcachon_f <- subset(Arcachon_f, abondance_tot > 0)
+
+write.csv2(Arcachon_f,"Data/Bassin_arcachon_limicoles.csv")
 
 
             ############## 6. Reserve du Rhin #################
@@ -2466,7 +2768,8 @@ Rhin$obs[Rhin$commentaire_de_la_liste=="Daniel Kirmser ; Observateurs : Eric Bru
 Rhin$obs[Rhin$commentaire_de_la_liste=="Jean-Marc Bronner ; Recensement par une équipe franco-allemande de 7 personnes : LPO-Alsace (Carole Bizart, Jean-Marc Bronner, Yann Carasco, Jean-Pierre Hiss, Jean-Marie Risse, Victor Rouault) + FOSOR (Jürgen Rupp). Conditions météo médiocres le matin (pluvieux et venteux) pour la partie Nord du plan d’eau, puis devenant bonnes à partir de midi (temps sec, sans vent significatif) pour la partie Sud. Conformément au protocole, les oiseaux du canal de décharge de l’Ill ont été intégrés aux présentes données du secteur [17]. Nombre total d'oiseaux observés sur l’ensemble des secteurs [17], [17A] (canal d'alimentation de l'Ill) et [18] (cours du Rhin): 3918 oiseaux d’eau (chiffre le plus faible relevé sur ces sites depuis de très nombreuses années, voire depuis le début des comptages –hors périodes de gel total-, et de loin !)."] <- "Bronner, Bizart, Carasco, Hiss, Risse, Rouault, Rupp"
 Rhin$obs[Rhin$commentaire_de_la_liste=="Jean-Marc Bronner ; Recensement par une équipe franco-allemande de 7 personnes : LPO-Alsace (Carole Bizart, Jean-Marc Bronner, Yann Carasco, Jean-Pierre Hiss, Jean-Marie Risse, Victor Rouault) + FOSOR (Jürgen Rupp). Conditions météo médiocres le matin (pluvieux et venteux) pour la partie Nord du plan d’eau, puis devenant bonnes à partir de midi (temps sec, sans vent significatif) pour la partie Sud. Conformément au protocole, les oiseaux du canal de décharge de l’Ill ont été intégrés aux présentes données du secteur [17]. Nombre total d'oiseaux observés sur l’ensemble des secteurs [17], [17A] (canal d'alimentation de l'Ill) et [18] (cours du Rhin): 3918 oiseaux d’eau (chiffre le plus faible relevé sur ces sites depuis de très nombreuses années, voire depuis le début des comptages –hors périodes de gel total-, et de loin !)."] <- "Bronner, Bizart, Carasco, Hiss, Risse, Rouault, Rupp"
 
-
+Rhin[,45] <- tolower(Rhin[,45])
+Rhin[,45] <- iconv(Rhin[,45], from = "UTF-8", to = "ASCII//TRANSLIT")
 #Prendre en compte les remarques : 
 unique(Rhin$liste_complete__)
 colnames(Rhin) [37] <- "remarques"
@@ -2591,390 +2894,62 @@ nb_suivi_site <-
 
 Rhin <- merge(Rhin,nb_suivi_site, by.x = "site", by.y = "site")
 
-colnames(Rhin)[47] <- "occurence_site"
+colnames(Rhin)[47] <- "nb_annee_suivie"
 
 #Colonne site retenu: 
-Rhin$site_retenu <- with(Rhin, ifelse(Rhin$occurence_site < 3, "non",
-                                ifelse(Rhin$annee < 2004, "non", "oui")))
+Rhin$site_retenu <- with(Rhin, ifelse(Rhin$nb_annee_suivie < 3, "non", 
+                                      ifelse(Rhin$site=="amontbarrage_avalbarrage","non",
+                                       ifelse(Rhin$site=="secteursud_rhinland_basenautique","non",
+                                        ifelse(Rhin$site=="vieuxrhin_grandcanalalsace","non","oui")))))
 
-#Colonne nombre d'observation espèces : 
-nb_observation <- Rhin %>%
-  count(espece)
-
-Rhin <- merge(Rhin,nb_observation, by.x = "espece",by.y = "espece")
-colnames(Rhin)[49] <- "nb_observations"
-
-#Colonne valeur médiane, moy ... 
-Rhin$abondance <- as.numeric(Rhin$abondance)
-
-median_ab <- Rhin %>%
-  group_by(espece,mois,site,annee) %>%
-  summarise(abondance_moy=mean(abondance), abondance_max=max(abondance), abondance_min=min(abondance), abondance_median=median(abondance))
-
-median_ab$id <- paste(median_ab$espece,median_ab$site,median_ab$mois,median_ab$annee)
-
-Rhin$id_ab <- paste(Rhin$espece,Rhin$site,Rhin$mois,Rhin$annee)
-
-Rhin <- merge(Rhin,median_ab,by.x = "id_ab",by.y="id")
-
-#Ajout colonne voie migration : 
-
-Rhin$voie_migr <- "est_atlantique/mediterranee"
-
-#Tri des colonnes 
-
-Rhin <- Rhin[,-c(1,5,6,8,10,14,15,20,22,24,25,28,29,30,31,33,34,35,36,37,39,40,41,42,43,51,52,53,54)]
-
-colnames(Rhin)[1] <- "espece"
-colnames(Rhin)[2] <- "site"
-colnames(Rhin)[7] <- "annee"
-colnames(Rhin)[8] <- "mois"
+Rhin$voie_migration <- "est_atlantique/mediterranee"
 
 
-        ############### Ajouter les véritables absences au jeu de données #####
-
-############ Estuaire : 
-# 1. Création d'un identifiant pour compiler les tables : 
-id <- paste(data$site,data$date)
-
+id <- paste0(Rhin$site,Rhin$date)
+unique(id)
 # 2. Création de la table "site" : 
-site <- data.frame(id, data$site,data$secteur,data$protocole, data$nb_annee_suivie, data$qualite_comptage,data$voie_migration, data$site_retenu)
+site <- data.frame(id, Rhin$site,Rhin$secteur, Rhin$protocole, Rhin$nb_annee_suivie, Rhin$qualite_comptage, Rhin$voie_migration, Rhin$site_retenu)
 site <- unique(site) 
 table(duplicated(site$id))
-# 3. Création de la table inventaire : 
-
-inv <- data.frame(id,data$date,data$obs,data$mois,data$annee)
-inv <- unique(inv)
-  
-# Compilation des deux tables : 
-data_inv <- merge(site,inv,by.x = "id", by.y = "id")
-duplicated(data_inv$id)
-data_inv <- subset(data_inv, !(data_inv$id=="migron 2017-12-15"&data_inv$data.obs=="guenezan, potiron"))
-
-# 4. Création de la table comptage (table d'observation) : 
-  # -> création d'un id pour fusionner les tables (avec les espèces)
-data$id <- paste(data$espece,data$site,data$date)
-data$id_inv <- paste(data$site,data$date)
-
-  #Création du tableau inventaire qu'on va croiser avec le jeu de données : 
-
-id_inv <- unique(data$id_inv)
-sp <- unique(data$espece)
-
-inventaire <- expand.grid(id_inv, sp) # [RL] très bien
-View(inventaire)
-
-data_obs <- data.frame(data$abondance,data$id)
-data_obs <- aggregate(abondace ~ id, median)
-
-# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
-# dans les data
-
-inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
-
-# Combinaison des deux tableaux : 
-
-data_f <- merge(inventaire, data_obs, by.x = "id_sp", by.y = "data.id", all.x = T)
-View(data)
-data_f[is.na(data_f)] <- 0
-# Remplacement des NA par des 0
-
-View(data)
-
-
-# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
-  # pour obtenir la table observation : 
-
-#data_f <- data_f[,-c(4,5,6,7,8,9,11:32)]
-
-# Var 2 -> espece :
-colnames(data_f)[names(data_f)== "Var2"] <- "espece"
-colnames(data_f)[names(data_f)== "Var1"] <- "id"
-
-#
-data_f <- merge(data_f, data_inv, by.x = "id", by.y = "id")
-colnames(data_f) <- gsub("data.","",colnames(data_f))
-
-#Rajouter les valeurs moy, miw, max et median abondance : 
-
-val <- data.frame(data$id, data$abondance_max, data$abondance_median, data$abondance_min, data$abondance_moy)
-data_f <- merge(data_f, val, by.x = "id_sp","data.id", all.x = T)
-data_f <- distinct(data_f)
-
-data_f$data.abondance_max[is.na(data_f$data.abondance_max)] = 0
-data_f$data.abondance_min[is.na(data_f$data.abondance_min)] = 0
-data_f$data.abondance_median[is.na(data_f$data.abondance_median)] = 0
-data_f$data.abondance_moy[is.na(data_f$data.abondance_moy)] = 0
-# On remet les noms latins + famille + ordre
-
-#data_f <- merge(data_f,espece[,c("scientific_name","french_name","family_tax","order_tax")], by.x = "espece", by.y = "french_name", all.x = TRUE)
-
-#Package data.table : d
-#setDT(data_f)
-#data_f[, abondance_tot:= sum(abondance), by = .(espece,id)]
-#setDF(data_f)
-# data_f <- subset(data_f, abondance_tot > 0)
-
-write.csv2(data_f,"Data/estuaire_loire.csv")
-
-
-
-############# Baie de l'Aiguillon : 
-# 1. Création d'un identifiant pour compiler les tables : 
-id <- paste(Baie$site,Baie$date)
-unique(id)
-# 2. Création de la table "site" : 
-site <- data.frame(id, Baie$site, Baie$secteur, Baie$protocole, Baie$occurence_site, Baie$qualite_comptage, Baie$voie_migr, Baie$site_retenu)
-site <- unique(site) 
-duplicated(site$id)
-
-
-# 3. Création de la table inventaire : 
-
-inv <- data.frame(id,Baie$date,Baie$obs,Baie$mois,Baie$annee)
-inv <- unique(inv)
-
-# Compilation des deux tables : 
-Baie_inv <- merge(site,inv,by.x = "id", by.y = "id")
-duplicated(Baie_inv$id)
-
-
-# 4. Création de la table comptage (table d'observation) : 
-# -> création d'un id pour fusionner les tables (avec les espèces)
-Baie$id <- paste(Baie$espece,Baie$site,Baie$date)
-Baie$id_inv <- paste(Baie$site,Baie$date)
-
-#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
-
-id_inv <- unique(Baie$id_inv)
-sp <- unique(Baie$espece)
-
-inventaire <- expand.grid(id_inv, sp) # [RL] très bien
-View(inventaire)
-
-# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
-# dans les data
-
-inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
-
-# Combinaison des deux tableaux : 
-
-Baie_f <- merge(inventaire, Baie, by.x = "id_sp", by.y = "id", all.x = T)
-View(Baie)
-Baie_f <- distinct(Baie_f)
-# Remplacement des NA par des 0
-Baie_f$abondance[is.na(Baie_f$abondance)] = 0
-View(data)
-
-# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
-# pour obtenir la table observation : 
-
-Baie_f <- Baie_f[,-c(4,5,6,7,9:26)]
-
-
-# Var 2 -> espece :
-colnames(Baie_f)[names(Baie_f)== "Var2"] <- "espece"
-colnames(Baie_f)[names(Baie_f)== "Var1"] <- "id"
-
-#
-Baie_f <- merge(Baie_f, Baie_inv, by.x = "id", by.y = "id")
-
-#Rajouter les valeurs moy, miw, max et median abondance : 
-
-val <- data.frame(Baie$id, Baie$abondance_max, Baie$abondance_median, Baie$abondance_min, Baie$abondance_moy)
-Baie_f <- merge(Baie_f, val, by.x = "id_sp","Baie.id", all.x = T)
-Baie_f <- distinct(Baie_f)
-
-Baie_f$Baie.abondance_max[is.na(Baie_f$Baie.abondance_max)] = 0
-Baie_f$Baie.abondance_min[is.na(Baie_f$Baie.abondance_min)] = 0
-Baie_f$Baie.abondance_median[is.na(Baie_f$Baie.abondance_median)] = 0
-Baie_f$Baie.abondance_moy[is.na(Baie_f$Baie.abondance_moy)] = 0
-# On remet les noms latins + famille + ordre
-
-Baie_f <- merge(Baie_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
-
-Baie_f <- Baie_f[,-c(2,3,20,22:31)]
-colnames(Baie_f) [3] <- "site"
-colnames(Baie_f) [4] <- "secteur"
-colnames(Baie_f) [5] <- "protocole"
-colnames(Baie_f) [6] <- "occurence_site"
-colnames(Baie_f) [7] <- "qualite_comptage"
-colnames(Baie_f) [8] <- "voie_migration"
-colnames(Baie_f) [9] <- "site_retenu"
-colnames(Baie_f) [10] <- "date"
-colnames(Baie_f) [11] <- "observateurs"
-colnames(Baie_f) [12] <- "mois"
-colnames(Baie_f) [13] <- "annee"
-colnames(Baie_f) [14] <- "abondance_max"
-colnames(Baie_f) [15] <- "abondance_mediane"
-colnames(Baie_f) [16] <- "abondance_min"
-colnames(Baie_f) [17] <- "abondance_moy"
-colnames(Baie_f) [18] <- "nom_latin"
-colnames(Baie_f) [19] <- "ordre"
-colnames(Baie_f) [20] <- "famille"
-
-Baie_f$ordre[Baie_f$espece=="canard_sp"] <- "Ansériformes"
-Baie_f$famille[Baie_f$espece=="canard_sp"] <- "Anatidés"
-
-Baie_f$ordre[Baie_f$espece=="barges_sp"] <- "Charadriiformes"
-Baie_f$famille[Baie_f$espece=="barges_sp"] <- "Scolopacidés"
-
-Baie_f$ordre[Baie_f$espece=="becasseau_sp"] <- "Charadriiformes"
-Baie_f$famille[Baie_f$espece=="becasseau_sp"] <- "Scolopacidés"
-
-Baie_f$ordre[Baie_f$espece=="courlis_sp"] <- "Charadriiformes"
-Baie_f$famille[Baie_f$espece=="courlis_sp"] <- "Scolopacidés"
-
-Baie_f$ordre[Baie_f$espece=="limicole_sp"] <- "Charadriiformes"
-Baie_f$ordre[Baie_f$espece=="anatides_sp"] <- "Ansériformes"
-Baie_f$famille[Baie_f$espece=="anatides_sp"] <- "Anatidés"
-
-Baie_f$ordre[Baie_f$espece=="becasses"] <- "Charadriiformes"
-Baie_f$famille[Baie_f$espece=="becasses"] <- "Scolopacidés"
-
-Baie_f$ordre[Baie_f$espece=="oie_sp"] <- "Ansériformes"
-Baie_f$famille[Baie_f$espece=="oie_sp"] <- "Anatidés"
-
-Baie_f$ordre[Baie_f$espece=="macreuse_sp"] <- "Ansériformes"
-Baie_f$famille[Baie_f$espece=="macreuse_sp"] <- "Anatidés"
-
-Baie_f$grp_fonctionnel <- with(Baie_f, ifelse(Baie_f$ordre=="Charadriiformes","limicoles","anatidae"))
-
-Baie_f[,18] <- tolower(Baie_f[,18])
-Baie_f[,18] <- gsub(" ","_", Baie_f[,18])
-
-Baie_f[,19] <- tolower(Baie_f[,19])
-Baie_f[,19] <- iconv(Baie_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-Baie_f[,20] <- tolower(Baie_f[,20])
-Baie_f[,20] <- iconv(Baie_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-nb_observation <- Baie %>%
-  count(espece)
-Baie_f <- merge(Baie_f, nb_observation, by.x = "espece", by.y = "espece")
-colnames(Baie_f) [22] <- "nombre_observation"
-
-
-########### Le cotentin 
-
-id <- paste(Cotentin$site,Cotentin$date)
-unique(id)
-# 2. Création de la table "site" : 
-site <- data.frame(id, Cotentin$site, Cotentin$secteur, Cotentin$protocole, Cotentin$occurence_site, Cotentin$qualite_comptage, Cotentin$voie_migr, Cotentin$site_retenu)
-site <- unique(site) 
-duplicated(site$id)
-
-
-# 3. Création de la table inventaire : 
-
-inv <- data.frame(id,Cotentin$date,Cotentin$obs,Cotentin$mois,Cotentin$annee)
-inv <- unique(inv)
-
-# Compilation des deux tables : 
-Cotentin_inv <- merge(site,inv,by.x = "id", by.y = "id")
-
-
-# 4. Création de la table comptage (table d'observation) : 
-# -> création d'un id pour fusionner les tables (avec les espèces)
-Cotentin$id <- paste(Cotentin$espece,Cotentin$site,Cotentin$date)
-Cotentin$id_inv <- paste(Cotentin$site,Cotentin$date)
-
-#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
-
-id_inv <- unique(Cotentin$id_inv)
-sp <- unique(Cotentin$espece)
-
-inventaire <- expand.grid(id_inv, sp) # [RL] très bien
-View(inventaire)
-
-# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
-# dans les data
-
-inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
-
-# Combinaison des deux tableaux : 
-
-Cotentin_f <- merge(inventaire, Cotentin, by.x = "id_sp", by.y = "id", all.x = T)
-
-# Remplacement des NA par des 0
-Cotentin_f$abondance[is.na(Cotentin_f$abondance)] = 0
-
-# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
-# pour obtenir la table observation : 
-
-Cotentin_f <- Cotentin_f[,-c(4:11,13:27)]
-
-
-# Var 2 -> espece :
-colnames(Cotentin_f)[names(Cotentin_f)== "Var2"] <- "espece"
-colnames(Cotentin_f)[names(Cotentin_f)== "Var1"] <- "id"
-
-#
-Cotentin_f <- merge(Cotentin_f, Cotentin_inv, by.x = "id", by.y = "id")
-
-#Rajouter les valeurs moy, miw, max et median abondance : 
-
-val <- data.frame(Cotentin$id, Cotentin$abondance_max, Cotentin$abondance_median, Cotentin$abondance_min, Cotentin$abondance_moy)
-Cotentin_f <- merge(Cotentin_f, val, by.x = "id_sp","Cotentin.id", all.x = T)
-
-Cotentin_f$Cotentin.abondance_max[is.na(Cotentin_f$Cotentin.abondance_max)] = 0
-Cotentin_f$Cotentin.abondance_min[is.na(Cotentin_f$Cotentin.abondance_min)] = 0
-Cotentin_f$Cotentin.abondance_median[is.na(Cotentin_f$Cotentin.abondance_median)] = 0
-Cotentin_f$Cotentin.abondance_moy[is.na(Cotentin_f$Cotentin.abondance_moy)] = 0
-# On remet les noms latins + famille + ordre
-
-Cotentin_f <- merge(Cotentin_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
-
-Cotentin_f <- Cotentin_f[,-c(2,3,20,22:31)]
-colnames(Cotentin_f) [3] <- "site"  
-colnames(Cotentin_f) [4] <- "secteur"
-colnames(Cotentin_f) [5] <- "protocole"
-colnames(Cotentin_f)  [6] <- "occurence_site"
-colnames(Cotentin_f) [7] <- "qualite_comptage"
-colnames(Cotentin_f) [8] <- "voie_migration"
-colnames(Cotentin_f) [9] <- "site_retenu"
-colnames(Cotentin_f) [10] <- "date"
-colnames(Cotentin_f)  [11] <- "observateurs"
-colnames(Cotentin_f) [12] <- "mois"
-colnames(Cotentin_f) [13] <- "annee"
-colnames(Cotentin_f) [14] <- "abondance_max"
-colnames(Cotentin_f) [15] <- "abondance_mediane"
-colnames(Cotentin_f) [16] <- "abondance_min"
-colnames(Cotentin_f) [17] <- "abondance_moy"
-colnames(Cotentin_f) [18] <- "nom_latin"
-colnames(Cotentin_f) [19] <- "ordre"
-colnames(Cotentin_f) [20] <- "famille"
-
-Cotentin_f$grp_fonctionnel <- with(Cotentin_f, ifelse(Cotentin_f$ordre=="Charadriiformes","limicoles","anatidae"))
-
-Cotentin_f[,18] <- tolower(Cotentin_f[,18])
-Cotentin_f[,18] <- gsub(" ","_", Cotentin_f[,18])
-
-Cotentin_f[,19] <- tolower(Cotentin_f[,19])
-Cotentin_f[,19] <- iconv(Cotentin_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-Cotentin_f[,20] <- tolower(Cotentin_f[,20])
-Cotentin_f[,20] <- iconv(Cotentin_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-nb_observation <- Cotentin %>%
-  count(espece)
-Cotentin_f <- merge(Cotentin_f, nb_observation, by.x = "espece", by.y = "espece")
-colnames(Cotentin_f) [22] <- "nombre_observation"
-
-
-#Réserve du Rhin : 
-
-id <- paste(Rhin$site,Rhin$date)
-unique(id)
-# 2. Création de la table "site" : 
-site <- data.frame(id, Rhin$site,Rhin$secteur, Rhin$protocole, Rhin$occurence_site, Rhin$qualite_comptage, Rhin$voie_migr, Rhin$site_retenu)
-site <- unique(site) 
-duplicated(site$id)
-
+site %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
+
+site$Rhin.qualite_comptage[site$id=="2023-01-15"] <- "douteux"
+site$Rhin.qualite_comptage[site$id=="avalbarrage2017-02-28"] <- "ok"
+site$Rhin.qualite_comptage[site$id=="grandcanalalsace2016-11-22"] <- "ok"
+site$Rhin.qualite_comptage[site$id=="grandcanalalsace2018-03-12"] <- "douteux"
+site$Rhin.qualite_comptage[site$id=="rhinland2019-07-19"] <- "douteux"
+site$Rhin.qualite_comptage[site$id=="rhinland2017-12-12"] <- "douteux"
+site$Rhin.qualite_comptage[site$id=="rhinland2018-03-27"] <- "douteux"
+site$Rhin.qualite_comptage[site$id=="rhinland2018-12-14"] <- "douteux"
+site$Rhin.qualite_comptage[site$id=="rhinland2019-11-22"] <- "douteux"
+site$Rhin.qualite_comptage[site$id=="secteursud2018-02-20"] <- "douteux"
+site$Rhin.qualite_comptage[site$id=="vieuxrhin2016-11-22"] <- "ok"
+site$Rhin.qualite_comptage[site$id=="vieuxrhin2017-02-23"] <- "ok"
+site$Rhin.qualite_comptage[site$id=="vieuxrhin2019-04-16"] <- "ok"
+
+site <- unique(site)
 
 # 3. Création de la table inventaire : 
 
 inv <- data.frame(id,Rhin$date,Rhin$obs,Rhin$mois,Rhin$annee)
+inv <- unique(inv)
+table(duplicated(inv$id))
+
+inv %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
+
+inv$Rhin.obs[inv$id=="2017-10-17"] <- "hornier, esteve"
+inv$Rhin.obs[inv$id=="avalbarrage2017-02-28"] <- "hornier, wilhelm"
+inv$Rhin.obs[inv$id=="grandcanalalsace2021-01-17"] <- "kirmser, brunissen, clément-demange, didier, lacuisse, umhang"
+inv$Rhin.obs[inv$id=="rhinland2017-09-21"] <- "hornier, esteve"
+inv$Rhin.obs[inv$id=="vieuxrhin2019-04-16"] <- "coq"
+inv$Rhin.obs[inv$id=="vieuxrhin2017-02-23"] <- "hornier, wilhelm"
+
 inv <- unique(inv)
 
 # Compilation des deux tables : 
@@ -2983,8 +2958,8 @@ Rhin_inv <- merge(site,inv,by.x = "id", by.y = "id")
 
 # 4. Création de la table comptage (table d'observation) : 
 # -> création d'un id pour fusionner les tables (avec les espèces)
-Rhin$id <- paste(Rhin$espece,Rhin$site,Rhin$date)
-Rhin$id_inv <- paste(Rhin$site,Rhin$date)
+Rhin$id <- paste0(Rhin$espece,Rhin$site,Rhin$date)
+Rhin$id_inv <- paste0(Rhin$site,Rhin$date)
 
 #Création du tableau inventaire qu'on va croiser avec le jeu de données : 
 
@@ -2997,226 +2972,44 @@ View(inventaire)
 # Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
 # dans les data
 
-inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
+inventaire$id_sp <- paste0(inventaire$Var2,inventaire$Var1)
+Rhin_obs <- data.frame(Rhin$abondance, Rhin$id)
+Rhin_obs <- aggregate(Rhin_obs, Rhin.abondance ~ Rhin.id, median)
 
 # Combinaison des deux tableaux : 
 
-Rhin_f <- merge(inventaire, Rhin, by.x = "id_sp", by.y = "id", all.x = T)
+Rhin_f <- merge(inventaire, Rhin_obs, by.x = "id_sp", by.y = "Rhin.id", all.x = T)
 
-# Remplacement des NA par des 0
-Rhin_f$abondance[is.na(Rhin_f$abondance)] = 0
-
-# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
-# pour obtenir la table observation : 
-
-Rhin_f <- Rhin_f[,-c(4:19,21:34)]
-
+#remplacer les na par les 0 
+Rhin_f[is.na(Rhin_f)] <- 0
 
 # Var 2 -> espece :
 colnames(Rhin_f)[names(Rhin_f)== "Var2"] <- "espece"
 colnames(Rhin_f)[names(Rhin_f)== "Var1"] <- "id"
 
-#
+
+# Merge des tables : 
 Rhin_f <- merge(Rhin_f, Rhin_inv, by.x = "id", by.y = "id")
+colnames(Rhin_f) <- gsub("Rhin.","",colnames(Rhin_f))
 
-#Rajouter les valeurs moy, miw, max et median abondance : 
+# Rajouter la somme des abondances pour chaque espèce/site 
+Rhin_f$abondance <- as.numeric(Rhin_f$abondance)
+setDT(Rhin_f)
+Rhin_f[, abondance_tot:= sum(abondance), by = .(espece,site)]
+setDF(Rhin_f)
+Rhin_f <- subset(Rhin_f, abondance_tot > 0)
 
-val <- data.frame(Rhin$id, Rhin$abondance_max, Rhin$abondance_median, Rhin$abondance_min, Rhin$abondance_moy)
-Rhin_f <- merge(Rhin_f, val, by.x = "id_sp","Rhin.id", all.x = T)
-
-Rhin_f$Rhin.abondance_max[is.na(Rhin_f$Rhin.abondance_max)] = 0
-Rhin_f$Rhin.abondance_min[is.na(Rhin_f$Rhin.abondance_min)] = 0
-Rhin_f$Rhin.abondance_median[is.na(Rhin_f$Rhin.abondance_median)] = 0
-Rhin_f$Rhin.abondance_moy[is.na(Rhin_f$Rhin.abondance_moy)] = 0
-# On remet les noms latins + famille + ordre
-
-Rhin_f <- merge(Rhin_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
-
-Rhin_f <- Rhin_f[,-c(2,3,20,22:31)]
-colnames(Rhin_f) [3] <- "site"  
-colnames(Rhin_f) [4] <- "secteur"
-colnames(Rhin_f) [5] <- "protocole"
-colnames(Rhin_f)  [6] <- "occurence_site"
-colnames(Rhin_f) [7] <- "qualite_comptage"
-colnames(Rhin_f) [8] <- "voie_migration"
-colnames(Rhin_f) [9] <- "site_retenu"
-colnames(Rhin_f) [10] <- "date"
-colnames(Rhin_f)  [11] <- "observateurs"
-colnames(Rhin_f) [12] <- "mois"
-colnames(Rhin_f) [13] <- "annee"
-colnames(Rhin_f) [14] <- "abondance_max"
-colnames(Rhin_f) [15] <- "abondance_mediane"
-colnames(Rhin_f) [16] <- "abondance_min"
-colnames(Rhin_f) [17] <- "abondance_moy"
-colnames(Rhin_f) [18] <- "nom_latin"
-colnames(Rhin_f) [19] <- "ordre"
-colnames(Rhin_f) [20] <- "famille"
-
-unique(Rhin_f$espece)
-
-Rhin_f$ordre[Rhin$espece=="becasseau_sp"] <- "Charadriiformes"
-Rhin_f$famille[Rhin$espece=="becasseau_sp"] <- "Scolopacidés"
-
-Rhin_f$ordre[Rhin$espece=="chevalier_sp"] <- "Charadriiformes"
-Rhin_f$famille[Rhin$espece=="chevalier_sp"] <- "Scolopacidés"
-
-Rhin_f$ordre[Rhin$espece=="gravelot_sp"] <- "Charadriiformes"
-Rhin_f$famille[Rhin$espece=="gravelot_sp"] <- "Charadriidés"
-
-Rhin_f$ordre[Rhin$espece=="oie_sp"] <- "Ansériformes"
-Rhin_f$famille[Rhin$espece=="oie_sp"] <- "Anatidés"
-
-Rhin_f$grp_fonctionnel <- with(Rhin_f, ifelse(Rhin_f$ordre=="Charadriiformes","limicoles","anatidae"))
-
-Rhin_f[,18] <- tolower(Rhin_f[,18])
-Rhin_f[,18] <- gsub(" ","_", Rhin_f[,18])
-
-Rhin_f[,19] <- tolower(Rhin_f[,19])
-Rhin_f[,19] <- iconv(Rhin_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-Rhin_f[,20] <- tolower(Rhin_f[,20])
-Rhin_f[,20] <- iconv(Rhin_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-nb_observation <- Rhin %>%
-  count(espece)
-
-Rhin_f <- merge(Rhin_f, nb_observation, by.x = "espece", by.y = "espece")
-colnames(Rhin_f) [22] <- "nombre_observation"
-
-#Bassin d'arcachon : 
-
-id <- paste(Arcachon$site,Arcachon$date)
-unique(id)
-# 2. Création de la table "site" : 
-site <- data.frame(id, Arcachon$site, Arcachon$secteur, Arcachon$protocole, Arcachon$occurence_site, Arcachon$qualite_comptage, Arcachon$voie_migr, Arcachon$site_retenu)
-site <- unique(site) 
-duplicated(site$id)
+write.csv2(Rhin_f,"Data/Reserve_du_Rhin.csv")
 
 
-# 3. Création de la table inventaire : 
-
-inv <- data.frame(id,Arcachon$date,Arcachon$obs,Arcachon$mois,Arcachon$annee)
-inv <- unique(inv)
-
-# Compilation des deux tables : 
-Arcachon_inv <- merge(site,inv,by.x = "id", by.y = "id")
-
-
-# 4. Création de la table comptage (table d'observation) : 
-# -> création d'un id pour fusionner les tables (avec les espèces)
-Arcachon$id <- paste(Arcachon$espece,Arcachon$site,Arcachon$date)
-Arcachon$id_inv <- paste(Arcachon$site,Arcachon$date)
-
-#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
-
-id_inv <- unique(Arcachon$id_inv)
-sp <- unique(Arcachon$espece)
-
-inventaire <- expand.grid(id_inv, sp) # [RL] très bien
-View(inventaire)
-
-# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
-# dans les data
-
-inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
-
-# Combinaison des deux tableaux : 
-
-Arcachon_f <- merge(inventaire, Arcachon, by.x = "id_sp", by.y = "id", all.x = T)
-
-# Remplacement des NA par des 0
-Arcachon_f$abondance[is.na(Arcachon_f$abondance)] = 0
-
-# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
-# pour obtenir la table observation : 
-
-Arcachon_f <- Arcachon_f[,-c(4:10,12:34)]
-
-
-# Var 2 -> espece :
-colnames(Arcachon_f)[names(Arcachon_f)== "Var2"] <- "espece"
-colnames(Arcachon_f)[names(Arcachon_f)== "Var1"] <- "id"
 
 #
-Arcachon_f <- merge(Arcachon_f, Arcachon_inv, by.x = "id", by.y = "id")
-
-#Rajouter les valeurs moy, miw, max et median abondance : 
-
-val <- data.frame(Arcachon$id, Arcachon$abondance_max, Arcachon$abondance_median, Arcachon$abondance_min, Arcachon$abondance_moy)
-Arcachon_f <- merge(Arcachon_f, val, by.x = "id_sp","Arcachon.id", all.x = T)
-
-Arcachon_f$Arcachon.abondance_max[is.na(Arcachon_f$Arcachon.abondance_max)] = 0
-Arcachon_f$Arcachon.abondance_min[is.na(Arcachon_f$Arcachon.abondance_min)] = 0
-Arcachon_f$Arcachon.abondance_median[is.na(Arcachon_f$Arcachon.abondance_median)] = 0
-Arcachon_f$Arcachon.abondance_moy[is.na(Arcachon_f$Arcachon.abondance_moy)] = 0
-# On remet les noms latins + famille + ordre
-
-Arcachon_f <- merge(Arcachon_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
-
-Arcachon_f <- Arcachon_f[,-c(2,3,20,22:31)]
-colnames(Arcachon_f) [3] <- "site"  
-colnames(Arcachon_f) [4] <- "secteur"
-colnames(Arcachon_f) [5] <- "protocole"
-colnames(Arcachon_f)  [6] <- "occurence_site"
-colnames(Arcachon_f) [7] <- "qualite_comptage"
-colnames(Arcachon_f) [8] <- "voie_migration"
-colnames(Arcachon_f) [9] <- "site_retenu"
-colnames(Arcachon_f) [10] <- "date"
-colnames(Arcachon_f)  [11] <- "observateurs"
-colnames(Arcachon_f) [12] <- "mois"
-colnames(Arcachon_f) [13] <- "annee"
-colnames(Arcachon_f) [14] <- "abondance_max"
-colnames(Arcachon_f) [15] <- "abondance_mediane"
-colnames(Arcachon_f) [16] <- "abondance_min"
-colnames(Arcachon_f) [17] <- "abondance_moy"
-colnames(Arcachon_f) [18] <- "nom_latin"
-colnames(Arcachon_f) [19] <- "ordre"
-colnames(Arcachon_f) [20] <- "famille"
-
-unique(Arcachon_f$espece)
-
-Arcachon$ordre[Arcachon$espece=="barges_sp"] <- "Charadriiformes"
-Arcachon$famille[Arcachon$espece=="barges_sp"] <- "Scolopacidés"
-
-Arcachon$ordre[Arcachon$espece=="becasseau_sp"] <- "Charadriiformes"
-Arcachon$famille[Arcachon$espece=="becasseau_sp"] <- "Scolopacidés"
-
-Arcachon$ordre[Arcachon$espece=="chevalier_sp"] <- "Charadriiformes"
-Arcachon$famille[Arcachon$espece=="chevalier_sp"] <- "Scolopacidés"
-
-Arcachon$ordre[Arcachon$espece=="courlis_sp"] <- "Charadriiformes"
-Arcachon$famille[Arcachon$espece=="courlis_sp"] <- "Scolopacidés"
-
-Arcachon$ordre[Arcachon$espece=="limicole_sp"] <- "Charadriiformes"
-
-Arcachon$ordre[Arcachon$espece=="gravelot_sp"] <- "Charadriiformes"
-Arcachon$famille[Arcachon$espece=="gravelot_sp"] <- "Charadriidés"
-
-Arcachon_f$grp_fonctionnel <- with(Arcachon_f, ifelse(Arcachon_f$ordre=="Charadriiformes","limicoles","anatidae"))
-
-Arcachon_f[,18] <- tolower(Arcachon_f[,18])
-Arcachon_f[,18] <- gsub(" ","_", Arcachon_f[,18])
-
-Arcachon_f[,19] <- tolower(Arcachon_f[,19])
-Arcachon_f[,19] <- iconv(Arcachon_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-Arcachon_f[,20] <- tolower(Arcachon_f[,20])
-Arcachon_f[,20] <- iconv(Arcachon_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
-
 nb_observation <- Arcachon %>%
   count(espece)
 Arcachon_f <- merge(Arcachon_f, nb_observation, by.x = "espece", by.y = "espece")
 colnames(Arcachon_f) [22] <- "nombre_observation"
 
-#Camargue 
 
-colnames(Camargue) [8] <- "observateurs"
-colnames(Camargue) [9] <- "nom_latin"
-colnames(Camargue) [10] <- "ordre"
-colnames(Camargue) [11] <- "famille"
-colnames(Camargue) [22] <- "nombre_observation"
-colnames(Camargue) [21] <- "voie_migration"
-colnames(Camargue) [19] <- "abondance_mediane"
 
 ################### FUSION TABLEAUx DONNEES ##############
 help("rbind")

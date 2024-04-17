@@ -1194,7 +1194,9 @@ Cotentin[,5] <-iconv(Cotentin[,5], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 
 #Nom des sites : 
 unique(Cotentin$site)
-# C'est ok ! 
+
+Cotentin[,1] <- gsub("'","_",Cotentin[,1])
+
 
 Cotentin$annee <- year(Cotentin$date)
 Cotentin$mois <- month(Cotentin$date)
@@ -1340,7 +1342,6 @@ Cotentin[,12] <- iconv(Cotentin[,12], from = 'UTF-8', to ='ASCII//TRANSLIT')
 
 Cotentin$remarques[Cotentin$remarques== "Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Inondes___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte___Decompte_total___Remarque___Amenagement_RNN_Travaux_terrassement_chemin_des_observatoires"] <- "derangement_travaux"
 Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Eau-milieux_(hors_plans_d'eau)______Conditions_de_denombrement___Mauvaises___Facteur_1___Vent___Decompte___Decompte_total___Remarque___fosses,_prairies_gelees,_froid_intense,_mer_agitee"] <- "conditions_meteo_pas_fav"
-Cotentin$remarques[Cotentin$remarques=="___derangement__"] <- "derangement"
 Cotentin$remarques[Cotentin$remarques=="Petites_chutes_de_neige___"] <- "conditions_meteo_pas_fav"
 Cotentin$remarques[Cotentin$remarques=="travaux_dans_le_polder"] <- "derangement_travaux"
 Cotentin$remarques[Cotentin$remarques=="seulement_canaux_en_eau___le_suivi_de_la_mare_de_gabion_reste_difficile_et_partiel_a_partir_de_l'observatoire_de_la_dune_sud_(niveau_d'eau_faible)"] <- "comptage_partiel"
@@ -1446,7 +1447,6 @@ Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes_(vent)
 Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes___Decompte_total_mauvaise_visibilite__etat_plan_d'eau__Normaux__etat_hors_plan_d'eau___Secs"] <- "mauvaise_condition_comptage"
 Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_20"] <- "derangement_chasse"
 Cotentin$remarques[Cotentin$remarques=="_Bonne_precision__derangement__pluie"] <- "conditions_meteo_pas_fav"
-Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Vent_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
 Cotentin$remarques[Cotentin$remarques=="Bonne_precision_Conditions_de_denombrement_moyennes_Pluie+Vent_Couverture_du_site_totale_"] <- "conditions_meteo_pas_fav"
 Cotentin$remarques[Cotentin$remarques=="Bonne_precision_Conditions_de_denombrement_mediocres_Pluie+Vent_Couverture_du_site_totale_"] <- "conditions_meteo_pas_fav"
 Cotentin$remarques[Cotentin$remarques=="Bonne_precision___Conditions_de_denombrement_mediocres_Vent_Couverture_du_site_totale_"] <- "conditions_meteo_pas_fav"
@@ -1481,7 +1481,6 @@ Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau
 Cotentin$remarques[Cotentin$remarques=="Eau-milieux_(plans_d'eau)__Normaux___Eau-milieux_(hors_plans_d'eau)___Secs___Precision_du_denombrement___Bonne_precision___Conditions_de_denombrement___Bonnes____Facteur_1______Facteur_2______Facteur_3______Decompte______Remarque___battue_administrative_le_08_37"] <- "derangement_chasse"
 Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Pluie_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
 Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes__Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
-Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes___Couverture_du_site_partielle"] <- "comptage_partiel"
 Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_moyennes_Derangements_Couverture_du_site_totale"] <- "derangement"
 Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_mediocres__Couverture_du_site_totale"] <- "mauvaise_condition_comptage"
 Cotentin$remarques[Cotentin$remarques=="Conditions_de_denombrement_bonnes__Vent_Couverture_du_site_totale"] <- "conditions_meteo_pas_fav"
@@ -1640,14 +1639,121 @@ Cotentin$voie_migration <- "est_atlantique"
 id <- paste0(Cotentin$site,Cotentin$date)
 unique(id)
 # 2. Création de la table "site" : 
-site <- data.frame(id, Cotentin$site, Cotentin$secteur, Cotentin$protocole, Cotentin$occurence_site, Cotentin$qualite_comptage, Cotentin$voie_migr, Cotentin$site_retenu)
+site <- data.frame(id, Cotentin$site, Cotentin$secteur, Cotentin$protocole, Cotentin$nb_annee_suivi, Cotentin$qualite_comptage, Cotentin$voie_migration, Cotentin$site_retenu)
 site <- unique(site) 
-duplicated(site$id)
+table(duplicated(site$id))
 
+site %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
 
+site$Cotentin.qualite_comptage[duplicated(site$id == TRUE)] <- "douteux"
+site <- unique(site)
 # 3. Création de la table inventaire : 
 
 inv <- data.frame(id,Cotentin$date,Cotentin$obs,Cotentin$mois,Cotentin$annee)
+inv <- unique(inv)
+table(duplicated(inv$id))
+
+inv %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
+
+#Réunir les noms d'observateurs pour un même site et une même date : 
+
+inv$Cotentin.obs[inv$id=="dpm_nord2013-10-18"] <- "blond, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2016-11-18"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2015-07-31"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2015-09-18"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2016-07-07"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2016-08-02"] <- "gabet, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2016-09-16"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2016-09-30"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2016-11-18"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2017-01-16"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2017-02-14"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2017-08-22"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2017-09-22"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2018-04-05"] <- "elder, galloo, gabet"
+inv$Cotentin.obs[inv$id=="dpm_nord2019-11-14"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2020-10-15"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_nord2021-01-18"] <- "elder, galloo, lesouef"
+inv$Cotentin.obs[inv$id=="dpm_nord2022-09-14"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_sud2014-08-29"] <- "blond, galloo"
+inv$Cotentin.obs[inv$id=="dpm_sud2016-11-18"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_sud2017-01-16"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_sud2017-03-29"] <- "elder, galloo, gabet"
+inv$Cotentin.obs[inv$id=="dpm_sud2017-08-22"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_sud2019-01-07"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="dpm_sud2019-07-02"] <- "gabet, galloo"
+inv$Cotentin.obs[inv$id=="dpm_sud2021-06-24"] <- "fillol, galloo"
+inv$Cotentin.obs[inv$id=="dpm_sud2022-06-15"] <- "gabet, galloo"
+inv$Cotentin.obs[inv$id=="dpm_sud2022-08-30"] <- "suardi, galloo"
+inv$Cotentin.obs[inv$id=="dpm_sud2022-09-30"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="fosse_du_gabion2015-04-08"] <- "elder, galloo, purenne"
+inv$Cotentin.obs[inv$id=="fosse_du_gabion2021-12-22"] <- "elder, galloo, laurent, wodey"
+inv$Cotentin.obs[inv$id=="l_ile_est2017-02-16"] <- "elder, galloo, fillol"
+inv$Cotentin.obs[inv$id=="l_ile_est2021-12-22"] <- "elder, galloo, laurent, wodey"
+inv$Cotentin.obs[inv$id=="la_dune_de_mer2018-01-09"] <- "elder, galloo, laurent"
+inv$Cotentin.obs[inv$id=="la_dune_sud2006-02-06"] <- "caillot, elder, rnn domaine de beauguillot"
+inv$Cotentin.obs[inv$id=="la_dune_sud2014-12-16"] <- "elder, jean-baptiste, galloo"
+inv$Cotentin.obs[inv$id=="la_dune_sud2015-01-20"] <- "elder, galloo, purenne"
+inv$Cotentin.obs[inv$id=="la_dune_sud2015-04-08"] <- "elder, galloo, purenne"
+inv$Cotentin.obs[inv$id=="la_grande_piece_de_mer2021-12-22"] <- "elder, galloo, laurent, wodey"
+inv$Cotentin.obs[inv$id=="le_gabion2016-11-18"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="le_gabion2021-12-22"] <- "elder, galloo, laurent, wodey"
+inv$Cotentin.obs[inv$id=="le_grand_etang2021-12-22"] <- "elder, galloo, laurent, wodey"
+inv$Cotentin.obs[inv$id=="le_milieu2021-12-22"] <- "elder, galloo, laurent, wodey"
+inv$Cotentin.obs[inv$id=="les_grandes_iles2007-02-16"] <- "caillot, elder"
+inv$Cotentin.obs[inv$id=="les_grandes_iles2008-04-25"] <- "bunel, caillot"
+inv$Cotentin.obs[inv$id=="les_grandes_iles2015-03-13"] <- "elder, purenne, galloo"
+inv$Cotentin.obs[inv$id=="les_grandes_iles2018-01-09"] <- "elder, galloo, laurent"
+inv$Cotentin.obs[inv$id=="les_grandes_iles2021-12-22"] <- "elder, galloo, laurent, wodey"
+inv$Cotentin.obs[inv$id=="partie_terrestre2010-09-26"] <- "elder, caillot"
+inv$Cotentin.obs[inv$id=="partie_terrestre2013-02-20"] <- "vimard, blond"
+inv$Cotentin.obs[inv$id=="partie_terrestre2017-12-12"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="partie_terrestre2017-12-19"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="partie_terrestre2018-01-18"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="partie_terrestre2018-02-19"] <- "elder, galloo, gabet"
+inv$Cotentin.obs[inv$id=="partie_terrestre2020-12-17"] <- "elder, gabet, galloo, laurent"
+inv$Cotentin.obs[inv$id=="partie_terrestre2021-01-15"] <- "elder, gabet, galloo, laurent"
+inv$Cotentin.obs[inv$id=="partie_terrestre2022-12-22"] <- "elder, gabet, galloo, laurent"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2010-02-16"] <- "elder, davignon, galloo, caillot"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2010-09-08"] <- "davignon, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2011-04-26"] <- "blond, davignon"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2013-08-08"] <- "blond, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2013-11-26"] <- "blond, elder, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2014-01-16"] <- "blond, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2014-01-18"] <- "blond, elder"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2015-07-31"] <- "elder, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2016-02-23"] <- "gabet, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2016-03-23"] <- "gabet, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2016-03-24"] <- "gabet, menard"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2016-04-07"] <- "gabet, menard"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2016-04-21"] <- "gabet, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2016-08-18"] <- "gabet, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2016-09-06"] <- "gabet, menard"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2016-09-30"] <- "gabet, menard"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2016-10-20"] <- "gabet, menard"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2017-04-11"] <- "gabet, menard, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2017-05-09"] <- "gabet, menard, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2017-10-17"] <- "menard, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2017-12-12"] <- "gabet, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2018-02-19"] <- "elder, gabet, galloo"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2018-08-28"] <- "galloo, laurent"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2019-11-13"] <- "galloo, gabet"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2020-04-23"] <- "galloo, gabet"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2020-07-22"] <- "galloo, gabet"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2022-01-04"] <- "galloo, gabet"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2022-02-23"] <- "galloo, gabet"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2022-09-14"] <- "galloo, gabet"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2022-11-10"] <- "galloo, gabet, suardi"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2022-12-22"] <- "galloo, gabet, laurent"
+inv$Cotentin.obs[inv$id=="polder_ste_marie_cel2023-04-04"] <- "galloo, gabet"
+inv$Cotentin.obs[inv$id=="dpm_nord2016-08-18"] <- "elder, galloo"
+
 inv <- unique(inv)
 
 # Compilation des deux tables : 
@@ -1656,8 +1762,8 @@ Cotentin_inv <- merge(site,inv,by.x = "id", by.y = "id")
 
 # 4. Création de la table comptage (table d'observation) : 
 # -> création d'un id pour fusionner les tables (avec les espèces)
-Cotentin$id <- paste(Cotentin$espece,Cotentin$site,Cotentin$date)
-Cotentin$id_inv <- paste(Cotentin$site,Cotentin$date)
+Cotentin$id <- paste0(Cotentin$espece,Cotentin$site,Cotentin$date)
+Cotentin$id_inv <- paste0(Cotentin$site,Cotentin$date)
 
 #Création du tableau inventaire qu'on va croiser avec le jeu de données : 
 
@@ -1667,96 +1773,38 @@ sp <- unique(Cotentin$espece)
 inventaire <- expand.grid(id_inv, sp) # [RL] très bien
 View(inventaire)
 
+Cotentin_obs <- data.frame(Cotentin$abondance, Cotentin$id)
+Cotentin_obs <- aggregate(Cotentin_obs, Cotentin.abondance ~ Cotentin.id, median)
+
 # Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
 # dans les data
 
-inventaire$id_sp <- paste(inventaire$Var2,inventaire$Var1)
+inventaire$id_sp <- paste0(inventaire$Var2,inventaire$Var1)
 
 # Combinaison des deux tableaux : 
 
-Cotentin_f <- merge(inventaire, Cotentin, by.x = "id_sp", by.y = "id", all.x = T)
+Cotentin_f <- merge(inventaire, Cotentin_obs, by.x = "id_sp", by.y = "Cotentin.id", all.x = T)
 
-# Remplacement des NA par des 0
-Cotentin_f$abondance[is.na(Cotentin_f$abondance)] = 0
-
-# On peut maintenant retirer les "anciennes" colonnes pour date, secteur et espece et ID 
-# pour obtenir la table observation : 
-
-Cotentin_f <- Cotentin_f[,-c(4:11,13:27)]
-
+#remplacer les na par les 0 
+Cotentin_f[is.na(Cotentin_f)] <- 0
 
 # Var 2 -> espece :
 colnames(Cotentin_f)[names(Cotentin_f)== "Var2"] <- "espece"
 colnames(Cotentin_f)[names(Cotentin_f)== "Var1"] <- "id"
 
-#
+# Merge des tables : 
 Cotentin_f <- merge(Cotentin_f, Cotentin_inv, by.x = "id", by.y = "id")
 
-#Rajouter les valeurs moy, miw, max et median abondance : 
+colnames(Cotentin_f) <- gsub("Cotentin.","",colnames(Cotentin_f))
 
-val <- data.frame(Cotentin$id, Cotentin$abondance_max, Cotentin$abondance_median, Cotentin$abondance_min, Cotentin$abondance_moy)
-Cotentin_f <- merge(Cotentin_f, val, by.x = "id_sp","Cotentin.id", all.x = T)
+# Rajouter la somme des abondances pour chaque espèce/site 
+Cotentin_f$abondance <- as.numeric(Cotentin_f$abondance)
+setDT(Cotentin_f)
+Cotentin_f[, abondance_tot:= sum(abondance), by = .(espece,site)]
+setDF(Cotentin_f)
+Cotentin_f <- subset(Cotentin_f, abondance_tot > 0)
 
-Cotentin_f$Cotentin.abondance_max[is.na(Cotentin_f$Cotentin.abondance_max)] = 0
-Cotentin_f$Cotentin.abondance_min[is.na(Cotentin_f$Cotentin.abondance_min)] = 0
-Cotentin_f$Cotentin.abondance_median[is.na(Cotentin_f$Cotentin.abondance_median)] = 0
-Cotentin_f$Cotentin.abondance_moy[is.na(Cotentin_f$Cotentin.abondance_moy)] = 0
-# On remet les noms latins + famille + ordre
-
-Cotentin_f <- merge(Cotentin_f,espece, by.x = "espece", by.y = "french_name", all.x = TRUE)
-
-Cotentin_f <- Cotentin_f[,-c(2,3,20,22:31)]
-colnames(Cotentin_f) [3] <- "site"  
-colnames(Cotentin_f) [4] <- "secteur"
-colnames(Cotentin_f) [5] <- "protocole"
-colnames(Cotentin_f)  [6] <- "occurence_site"
-colnames(Cotentin_f) [7] <- "qualite_comptage"
-colnames(Cotentin_f) [8] <- "voie_migration"
-colnames(Cotentin_f) [9] <- "site_retenu"
-colnames(Cotentin_f) [10] <- "date"
-colnames(Cotentin_f)  [11] <- "observateurs"
-colnames(Cotentin_f) [12] <- "mois"
-colnames(Cotentin_f) [13] <- "annee"
-colnames(Cotentin_f) [14] <- "abondance_max"
-colnames(Cotentin_f) [15] <- "abondance_mediane"
-colnames(Cotentin_f) [16] <- "abondance_min"
-colnames(Cotentin_f) [17] <- "abondance_moy"
-colnames(Cotentin_f) [18] <- "nom_latin"
-colnames(Cotentin_f) [19] <- "ordre"
-colnames(Cotentin_f) [20] <- "famille"
-
-Cotentin_f$grp_fonctionnel <- with(Cotentin_f, ifelse(Cotentin_f$ordre=="Charadriiformes","limicoles","anatidae"))
-
-Cotentin_f[,18] <- tolower(Cotentin_f[,18])
-Cotentin_f[,18] <- gsub(" ","_", Cotentin_f[,18])
-
-Cotentin_f[,19] <- tolower(Cotentin_f[,19])
-Cotentin_f[,19] <- iconv(Cotentin_f[,19], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-Cotentin_f[,20] <- tolower(Cotentin_f[,20])
-Cotentin_f[,20] <- iconv(Cotentin_f[,20], from = "UTF-8", to = "ASCII//TRANSLIT")
-
-nb_observation <- Cotentin %>%
-  count(espece)
-Cotentin_f <- merge(Cotentin_f, nb_observation, by.x = "espece", by.y = "espece")
-colnames(Cotentin_f) [22] <- "nombre_observation"
-
-
-
-
-
-
-#Tri final des colonnes : 
-Cotentin <- Cotentin[,-c(1,11,12,18,19,20,21)]
-
-#Nombre d'observation des espèces 
-nb_observation <- Cotentin %>%
-  count(espece)
-
-Cotentin <- merge(Cotentin,nb_observation, by.x = "espece",by.y = "espece")
-colnames(Cotentin)[23] <- "nb_observations"
-
-
+write.csv2(Cotentin_f,"Data/Baie_Cotentin.csv")
 
             ###################### 5. Bassin Arcachon ###########
 
@@ -1961,6 +2009,42 @@ Arcachon$obs[Arcachon$obs=="Robin Brouat"] <- "brouat"
 Arcachon$obs[Arcachon$obs=="isabelle Thiberville"] <- "thiberville"
 Arcachon$obs[Arcachon$obs=="jean pierre gans"] <- "gans"
 Arcachon$obs[Arcachon$obs=="Françoise Pointfer"] <- "poinfer"
+
+unique(Arcachon$Observateur.2)
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Julien Nezan"] <- "nezan"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Jean-Pierre Gans"] <- "gans"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Philippe Nadé"] <- "nade"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Jean-Jacques Boubert"] <- "boubert"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Julien Steinmetz"] <- "steinmetz"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Chritophe Le Noc"] <- "le noc"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Dimitri Delorme"] <- "delorme"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Matthias Grandpierre"] <- "grandpierre"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Fredérique Perrier"] <- "pierrier"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Yann Toutain"] <- "toutain"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Bernard Capdeville"] <- "capdeville"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Jérôme Allou"] <- "allou"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Roger Bounicaut"] <- "bounicaut"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Christian Rémy"] <- "remy"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Patrick Dutaut"] <- "dutaut"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Pascal Quadrio"] <- "quadrio"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Claude Soubiran"] <- "soubiran"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Françoise Poinfer"] <- "poinfer"
+Arcachon$Observateur.2[Arcachon$Observateur.2==" Michelle Juino"] <- "juino"
+Arcachon$Observateur.2[Arcachon$Observateur.2==" Bernard Capdeville"] <- "capdeville"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Olivier Pichon"] <- "pichon"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Clément Oncins"] <- "oncins"
+Arcachon$Observateur.2[Arcachon$Observateur.2==" Sylvain Brun"] <- "brun"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Jacques Dupas"] <- "dupas"
+Arcachon$Observateur.2[Arcachon$Observateur.2==" Françoise Poinfer"] <- "poinfer"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Angéline Amador"] <- "amador"
+Arcachon$Observateur.2[Arcachon$Observateur.2==" Eric Lenain"] <- "lenain"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Laurent Chevalier"] <- "chevalier"
+Arcachon$Observateur.2[Arcachon$Observateur.2==" Alexandre Bert"] <- "bert"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Sylvain Brun"] <- "brun"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Michelle Juino"] <- "juino"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="Mali Triger"] <- "triger"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="H.Dinclaux"] <- "dinclaux"
+Arcachon$Observateur.2[Arcachon$Observateur.2=="F. Christian"] <- "christian"
 
 
 # Vérification des abondances : 

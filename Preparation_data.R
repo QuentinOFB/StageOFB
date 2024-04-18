@@ -553,6 +553,7 @@ Camargue$family_tax[Camargue$espece=="canard_sp"] <- "Anatidés"
 Camargue[,17] <- tolower(Camargue[,17])
 Camargue[,17] <- iconv(Camargue[,17], from = 'UTF-8', to = 'ASCII//TRANSLIT')
 Camargue[,17] <- gsub(" ","_",Camargue[,17]) 
+Camargue[,17] <- gsub("'","_",Camargue[,17]) 
 
 #Création d'une colonne "secteur" pour la Camargue : 
 Camargue$secteur <- "camargue"
@@ -1178,6 +1179,7 @@ Cotentin <- subset(Cotentin,!(Cotentin$espece=="pingouin_torda,_petit_pingouin"|
     # -> En revanche autres anatidés pas de manière exhaustive (donc les retirer) idem pour les limicoles terrestre (bécassines + pluvier doré + vanneau)
 
 
+
 #Nom minuscules :
 
 Cotentin[,1] <- tolower(Cotentin[,1])
@@ -1633,8 +1635,27 @@ Cotentin$protocole <- "terrestre"
 #Ajout colonne voie migration : 
 Cotentin$voie_migration <- "est_atlantique"
 
+#Retirer les anatidés (+vanneau et pluvier doré) du suivi limicoles côtiers 
 
- 
+limic <- Cotentin |> 
+  filter(suivi |>  str_detect("limicoles"))
+
+unique(limic$espece)
+limic <- subset(limic, (espece=="bernache_cravant"|espece=="eider_a_duvet"|espece=="harle_huppe"|espece=="tadorne_de_belon"
+                        |order_tax=="charadriiformes"))
+unique(limic$espece)
+
+#On retire également vanneau +pluvier doré et bécassines qui ne sont pas comptées de manière exhaustive :
+
+limic <- subset(limic, !(espece=="vanneau_huppe"|espece=="pluvier_dore"|espece=="becassine_des_marais"))
+
+#Retier les limicoles pour le suivi des remises (sauf vanneau huppe + pluvier doré + becassinne des marais)
+
+anat <- Cotentin |> filter(suivi |> str_detect("remises"))
+
+anat <- subset(anat, (order_tax=="anseriformes"|espece=="vanneau_huppe"|espece=="pluvier_dore"|espece=="becassine_des_marais"))
+
+Cotentin <- rbind(anat, limic)
 
 id <- paste0(Cotentin$site,Cotentin$date)
 unique(id)
@@ -1770,6 +1791,7 @@ Cotentin$id_inv <- paste0(Cotentin$site,Cotentin$date)
 id_inv <- unique(Cotentin$id_inv)
 sp <- unique(Cotentin$espece)
 
+
 inventaire <- expand.grid(id_inv, sp) # [RL] très bien
 View(inventaire)
 
@@ -1844,7 +1866,7 @@ sort(unique(Arcachon$espece))
 # Problème des espaces en fin de noms 
 
 Arcachon[,4] <- gsub("avocette_elegante_","avocette_elegante",Arcachon[,4])
-Arcachon[,4] <- gsub("becasseau_maubèche_","becasseau_maubèche",Arcachon[,4])
+Arcachon[,4] <- gsub("becasseau_maubeche_","becasseau_maubeche",Arcachon[,4])
 Arcachon[,4] <- gsub("becasseau_variable_","becasseau_variable",Arcachon[,4])
 Arcachon[,4] <- gsub("becassine_des_marais_","becassine_des_marais",Arcachon[,4])
 Arcachon[,4] <- gsub("chevalier_aboyeur_","chevalier_aboyeur",Arcachon[,4])
@@ -1861,6 +1883,7 @@ Arcachon[,4] <- gsub("becasseau_sanderling_","becasseau_sanderling",Arcachon[,4]
 Arcachon[,4] <- gsub("chevalier_arlequin_","chevalier_arlequin",Arcachon[,4])
 Arcachon[,4] <- gsub("courlis_cendre_","courlis_cendre",Arcachon[,4])
 Arcachon[,4] <- gsub("grand_gravelot_","grand_gravelot",Arcachon[,4])
+Arcachon[,4] <- gsub("becasseau__minute","becasseau_minute",Arcachon[,4])
 
 # ATTENTION Pas que des limicoles dans le jeu de données : des ardéidés aussi ! 
 # Les retirer : 
@@ -2509,6 +2532,9 @@ Rhin$espece[Rhin$espece=="becasseau_indetermine"] <- "becasseau_sp"
 Rhin$espece[Rhin$espece=="chevalier_indetermine_(tringa)"] <- "chevalier_sp"
 Rhin$espece[Rhin$espece=="gravelot_indetermine"] <- "gravelot_sp"
 Rhin$espece[Rhin$espece=="oie_indeterminee"] <- "oie_sp"
+Rhin$espece[Rhin$espece=="canard_siffleur_du_chili"] <- "canard_de_chiloe"
+Rhin$espece[Rhin$espece=="eismature_rousse"] <- "erismature_rousse"
+Rhin$espece[Rhin$espece=="fuligule_indetermine"] <- "fuligule_sp"
 
 # Format de la date : 
 unique(Rhin$date)
@@ -3002,26 +3028,233 @@ Rhin_f <- subset(Rhin_f, abondance_tot > 0)
 write.csv2(Rhin_f,"Data/Reserve_du_Rhin.csv")
 
 
-
-#
-nb_observation <- Arcachon %>%
-  count(espece)
-Arcachon_f <- merge(Arcachon_f, nb_observation, by.x = "espece", by.y = "espece")
-colnames(Arcachon_f) [22] <- "nombre_observation"
-
-
-
-################### FUSION TABLEAUx DONNEES ##############
+################### FUSION TABLEAU DONNEES ##############
 help("rbind")
 help("bind_rows")
 
-#Camargue$abondance <- as.character(Camargue$abondance)
-#Cotentin_f$abondance <- as.character(Cotentin$abondance)
-#Baie_f$abondance <- as.character(Baie$abondance)
-#Rhin_f$abondance <- as.character(Rhin$abondance)
-#data_f$coef_de_marree <- as.character(data$coef_de_marree)
-data_f <- bind_rows(data_f,Camargue_f,Cotentin_f,Baie,Arcachon_f,Rhin_f)
+Loire <- read.csv2("Data/estuaire_loire.csv", header = T)
+Camargue <- read.csv2("Data/camargue.csv", header = T)
+BA <- read.csv2("Data/Bassin_arcachon_limicoles.csv", header = T)
+Cotentin <- read.csv2("Data/Baie_Cotentin.csv", header = T)
+Aiguillon <- read.csv2("Data/Baie_aiguillon.csv", header = T)
+Rhin <- read.csv2("Data/Reserve_du_rhin.csv", header = T)
 
+#Problème liés au noms 
+colnames(Aiguillon) [11] <- "voie_migration" 
+colnames(Cotentin) [9] <- "nb_annee_suivie"
+colnames(Camargue) [24] <- "nb_annee_suivie"
+
+
+
+# Fusion des tableaux (on rajoutera la camargue ultérieurement car déjà les colonnes liées à la taxonomie) 
+
+data <- bind_rows(Loire, BA, Cotentin, Aiguillon, Rhin)
+data[,1] <- iconv(data[,1],from = "UTF-8",to = "ASCII//TRANSLIT")
+
+
+#Fusionner avec le tableau espèce : 
+espece <- read.csv("Data/espece.csv", header = T)
+espece <- espece[-c(98),]
+
+espece[,5] <- tolower(espece[,5])
+espece[,5] <- gsub(" ","_",espece[,5])
+espece[,5] <- gsub("'","_",espece[,5])
+espece[,5] <- iconv(espece[,5],from = "UTF-8",to = "ASCII//TRANSLIT")
+data <- merge(data, espece, by.x = "espece", by.y = "french_name", all.x = T)
+
+#On peut rajouter le tableau de la Camargue : 
+
+Camargue$X <- as.character(Camargue$X)
+data <- bind_rows(data, Camargue)
+
+# Rajouter famille et order pour les espèces indeterminées : 
+unique(data$order_tax)
+
+data[,30] <- iconv(data[,30], from = "UTF-8", to = "ASCII//TRANSLIT")
+
+sort(unique(data$espece))
+
+data$order_tax[data$espece=="anatides_sp"] <- "Anseriformes"
+data$order_tax[data$espece=="barges_sp"] <- "Charadriiformes"
+data$order_tax[data$espece=="becasseau_sp"] <- "Charadriiformes"
+data$order_tax[data$espece=="becasses"] <- "Charadriiformes"
+data$order_tax[data$espece=="canard_sp"] <- "Anseriformes"
+data$order_tax[data$espece=="chevalier_sp"] <- "Charadriiformes"
+data$order_tax[data$espece=="courlis_sp"] <- "Charadriiformes"
+data$order_tax[data$espece=="gravelot_sp"] <- "Charadriiformes"
+data$order_tax[data$espece=="harle_sp"] <- "Anseriformes"
+data$order_tax[data$espece=="limicole_sp"] <- "Charadriiformes"
+data$order_tax[data$espece=="macreuse_sp"] <- "Anseriformes"
+data$order_tax[data$espece=="oie_sp"] <- "Anseriformes"
+data$order_tax[data$espece=="sarcelle_sp"] <- "Anseriformes"
+data$order_tax[data$espece=="sarcelle_a_ailes_vertes"] <- "Anseriformes"
+data$order_tax[data$espece=="canard_des_bahamas"] <- "Anseriformes"
+data$order_tax[data$espece=="canard_de_chiloe"] <- "Anseriformes"
+data$order_tax[data$espece=="bernache_du_pacifique"] <- "Anseriformes"
+data$order_tax[data$espece=="bernache_du_pacifique"] <- "Anseriformes"
+data$order_tax[data$espece=="becasseau_rousset"] <- "Charadriiformes"
+data$order_tax[data$espece=="oie_de_la_toundra"] <- "Anseriformes"
+data$order_tax[data$espece=="hybride_tadorne_de_casarca_x_belon"] <- "Anseriformes"
+data$order_tax[data$espece=="hybride_fuligule_milouin_x_morillon"] <- "Anseriformes"
+data$order_tax[data$espece=="hybride_bernache_du_canada_x_oie_cendree"] <- "Anseriformes"
+data$order_tax[data$espece=="harelde_de_miquelon"] <- "Anseriformes"
+data$order_tax[data$espece=="fuligule_sp"] <- "Anseriformes"
+data$order_tax[data$espece=="dendrocygne_fauve"] <- "Anseriformes"
+
+#On rajoute les familles : 
+unique(data$family_tax)
+
+data[,31] <- gsub("Anatidae","Anatides",data[,31])
+data[,31] <- iconv(data[,31],from = "UTF-8",to = "ASCII//TRANSLIT")
+
+data$family_tax[data$espece=="anatides_sp"] <- "Anatides"
+data$family_tax[data$espece=="barges_sp"] <- "Scolopacides"
+data$family_tax[data$espece=="becasseau_sp"] <- "Scolopacides"
+data$family_tax[data$espece=="becasses"] <- "Scolopacides"
+data$family_tax[data$espece=="canard_sp"] <- "Anatides"
+data$family_tax[data$espece=="chevalier_sp"] <- "Scolopacides"
+data$family_tax[data$espece=="courlis_sp"] <- "Scolopacides"
+data$family_tax[data$espece=="gravelot_sp"] <- "Charadriides"
+data$family_tax[data$espece=="harle_sp"] <- "Anatides"
+data$family_tax[data$espece=="macreuse_sp"] <- "Anatides"
+data$family_tax[data$espece=="oie_sp"] <- "Anatides"
+data$family_tax[data$espece=="sarcelle_sp"] <- "Anatides"
+data$family_tax[data$espece=="sarcelle_a_ailes_vertes"] <- "Anatides"
+data$family_tax[data$espece=="canard_des_bahamas"] <- "Anatides"
+data$family_tax[data$espece=="canard_de_chiloe"] <- "Anatides"
+data$family_tax[data$espece=="bernache_du_pacifique"] <- "Anatides"
+data$family_tax[data$espece=="becasseau_rousset"] <- "Scolopacides"
+data$family_tax[data$espece=="oie_de_la_toundra"] <- "Anatides"
+data$family_tax[data$espece=="hybride_tadorne_de_casarca_x_belon"] <- "Anatides"
+data$family_tax[data$espece=="hybride_fuligule_milouin_x_morillon"] <- "Anatides"
+data$family_tax[data$espece=="hybride_bernache_du_canada_x_oie_cendree"] <- "Anatides"
+data$family_tax[data$espece=="harelde_de_miquelon"] <- "Anatides"
+data$family_tax[data$espece=="fuligule_sp"] <- "Anatides"
+data$family_tax[data$espece=="dendrocygne_fauve"] <- "Anatides"
+
+#On rajoute la classe : 
+data$class_tax[data$espece=="anatides_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="barges_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="becasseau_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="becasses"] <- "Oiseaux"
+data$class_tax[data$espece=="canard_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="chevalier_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="courlis_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="gravelot_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="harle_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="macreuse_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="oie_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="sarcelle_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="sarcelle_a_ailes_vertes"] <- "Oiseaux"
+data$class_tax[data$espece=="canard_des_bahamas"] <- "Oiseaux"
+data$class_tax[data$espece=="canard_de_chiloe"] <- "Oiseaux"
+data$class_tax[data$espece=="bernache_du_pacifique"] <- "Oiseaux"
+data$class_tax[data$espece=="becasseau_rousset"] <- "Oiseaux"
+data$class_tax[data$espece=="oie_de_la_toundra"] <- "Oiseaux"
+data$class_tax[data$espece=="hybride_tadorne_de_casarca_x_belon"] <- "Oiseaux"
+data$class_tax[data$espece=="hybride_fuligule_milouin_x_morillon"] <- "Oiseaux"
+data$class_tax[data$espece=="hybride_bernache_du_canada_x_oie_cendree"] <- "Oiseaux"
+data$class_tax[data$espece=="harelde_de_miquelon"] <- "Oiseaux"
+data$class_tax[data$espece=="fuligule_sp"] <- "Oiseaux"
+data$class_tax[data$espece=="dendrocygne_fauve"] <- "Oiseaux"
+
+unique(data$order_tax)
+
+#Du chipotage (mais pour qu'un maximum d'informations soient renseignées dans le tableau)
+data$pk_species[data$espece=="oie_de_la_toundra"] <- "ANSFABROS"
+data$scientific_name[data$espece=="oie_de_la_toundra"] <- "Anser fabalis rossicus"
+data$euring[data$espece=="oie_de_la_toundra"] <- "1574"
+data$taxref[data$espece=="oie_de_la_toundra"] <- "2724"
+data$english_name[data$espece=="oie_de_la_toundra"] <- "Russian Taiga Bean Goose"
+data$niveau_taxo[data$espece=="oie_de_la_toundra"] <- "sous-espece"
+
+data$scientific_name[data$espece=="dendrocygne_fauve"] <- "Dendrocygna_bicolor"
+data$scientific_name[data$espece=="harelde_de_miquelon"] <-"Clangula hyemalis"
+data$scientific_name[data$espece=="becasseau_rousset"] <- "Calidris_subruficollis"
+data$scientific_name[data$espece=="bernache_du_pacifique"] <- "Branta_bernicla_nigricans"
+data$scientific_name[data$espece=="canard_de_chiloe"] <- "Mareca_sibilatrix"
+data$scientific_name[data$espece=="canard_des_bahamas"] <- "Anas_bahamensis"
+data$scientific_name[data$espece=="sarcelle_a_ailes_vertes"] <- "Anas_carolinensis"
+
+data$niveau_taxo[data$espece=="anatides_sp"] <- "famille"
+data$niveau_taxo[data$espece=="chevalier_sp"] <- "famille"
+data$niveau_taxo[data$espece=="becasses_sp"] <- "famille"
+data$niveau_taxo[data$espece=="becasseau_sp"] <- "famille"
+data$niveau_taxo[data$espece=="courlis_sp"] <- "genre"
+data$niveau_taxo[data$espece=="barges_sp"] <- "genre"
+data$niveau_taxo[data$espece=="gravelot_sp"] <- "genre"
+data$niveau_taxo[data$espece=="macreuse_sp"] <- "genre"
+data$niveau_taxo[data$espece=="harle_sp"] <- "famille"
+data$niveau_taxo[data$espece=="oie_sp"] <- "famille"
+data$niveau_taxo[data$espece=="sarcelle_sp"] <- "genre"
+data$niveau_taxo[data$espece=="limicole_sp"] <- "ordre"
+data$niveau_taxo[data$espece=="fuligule_sp"] <- "genre"
+data$niveau_taxo[data$espece=="bernache_du_pacifique"] <- "sous-espece"
+
+data$english_name[data$espece=="anatides_sp"] <- "Anatidae_sp"
+data$english_name[data$espece=="limicole_sp"] <- "Waders_sp"
+data$english_name[data$espece=="barges_sp"] <- "godwit_sp"
+data$english_name[data$espece=="canard_sp"] <- "duck_sp"
+data$english_name[data$espece=="gravelot_sp"] <- "plover_sp"
+data$english_name[data$espece=="macreuse_sp"] <- "scoter_sp"
+data$english_name[data$espece=="oie_sp"] <- "goose_sp"
+data$english_name[data$espece=="sarcelle_a_ailes_vertes"] <- "Green-winged Teal"
+data$english_name[data$espece=="canard_des_bahamas"] <- "White-cheeked Pintail"
+data$english_name[data$espece=="canard_de_chiloe"] <- "Chiloe Wigeon"
+data$english_name[data$espece=="bernache_du_pacifique"] <- "Brant Goose (Nigricans)"
+data$english_name[data$espece=="becasseau_rousset"] <- "Buff-breasted Sandpiper"
+data$english_name[data$espece=="harelde_de_miquelon"] <- "Long-tailed Duck"
+data$english_name[data$espece=="dendrocygne_fauve"] <- "Fulvous Whistling Duck"
+
+
+data$scientific_name[data$espece=="courlis_sp"] <- "Numenius_sp"
+data$scientific_name[data$espece=="gravelot_sp"] <- "Charadrius_sp"
+data$scientific_name[data$espece=="macreuse_sp"] <- "Melanitta_sp"
+data$scientific_name[data$espece=="sarcelle_sp"] <- "Anas_sp"
+data$scientific_name[data$espece=="fuligule_sp"] <- "Aythya_sp"
+data$scientific_name[data$espece=="barges_sp"] <- "Limosa_sp"
+
+#Rajouter la colonne pour les jours julien 
+
+data$jour_julien <- yday(data$date)
+
+#Rajouter une colonne pour les occurence des espèces dans chaque secteurs : 
+
+
+occurence_sp <- 
+  data %>% count(espece,secteur,abondance) %>% filter(abondance > 0)
+
+occurence_sp <- occurence_sp %>% count(espece, secteur)
+
+occurence_sp$id <- paste0(occurence_sp$espece,occurence_sp$secteur)
+
+data$id_sect <- paste0(data$espece,data$secteur)
+
+data <- merge(data, occurence_sp, by.x = "id_sect", by.y = "id")
+
+setDT(data)
+data[, c('espece.y','secteur.y','id_sect'):=NULL]
+setDF(data)
+
+colnames(data) [1] <- "espece"
+colnames(data) [8] <- "secteur"
+colnames(data) [34] <- "occurence_sp"
+
+#Créer une colonne avec les jours juliens correspondant à la période d'hivernage 
+# jour 1 = 01/10 année n et dernier jour = 30/04 de l'année n + 1 
+
+
+#Création colonne hivernage et reproduction : 
+
+data$periode <- with(data, ifelse(data$mois==1,"hivernage",
+                            ifelse(data$mois==2,"hivernage",
+                            ifelse(data$mois==3,"hivernage",
+                            ifelse(data$mois==4,"hivernage",
+                            ifelse(data$mois==10,"hivernage",
+                            ifelse(data$mois==11,"hivernage",
+                            ifelse(data$mois==12,"hivernage","repro"))))))))
+                            
+write.csv2(data, "Data/data.csv")
 
 
 ## Voir pour les doubles comptages

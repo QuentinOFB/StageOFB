@@ -3237,7 +3237,7 @@ data[, c('espece.y','secteur.y','id_sect'):=NULL]
 setDF(data)
 
 colnames(data) [1] <- "espece"
-colnames(data) [8] <- "secteur"
+colnames(data) [7] <- "secteur"
 colnames(data) [34] <- "occurence_sp"
 
 #Créer une colonne avec les jours juliens correspondant à la période d'hivernage 

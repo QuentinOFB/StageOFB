@@ -11,7 +11,7 @@ data_ana <- subset(data_ana, (secteur=="estuaire"))
 
 gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
 help("geom_point")
-gg <- gg + geom_point()
+gg <- gg + geom_point() 
 gg
 ggsmooth <- gg + geom_smooth(aes(group=annee, fill = annee))
 ggsmooth
@@ -40,10 +40,15 @@ gglog <- gglog + facet_wrap(.~espece)
 gglog <- gglog + geom_smooth (aes (group = annee, fill = annee))
 gglog
 
-  # -> histogramme des abondances : 
-gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance))
-gg <- gg + geom_col()
+#Voir les abondances en fonction des années : 
+
+gg <- ggplot(data = data_ana, mapping = aes(x = annee, y = abondance, color = mois))
+gg <- gg + geom_point()
 gg
+
+gg <- gg + facet_wrap(.~espece)
+gg  
+    # -> histogramme des abondances : 
 
 gg2 <- ggplot(data = data_ana, mapping = aes(x=abondance))
 gg2 <- gg2 + geom_histogram()
@@ -54,9 +59,19 @@ gg2
 #Pas trouvé "method = "
 table(data_ana$abondance)
 
-gg  <- ggplot(data=data_ana, mapping = aes(x = abondance, group = qualite_comptage))
-gg <- gg + facet_grid(site~espece, scales = "free")
+# voir les abondance par sites 
+gg  <- ggplot(data=data_ana, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point()
+gg <- gg + facet_wrap(.~site)
 gg
+# Observations : des disparités qui paraissent importante pour les abondances entre les sites
+# avec des sites qui accueillent peu d'individus comparés à d'autres où les observations sont plus nombreuses : 
+# grand Bilho + Massereau + Paimboeuf + Saint Nicolas + Petit Bilho accueillent de grand nombre d'effectifs d'anatidés
+
+gg <- ggplot(data=data_ana, mapping = aes(x = mois, y = abondance))
+gg <- gg + facet_grid(site ~ espece)
+gg
+# -> PB : Les abondances ne s'affichent pas... 
 
       #Les limicoles : 
 data_limi <- subset(data, (order_tax=="Charadriiformes"))
@@ -84,15 +99,33 @@ gglog
 gglog <- gglog + facet_wrap(.~espece)
 
 
+# Regarder les abondances par sites : 
+gg  <- ggplot(data=data_limi, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point()
+gg <- gg + facet_wrap(.~site)
+gg
+
+#Histogramme des abondances : 
+gg2 <- ggplot(data = data_limi, mapping = aes(x=abondance))
+gg2 <- gg2 + geom_histogram()
+gg2
+# Observations : idem que pour les anatidés 
 
 
-#Voir pour les anatidés pour tous nos sites : 
+######### Pour tous les anatidés de toutes les zh ############
+
 data_ana <- subset(data, (order_tax=="Anseriformes"))
 
 gg <- ggplot(data = data, mapping = aes(x = mois, y = abondance, color = annee))
-help("geom_point")
 gg <- gg + geom_point()
 gg
 
+gg <- gg + geom_smooth (aes (group = annee, fill = annee))
+gg
 
+#est-ce qu'on observe la même chose sur tous les secteurs ? 
 
+gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point()
+gg <- gg + facet_wrap(.~secteur)
+gg 

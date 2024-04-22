@@ -9,53 +9,81 @@ data <- read.csv2("Data/data.csv", header = T)
 data_ana <- subset(data, (order_tax=="Anseriformes"))
 data_ana <- subset(data_ana, (secteur=="estuaire"))
 
+#Voir la variation des abondances en fonction des mois :  
 gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
-help("geom_point")
 gg <- gg + geom_point() 
 gg
+
 ggsmooth <- gg + geom_smooth(aes(group=annee, fill = annee))
 ggsmooth
-#De manière générale on observe un creux pour les mois d'avril, mai, juin et juillet, avant que les effectifs 
-# Ne remonte à partir d'un mois d'aout. Les effectifs max semblent se situer autour de décembre et janvier
+#De manière générale on observe une diminution des effectifs à partir de janvier, avec un creux
+#entre les mois d'avril, mai, juin et juillet avant que les effectifs remontent à partir du mois d'août
+#Les effectifs maximaux semblent se situer entre novembre, décembre et janvier pour les anatidés
+
+#Les courbes "smooth" ne semblent pas montrer de pattern (du moins c'est pas évident) de variation
+#d'abondance par mois, ni entre les années. 
 
 plot(data_ana$mois,data_ana$abondance)
 
-#On regarde par espece : 
+#On regarde l'abondance pour les différentes espèces d'anatidés par mois 
+
 gg <- gg + facet_wrap(.~espece)
 gg
-gg <- gg + geom_smooth (aes (group = annee, fill = annee))
-gg
+#Observations : 
+# On a du mal à bien analyser les graph pour des espèces avec de faible valeurs d'abondance
+# Toutefois, on peut déceler un pattern pour certaine espèce dont les abondances sont les plus fortes
+# Canard siffleur, souchet, colvert, sarcelle d'hiver 
+
+ggsmooth <- gg + geom_smooth (aes (group = annee, fill = annee))
+ggsmooth
 #On a du mal à bien voir notamment pour les espèces qui ont de faibles abondances 
 
-#test avec une transformation log (pas ouf pour le geom_smooth ?) 
+# On teste une transformation log pour mieux analyse les faibles abondances ? 
+
 gglog <- ggplot(data = data_ana, mapping = aes(x = mois, y = log10(abondance+1), color = annee))
 gglog <- gglog + geom_point()
 gglog
+
 gglog <- gglog + facet_wrap(.~espece)
+gglog
 #Observations graphique : 
-#"Joli" pattern pour la bernache cravant, canard chipeau, pilet, siffleur, souchet, oie cendrée et sarcelle d'hiver
-# moins évident pour le cygne tuberculé, la sarcelle d'été, bernache nonette, fuligule milouin et morillon
-#Pour colvert et Tadorne, saisonnalité semble moins évidente 
-# Pour les colverts c'est peut-être dû aux individus relachés pour la chasse (Yesou et al. 2017)
+#Ce qui apparait semble déjà "mieux". Du moins on arrive à mieux apercevoir les patterns d'abondance
+# qui varient au cours des mois. 
+
+# Bernache cravant : diminution des effectifs à partir de janvier avec un "creux" assez marqué entre avril et aout
+# remontée des effectifs à partir de septembre. 
+
+#Bernache du Canada, les données semblent insufisantes pour observer quelque chose 
+# Normal : c'est une espèce qu'on ne trouve pas en France (individus feraux ou "perdus")
+
+#Bernache nonette : apparition d'un pattern (pas aussi évident que pour la cravant) 
+#Espèce plus rare que la cravant (pas dans l'aire de répartition de la nonette)
+#Toutefois on observe des effectifs pendant l'hiver qui diminue fortement en avril 
+# et ça repart à la hausse en novembre... 
+
+#Canard Chipeau : Diminution des effectifs, creux pendant la période de repro et ça repart à partir de septembre
+#Canard Pilet : diminution avril et ça repart en septembre
+#Canard siffleur : IDEM 
+#Canard souchet : diminution avril + creux entre juin et juillet 
+#Canard colvert : diminution qui est observée mais qui reste relativement faible (moins de variation apparente que pour les autres espèces)
+#Sarcelle d'hiver : diminution à partir d'avril et ça repart en aout 
+#Oie cendrée : creux situé entre juillet et aout 
+
 gglog <- gglog + geom_smooth (aes (group = annee, fill = annee))
 gglog
 
-#Voir les abondances en fonction des années : 
-
-gg <- ggplot(data = data_ana, mapping = aes(x = annee, y = abondance, color = mois))
-gg <- gg + geom_point()
-gg
-
-gg <- gg + facet_wrap(.~espece)
-gg  
     # -> histogramme des abondances : 
 
-gg2 <- ggplot(data = data_ana, mapping = aes(x=abondance))
-gg2 <- gg2 + geom_histogram()
-gg2
+gg_hist <- ggplot(data = data_ana, mapping = aes(x=abondance))
+gg_hist <- gg_hist + geom_histogram()
+gg_hist
 
-# Grand nombre de données d'abondance faible (surtout les valeurs de 0) et peu de grandes valeurs d'abondance
-# Exponentielle inverse ?  
+hist(data_ana$abondance, breaks = 50)
+
+#Bcp de donnes de faible abondance (valeurs de 0) 
+#Peu de grandes valeurs 
+
+ 
 #Pas trouvé "method = "
 table(data_ana$abondance)
 
@@ -129,3 +157,11 @@ gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = ann
 gg <- gg + geom_point()
 gg <- gg + facet_wrap(.~secteur)
 gg 
+
+############## Pour les limicoles de toutes les ZH ############
+
+data_limi <- subset(data, (order_tax=="Charadriiformes"))
+
+gg <- ggplot(data = data_limi, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- geom_point()
+gg

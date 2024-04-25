@@ -86,10 +86,8 @@ gglog
     # -> histogramme des abondances : 
 
 gg_hist <- ggplot(data = data_ana, mapping = aes(x=abondance))
-gg_hist <- gg_hist + geom_histogram()
+gg_hist <- gg_hist + geom_histogram(aes(color = qualite_comptage))
 gg_hist
-
-hist(data_ana$abondance, breaks = 200)
 
 #Bcp de données de faible abondance (valeurs de 0) 
 #Peu de grandes valeurs 
@@ -117,6 +115,9 @@ gg
 # Voir avec les jours juliens : 
 gg <- ggplot(data = data_ana, mapping = aes(x = jour_julien, y = abondance, color = annee))
 gg <- gg + geom_point() + theme_classic() 
+gg
+
+gg <- gg + facet_wrap(.~espece)
 gg
 
 # Observations :
@@ -150,6 +151,11 @@ gglog
 gglog <- gglog + facet_wrap(.~espece)
 gglog
 
+#Histograme des abondances : 
+gg_hist <- ggplot(data=data, mapping = aes(x = mois, y = abondance, color = annee))
+gg_hist <- gg_hist + geom_histogram(aes(color = qualite_comptage))
+gg_hist 
+
 #Avec les jours julien ? 
 gg <- ggplot(data = data_ana, aes(x=jour_julien, y=abondance, color = annee))
 gg <- gg + geom_point()
@@ -160,6 +166,7 @@ gg
 data_limi <- subset(data, (order_tax=="Charadriiformes"))
 data_limi <- subset(data_limi, (secteur=="estuaire"))
 
+# Variation d'abondance intra-anuelle : 
 gg <- ggplot(data = data_limi, mapping = aes(x = mois, y = abondance, color = annee))
 gg <- gg + geom_point()
 gg
@@ -183,11 +190,26 @@ gglog <- gglog + facet_wrap(.~espece)
 gglog <- gglog + geom_smooth(aes(group = annee, fill = annee))
 gglog
 
+#Histograme des abondances : 
+gg_hist <- ggplot(data = data_limi, mapping = aes(x = abondance))
+gg_hist <- gg_hist + geom_histogram(aes(color = qualite_comptage))
+gg_hist
+
 # Regarder les abondances par sites : 
 gg  <- ggplot(data=data_limi, mapping = aes(x = mois, y = abondance, color = annee))
 gg <- gg + geom_point()
 gg <- gg + facet_wrap(.~site)
 gg
+
+gg <- ggplot(data = data_limi, mapping = aes(x = mois, y = abondance, color =annee))
+gg <- gg + geom_point() 
+gg <- gg + facet_grid(site~espece)
+
+#Ca donne quoi avec les jours juliens : 
+gg <- ggplot(data = data_limi, mapping = aes(x = jour_julien, y = abondance, color = annee))
+gg <- gg + geom_point() 
+gg 
+gg <- gg + facet_wrap(.~espece) 
 
 #Ne conserver que les sites retenus ? 
 data_limi <- subset(data_limi, (data_limi$site_retenu=="oui"))
@@ -202,25 +224,26 @@ gg
 
 #Histogramme des abondances : 
 gg2 <- ggplot(data = data_limi, mapping = aes(x=abondance))
-gg2 <- gg2 + geom_histogram()
+gg2 <- gg2 + geom_histogram(aes(color = qualite_comptage))
 gg2
 # Observations : idem que pour les anatidés 
 # Beaucoup de données d'absence (0) et peu de données de comptage élevé
 # 26 449 données de 0 sur 32443 observations : 
 table(data_limi$abondance)
 
-#Avec les jours juliens : 
-gg <- ggplot(data = data_limi, mapping = aes(x=jour_julien, y = abondance, color = annee))
+#Comparaison limicoles / anatidés : 
+data <- read.csv2("Data/data.csv", header = T)
+data <- subset(data,(data$secteur=="estuaire"))
+
+gg <- ggplot(data = data, mapping = aes(x = mois, y = abondance, color = annee))
 gg <- gg + geom_point()
-gg <- gg + geom_smooth(aes(group = annee, fill = annee))
-gg
+gg <- gg + facet_wrap(.~order_tax)
 
-gg <- gg + facet_wrap(.~espece)
-gg
 
- ########## Baie de l'aiguillon ######
+              ########## Baie de l'aiguillon ######
+data <- read.csv2("Data/data.csv", header = T)
 
-# Les anatidés 
+    # Les anatidés 
 data_ana <- subset(data, (order_tax=="Anseriformes"))
 data_ana <- subset(data_ana, (secteur=="baie_aiguillon"))
 
@@ -237,10 +260,33 @@ gg
 ggsmooth <- gg + geom_smooth(aes(group=annee, fill = annee))
 ggsmooth
 
-#Qu'est que ce qui se passe si on ne s'intéresse qu'au années à partir de 2004 ? 
+#Focus sur les espèces : 
+gg <- gg + facet_wrap(.~espece)
+gg
 
+#Transformation en log
+gglog <- ggplot(data = data_ana, mapping = aes(x = mois, y = log(abondance+1), color = annee))
+gglog <- gglog + geom_point()
+gglog <- gglog + facet_wrap(.~espece) 
+
+#Histogramme des abondances 
+gg_hist <- ggplot(data = data_ana, mapping = aes(x = abondance))
+gg_hist <- geom_histogram(aes(color = qualite_comptage))
+gg_hist
+
+#Abondance et répartition des espèces sur les différents sites : 
+gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point()
+gg <- gg + facet_wrap(.~site)
+gg
+
+gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point()
+gg <- gg + facet_grid(site~espece)
+gg 
+
+#Qu'est que ce qui se passe si on ne s'intéresse qu'au années à partir de 2004 ? 
 data_ana <- subset(data_ana, !(data_ana$annee < 2004))
-data_ana <- subset(data_ana,(data_ana$site_retenu=="oui"))
 
 gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
 gg <- gg + geom_point() 
@@ -274,18 +320,50 @@ gglog
 gglog <- gglog + facet_wrap(.~espece)
 gglog
 
-#Regarder les abondances par sites ? 
+#Histograme des abondances : 
+gg_hist <- ggplot(data = data_ana, mapping = aes(x = abondance))
+gg_hist <- gg_hist + geom_histogram(aes(color = qualite_comptage))
+gg_hist
+
+#Regarder les abondances et la répartition des espèces par sites ? 
 gg  <- ggplot(data=data_ana, mapping = aes(x = mois, y = abondance, color = annee))
 gg <- gg + geom_point()
 gg <- gg + facet_wrap(.~site)
 gg
 
-#Histograme des abondance
-gg2 <- ggplot(data = data_ana, mapping = aes(x=abondance))
-gg2 <- gg2 + geom_histogram()
-gg2
+gg  <- ggplot(data=data_ana, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point()
+gg <- gg + facet_grid(site~espece)
+gg
 
-# Pour les limicoles 
+#Les jours juliens : 
+gg  <- ggplot(data=data_ana, mapping = aes(x = jour_julien, y = abondance, color = annee))
+gg <- gg + geom_point()
+gg
+
+#Focus sur les sites "retenus" : 
+data_ana <- subset(data_ana, (data_ana$site_retenu=="oui"))
+
+gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point() 
+gg <- geom_smooth(group = annee, fill = annee)
+gg
+gg <- gg + facet_wrap(.~espece)
+gg
+
+#Log 
+gglog <- ggplot(data = data_ana, mapping = aes(x = mois, y = log(abondance+1), color = annee))
+gglog <- gglog + geom_point() 
+gglog <- geom_smooth(group = annee, fill = annee)
+gglog <- gglog + facet_wrap(.~espece)
+gglog
+
+#Histograme des abondances : 
+gg_hist <- ggplot(data = data_ana, mapping = aes(x=abondance))
+gg_hist <- gg_hist + geom_histogram(aes(color = qualite_comptage))
+gg_hist          
+      
+    # Pour les limicoles : 
 data_limi <- subset(data, (order_tax=="Charadriiformes"))
 data_limi <- subset(data_limi, (secteur=="baie_aiguillon")) 
 
@@ -387,7 +465,7 @@ gg_hist
 table(data$abondance)
 
 ######### Pour tous les anatidés de toutes les zh ############
-
+data <- read.csv2("Data/data.csv", header = T)
 data_ana <- subset(data, (order_tax=="Anseriformes"))
 
 gg <- ggplot(data = data, mapping = aes(x = mois, y = abondance, color = annee))
@@ -401,9 +479,18 @@ gg
 
 gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
 gg <- gg + geom_point()
-gg <- gg + facet_wrap(.~secteur)
 gg 
 
+gg <- ggplot(data = data_ana, mapping = aes(x = jour_julien, y = abondance, color = secteur))
+gg <- gg + geom_point()
+gg
+
+# Voir les abondances par secteur
+gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point() + theme_classic() 
+gg <- gg + facet_grid(secteur~espece)
+gg
+ 
 ############## Pour les limicoles de toutes les ZH ############
 
 data_limi <- subset(data, (order_tax=="Charadriiformes"))

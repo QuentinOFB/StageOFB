@@ -1,18 +1,122 @@
 library(ggplot2)
-
+library(lubridate)
+library(dplyr)
+library(data.table)
+#Ouverture du jeu de données : 
 data <- read.csv2("Data/data.csv", header = T)
 
-    ####### Estuaire de la Loire#####
+#Création jour julien :     
+
+data$jour_julien_hiver <- ifelse(data$mois<6, 
+                                 yday(data$date)+yday(as.Date(paste0(data$annee-1,"-12-31")))-yday(as.Date(paste0(data$annee-1,"-05-31"))),
+                                 yday(data$date)-yday(as.Date(paste0(data$annee,"-05-31"))))
+#Outliers : 
+#IQR => Q3-Q1 
+# Q1 - 1.25*IQR et Q3 + 1.25*IQR
+# Far Away 
+# Q1 - 3*IQR et Q3 + 3*IQR
+
+#Tableau des quantiles : 
+Tab_quant <- data %>%
+  group_by(espece,mois,secteur) %>%
+  summarise(Q1 = quantile(abondance, probs =  c(0.25)),
+            Q2 = quantile(abondance, probs = c(0.50)),
+            Q3 = quantile(abondance, probs = c(0.75)))
+
+#Ajout des "bornes" inf et sup pour les outliers : 
+
+#IQR : 
+Tab_quant$IQR <- Tab_quant$Q3-Tab_quant$Q1
+
+#Pour les outliers 
+#Borne inf 
+Tab_quant$Outlier_inf <-Tab_quant$Q1-1.25*(Tab_quant$IQR)
+  
+#Borne sup
+Tab_quant$Outlier_sup <-Tab_quant$Q3+1.25*(Tab_quant$IQR)
+
+#Pour les Faraway : 
+#Borne inf : 
+Tab_quant$Faraway_inf <-Tab_quant$Q1-3*(Tab_quant$IQR)
+
+#Borne sup : 
+Tab_quant$Faraway_sup <- Tab_quant$Q3+3*(Tab_quant$IQR)
+              
+
+#Création d'un identifiant pour merge les deux tableaux : 
+data$id_Quantile <- paste0(data$espece, data$mois, data$secteur)
+
+Tab_quant$id_Quantile <- paste0(Tab_quant$espece, Tab_quant$mois, Tab_quant$secteur)
+
+#Merge des deux tableaux : 
+
+data <- merge(data, Tab_quant, by.x = "id_Quantile",by.y = "id_Quantile")
+
+setDT(data)
+data[, c('espece.y','secteur.y','mois.y'):=NULL]
+setDF(data)
+
+colnames(data) <- gsub("espece.x","espece",colnames(data))
+colnames(data) <- gsub("mois.x","mois",colnames(data))
+colnames(data) <- gsub("secteur.x","secteur",colnames(data))
+
+#Vérifier que les abondances rentrent dans l'intervalle :
+#Pour les outliers 
+
+data$outlier_verif <- with(data, ifelse(data$abondance < data$Outlier_inf, "outlier",
+                                ifelse(data$abondance > data$Outlier_sup, "outlier","clean")))        
+  
+
+data$faraway_verif <- with(data, ifelse(data$abondance < data$Faraway_inf, "faraway",
+                                        ifelse(data$abondance > data$Faraway_sup, "faraway","clean")))
+
+table(data$outlier_verif)
+# -> 77099 données considérées comme outlier sur les 657 385 
+# -> 580 286 données clean 
+
+table(data$faraway_verif)
+# -> 67 018 données faraway sur les 657 385 
+
+#Tableau de contingence : 
+table <- table(data$qualite_comptage, data$outlier_verif)
+table
+# Clean x douteux => 148 276 
+# Outlier x douteux => 13 103 
+# Clean x ok => 307 812
+# outlier x ok => 41 932
+
+
+
+#Tuckey effency (sur les données brutes)
+#Colonne Q1 + Q4 puis calcul du Tuckey 
+# Q1 et q4 que sur les données comptage confiance
+
+#Tableau résumé : 
+#Grouper données par espèces, mois et secteurs (faire une médiane pour les sp + Q1 et Q4)
+
+#Tableau quantile (espèce, secteur, mois, Q1 et Q4) Ensuite rajouter colonnes (outlier bas et haut + faraway bas et haut)
+# + merge aux tablaeux de données brutes + regarder si ça rentre dans l'intervalle 
+# + rajouter colonnes si ça rentre dans l'intervalle 
+# Combien on dégage de données si on enlève les outlier et/ou les Faraway
+# Ensuite nettoyage puis aggrégation avec la médiane, mois et secteurs 
+
+        ####### Estuaire de la Loire#####
         
 # Sélection des anatidés : 
 
 data_ana <- subset(data, (order_tax=="Anseriformes"))
 data_ana <- subset(data_ana, (secteur=="estuaire"))
+rm(list = c("data"))
 
 #Voir la variation des abondances en fonction des mois :  
-gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
-gg <- gg + geom_point() + theme_classic()
+gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee, group = annee))
+gg <- gg + geom_point() + geom_line() + theme_classic()
 gg
+
+gg <- gg + facet_wrap(.~espece, scales = "free_y")
+gg
+
+ggsave("out/Anatide_estuaire.png",width = 10, height = 8)
 
 ggsmooth <- gg + geom_smooth(aes(group=annee, fill = annee))
 ggsmooth
@@ -30,19 +134,9 @@ gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = qua
 gg <- gg + geom_point() + theme_classic()
 gg
 
-#Regarder l'abondance des différentes espèces par mois : 
-gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = annee))
-gg <- gg + geom_point() + theme_classic()
-gg <- gg + facet_wrap(.~espece)
-gg
+#Tuckey effency
+# Grouper données par espèces, mois et secteurs (faire une médiane pour les sp)
 
-#Observations : 
-#Pour certaines espèces, on a du mal à analyser, certainement à cause de faibles valeurs d'abondance
-#Toutefois,on voit des tendances qui se profilent avec les mois, avec des mois où 
-# les espèces sont plus présentes, et d'autres où l'on aperçoit un creux dans les abondances
-
-ggsmooth <- gg + geom_smooth (aes (group = annee, fill = annee))
-ggsmooth
 
 #On a du mal à bien voir notamment pour les espèces qui ont de faibles abondances 
 
@@ -101,7 +195,7 @@ gg_hist
 # voir les abondance par sites 
 gg  <- ggplot(data=data_ana, mapping = aes(x = mois, y = abondance, color = annee))
 gg <- gg + geom_point() + theme_classic()
-gg <- gg + facet_wrap(.~site)
+gg <- gg + facet_wrap(.~site, scales = "free_y")
 gg
 # Observations : des disparités qui paraissent importantes pour les abondances entre les sites
 # avec des sites qui accueillent peu d'individus comparés à d'autres où les observations sont plus nombreuses : 
@@ -109,7 +203,7 @@ gg
 
 gg <- ggplot(data=data_ana, mapping = aes(x = mois, y = abondance))
 gg <- gg + geom_point() + theme_classic()
-gg <- gg + facet_grid(site~espece)
+gg <- gg + facet_grid(site~espece, scales = "free_y")
 gg
 
 # Voir avec les jours juliens : 

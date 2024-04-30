@@ -85,7 +85,8 @@ table
 # Clean x ok => 307 812
 # outlier x ok => 41 932
 
-
+table <- table(data$qualite_comptage, data$faraway_verif)
+table
 
 #Tuckey effency (sur les données brutes)
 #Colonne Q1 + Q4 puis calcul du Tuckey 

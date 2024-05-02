@@ -88,6 +88,54 @@ table
 table <- table(data$qualite_comptage, data$faraway_verif)
 table
 
+#Tableau summary (espèces, mois et secteurs et année) -> médiane, Q1 et Q3 
+
+
+data_s <- data %>%
+  group_by(espece, secteur, annee, mois) %>%
+  summarise(abondance = median(abondance))
+
+#Focus sur les espèces de l'estuaire de la Loire : 
+
+data_s <- subset(data_s, data_s$secteur=="estuaire")
+
+
+gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point() + geom_smooth(aes(group = annee)) + theme_classic()
+gg <- gg + facet_wrap(.~espece, scales = "free_y")
+gg
+
+ggsave("out/figure2_estuaire.png",width = 10, height = 8)
+
+      #Observations pour les limicoles : 
+
+data_s <- subset(data_s, (data_s$order_tax == "Charadriiformes"))
+
+gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance))
+gg <- gg + geom_point() + geom_line() + theme_classic()
+gg <- gg + facet_wrap(.~espece, scales = "free_y")
+gg
+
+
+#Baie : 
+data_s <- subset(data_s, (data_s$order_tax=="Anseriformes"))
+data_s <- subset(data_s, data_s$secteur=="baie_aiguillon")
+
+gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance))
+gg <- gg + geom_point() + geom_line() + theme_classic()
+gg <- gg + facet_wrap(.~espece, scales = "free_y")
+gg
+
+ggsave("out/Anatide_Baie_Aiguillon_.png",width = 10, height = 8)
+
+#Camargue : 
+data_s <- subset(data_s, (data_s$secteur=="camargue"))
+
+gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance))
+gg <- gg + geom_point() + geom_line() + theme_classic()
+gg <- gg + facet_wrap(.~espece, scales = "free_y")
+gg
+
 #Tuckey effency (sur les données brutes)
 #Colonne Q1 + Q4 puis calcul du Tuckey 
 # Q1 et q4 que sur les données comptage confiance

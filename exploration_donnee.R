@@ -5,11 +5,16 @@ library(data.table)
 #Ouverture du jeu de données : 
 data <- read.csv2("Data/data.csv", header = T)
 
+#Travailler sur des données à partir de 2004 : 
+
+data <- subset(data, !(data$annee<2004))
+
 #Création jour julien :     
 
 data$jour_julien_hiver <- ifelse(data$mois<6, 
                                  yday(data$date)+yday(as.Date(paste0(data$annee-1,"-12-31")))-yday(as.Date(paste0(data$annee-1,"-05-31"))),
                                  yday(data$date)-yday(as.Date(paste0(data$annee,"-05-31"))))
+
 #Outliers : 
 #IQR => Q3-Q1 
 # Q1 - 1.25*IQR et Q3 + 1.25*IQR
@@ -18,7 +23,7 @@ data$jour_julien_hiver <- ifelse(data$mois<6,
 
 #Tableau des quantiles : 
 Tab_quant <- data %>%
-  group_by(espece,mois,secteur) %>%
+  group_by(espece,mois,secteur,annee) %>%
   summarise(Q1 = quantile(abondance, probs =  c(0.25)),
             Q2 = quantile(abondance, probs = c(0.50)),
             Q3 = quantile(abondance, probs = c(0.75)))
@@ -44,21 +49,24 @@ Tab_quant$Faraway_sup <- Tab_quant$Q3+3*(Tab_quant$IQR)
               
 
 #Création d'un identifiant pour merge les deux tableaux : 
-data$id_Quantile <- paste0(data$espece, data$mois, data$secteur)
+data$id_Quantile <- paste0(data$espece, data$mois, data$secteur, data$annee)
 
-Tab_quant$id_Quantile <- paste0(Tab_quant$espece, Tab_quant$mois, Tab_quant$secteur)
+Tab_quant$id_Quantile <- paste0(Tab_quant$espece, Tab_quant$mois, Tab_quant$secteur, Tab_quant$annee)
 
 #Merge des deux tableaux : 
 
 data <- merge(data, Tab_quant, by.x = "id_Quantile",by.y = "id_Quantile")
 
+rm(list = c("Tab_quant"))
+
 setDT(data)
-data[, c('espece.y','secteur.y','mois.y'):=NULL]
+data[, c('espece.y','secteur.y','mois.y','annee.y'):=NULL]
 setDF(data)
 
 colnames(data) <- gsub("espece.x","espece",colnames(data))
 colnames(data) <- gsub("mois.x","mois",colnames(data))
 colnames(data) <- gsub("secteur.x","secteur",colnames(data))
+colnames(data) <- gsub("annee.x","annee",colnames(data))
 
 #Vérifier que les abondances rentrent dans l'intervalle :
 #Pour les outliers 
@@ -72,33 +80,61 @@ data$faraway_verif <- with(data, ifelse(data$abondance < data$Faraway_inf, "fara
 
 table(data$outlier_verif)
 # -> 77099 données considérées comme outlier sur les 657 385 
-# -> 580 286 données clean 
+#Pour données uniquement 2004 - 2024 (avec group avec les années) : 51 094
+# -> 478 898 données clean 
 
 table(data$faraway_verif)
-# -> 67 018 données faraway sur les 657 385 
+# -> 42 012
 
 #Tableau de contingence : 
 table <- table(data$qualite_comptage, data$outlier_verif)
 table
-# Clean x douteux => 148 276 
-# Outlier x douteux => 13 103 
-# Clean x ok => 307 812
-# outlier x ok => 41 932
+#Proportion outlier : dans les comptages douteux -> 7%
+#                     dans les compages ok -> 11%
 
 table <- table(data$qualite_comptage, data$faraway_verif)
 table
 
+#Retirer les données d'outlier et faraway : 
+data <- subset(data, !(data$outlier_verif=="outlier" | data$faraway_verif=="faraway"))
+
+
 #Tableau summary (espèces, mois et secteurs et année) -> médiane, Q1 et Q3 
 
-
-data_s <- data %>%
+#Aggrégation des données par la médiane selon l'espèce, secteur, annee et mois : 
+data <- data %>%
   group_by(espece, secteur, annee, mois) %>%
   summarise(abondance = median(abondance))
+
+#Création de nouvelles colonnes correspondant à l'année hivernale (la saison de compage en quelque sorte)
+# Plus les mois d'hiver (1 = Juin et 12 = mai)
+setDT(data)
+data[,annee_hiver := ifelse(mois > 5, annee,annee - 1)]
+data[,annee_hiver_txt := as.character(annee_hiver)]
+data[,mois_hiver := ifelse(annee == annee_hiver, mois - 5, mois + 7)]
+data[,mois_hiver_txt := as.character(mois_hiver)]
+vec_annee_hiver <- sort(unique(data[,annee_hiver_txt]))
+setDF(data)
+
+color_values <- data.frame(annee_hiver = vec_annee_hiver,hex = scales::seq_gradient_pal("blue", "red", "Lab")(seq(0,1,length.out=length(vec_annee_hiver
+))))
+
+#Obs juste pour l'estuaire : 
+data <- subset(data, (data$secteur=="estuaire"))
+
+gg <- ggplot(data = data, mapping = aes(x = mois_hiver, y = abondance, color = annee_hiver_txt, group = annee_hiver_txt))
+gg <- gg + geom_point() + geom_line() + theme_classic()
+gg <- gg + facet_wrap(.~espece, scales = "free_y") + scale_y_log10()
+gg <- gg + scale_color_manual(values = color_values$hex, labels = color_values$annee_hiver) 
+gg
+
+ggsave("out/figure3_estuaire.png",width = 10, height = 8)
+
+
 
 #Focus sur les espèces de l'estuaire de la Loire : 
 
 data_s <- subset(data_s, data_s$secteur=="estuaire")
-
 
 gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance, color = annee))
 gg <- gg + geom_point() + geom_smooth(aes(group = annee)) + theme_classic()
@@ -107,21 +143,11 @@ gg
 
 ggsave("out/figure2_estuaire.png",width = 10, height = 8)
 
-      #Observations pour les limicoles : 
-
-data_s <- subset(data_s, (data_s$order_tax == "Charadriiformes"))
-
-gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance))
-gg <- gg + geom_point() + geom_line() + theme_classic()
-gg <- gg + facet_wrap(.~espece, scales = "free_y")
-gg
-
 
 #Baie : 
-data_s <- subset(data_s, (data_s$order_tax=="Anseriformes"))
 data_s <- subset(data_s, data_s$secteur=="baie_aiguillon")
 
-gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance))
+gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance, color = annee))
 gg <- gg + geom_point() + geom_line() + theme_classic()
 gg <- gg + facet_wrap(.~espece, scales = "free_y")
 gg
@@ -131,10 +157,40 @@ ggsave("out/Anatide_Baie_Aiguillon_.png",width = 10, height = 8)
 #Camargue : 
 data_s <- subset(data_s, (data_s$secteur=="camargue"))
 
-gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance))
+gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance, color = annee))
 gg <- gg + geom_point() + geom_line() + theme_classic()
 gg <- gg + facet_wrap(.~espece, scales = "free_y")
 gg
+
+#Cotentin : 
+data_s <- subset(data_s, (data_s$secteur=="cotentin"))
+
+gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point() + geom_line() + theme_classic()
+gg <- gg + facet_wrap(.~espece, scales = "free_y")
+gg
+
+#Arcachon : 
+data_s <- subset(data_s, (data_s$secteur=="arcachon"))
+
+gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point() + geom_line() + theme_classic()
+gg <- gg + facet_wrap(.~espece, scales = "free_y")
+gg  
+
+#Rhin :
+data_s <- subset(data_s, (data_s$secteur=="rhin"))
+
+gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point() + geom_line() + theme_classic()
+gg <- gg + facet_wrap(.~espece, scales = "free_y")
+gg  
+
+#Pour tous les secteurs : 
+gg <- ggplot(data = data_s, mapping = aes(x = mois, y = abondance, color = annee))
+gg <- gg + geom_point() + geom_line() + theme_classic()
+gg <- gg + facet_wrap(.~espece, scales = "free_y")
+gg  
 
 #Tuckey effency (sur les données brutes)
 #Colonne Q1 + Q4 puis calcul du Tuckey 
@@ -183,8 +239,6 @@ gg <- ggplot(data = data_ana, mapping = aes(x = mois, y = abondance, color = qua
 gg <- gg + geom_point() + theme_classic()
 gg
 
-#Tuckey effency
-# Grouper données par espèces, mois et secteurs (faire une médiane pour les sp)
 
 
 #On a du mal à bien voir notamment pour les espèces qui ont de faibles abondances 

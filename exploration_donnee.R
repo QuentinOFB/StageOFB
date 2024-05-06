@@ -98,11 +98,19 @@ table
 #Retirer les données d'outlier et faraway : 
 data <- subset(data, !(data$outlier_verif=="outlier" | data$faraway_verif=="faraway"))
 
+write.csv2(data, "Data/DATA.csv")
+rm(list =c("data"))
+
+DATA <- read.csv2("Data/DATA.csv", header = T)
 
 #Tableau summary (espèces, mois et secteurs et année) -> médiane, Q1 et Q3 
 
+#sélection :
+
+DATA <- subset(DATA, (DATA$secteur=="reserve_du_rhin"))
+
 #Aggrégation des données par la médiane selon l'espèce, secteur, annee et mois : 
-data <- data %>%
+data <- DATA %>%
   group_by(espece, secteur, annee, mois) %>%
   summarise(abondance = median(abondance))
 
@@ -119,20 +127,21 @@ setDF(data)
 color_values <- data.frame(annee_hiver = vec_annee_hiver,hex = scales::seq_gradient_pal("blue", "red", "Lab")(seq(0,1,length.out=length(vec_annee_hiver
 ))))
 
-#Obs juste pour l'estuaire : 
-data <- subset(data, (data$secteur=="estuaire"))
-
 gg <- ggplot(data = data, mapping = aes(x = mois_hiver, y = abondance, color = annee_hiver_txt, group = annee_hiver_txt))
 gg <- gg + geom_point() + geom_line() + theme_classic()
-gg <- gg + facet_wrap(.~espece, scales = "free_y") + scale_y_log10()
+gg <- gg + facet_wrap(.~espece, scales = "free_y") 
 gg <- gg + scale_color_manual(values = color_values$hex, labels = color_values$annee_hiver) 
 gg
 
-ggsave("out/figure3_estuaire.png",width = 10, height = 8)
+ggsave("out/figure6_Rhin_ana.png",width = 20, height = 10)
 
+#Tous les secteurs : 
 
-
-#Focus sur les espèces de l'estuaire de la Loire : 
+#Tester avec cette formule pour les calculs de médianes : (vérification)
+setDT(Rhin_f)
+Rhin_f[, abondance_tot:= sum(abondance), by = .(espece,site)]
+setDF(Rhin_f)
+ 
 
 data_s <- subset(data_s, data_s$secteur=="estuaire")
 

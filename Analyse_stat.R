@@ -2,7 +2,14 @@
 # -> Apparement problème avec le package Matrix 
   # Il faut le réinstaller (v 1.6-2)
 
+#1. Réinstaller Matrix 
 
+#2. Réinstaller TMB 
+
+#3. Réinstaller GLMMTMB
+
+
+library(data.table)
 library(glmmTMB)
 library(ggeffects)
 
@@ -55,7 +62,7 @@ for (isp in 1:length(vecsp)) {
   # Vérifier si le modèle a été ajusté avec succès
   if (class(md)[1] != "try-error") {
     # Obtenir les prédictions du modèle
-    ggmd <- as.data.frame(ggpredict(md)$annee_hiver_txt)
+    ggmd <- as.data.frame(ggpredict(md)$annee_hiver)
     
     # Convertir en data.table pour des manipulations efficaces
     setDT(ggmd)
@@ -64,7 +71,7 @@ for (isp in 1:length(vecsp)) {
     setnames(ggmd, "x", "year")
     
     # Ajouter des colonnes supplémentaires
-    ggmd[, `:=`(code = sp, variable = v, season = s, bassin_name = b)]
+    ggmd[, `:=`(code = sp)]
     
     # Initialiser ou ajouter les données prédictives à la sortie finale
     if (!out_init) {
@@ -74,7 +81,10 @@ for (isp in 1:length(vecsp)) {
       d_out <- rbind(d_out, ggmd, fill = TRUE)
     } } }
 
-md <- try(glmmTMB(form, subset(data, data$espece == "avocette_elegante", data$annee_hiver>2004), family = "nbinom2"))
+
+#test avec une seule espèce : 
 form <- as.formula("abondance ~ annee_hiver + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt)")
+md <- try(glmmTMB(form, subset(data, data$espece == "avocette_elegante", data$annee_hiver>2004), family = "nbinom2"))
+
 
 

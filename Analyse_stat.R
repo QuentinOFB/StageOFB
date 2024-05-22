@@ -83,8 +83,9 @@ for (isp in 1:length(vecsp)) {
 
 
 #test avec une seule espèce : 
+attach(data)
 form <- as.formula("abondance ~ annee_hiver + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt)")
-md <- try(glmmTMB(form, subset(data, data$espece == "avocette_elegante", data$annee_hiver>2004), family = "nbinom2"))
+md <- try(glmmTMB(form, subset(data, espece == "avocette_elegante", annee_hiver>2004), family = "nbinom2"))
 
 
 

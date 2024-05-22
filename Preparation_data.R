@@ -3027,6 +3027,191 @@ Rhin_f <- subset(Rhin_f, abondance_tot > 0)
 
 write.csv2(Rhin_f,"Data/Reserve_du_Rhin.csv")
 
+      ########## 7 Baie de Saint-Brieuc ############
+
+
+Brieuc <- read.csv("Data/data_saint_brieuc.csv", header = F, sep = ";")
+View(Brieuc)
+
+colnames(Brieuc) <- gsub("V4","espece",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V5","protocole_observation",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V6","type_de_comptage",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V7","date",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V8","obs",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V12","site",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V13","lattitude",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V14","longitude",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V15","lieu_observation",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V16","abondance",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V18","precision",colnames(Brieuc))
+colnames(Brieuc) <- gsub("V19","remarques",colnames(Brieuc))
+
+Brieuc <- Brieuc[-c(1,2),]
+
+#Comptage bi-mensuel depuis 2012 ; mensuel depuis 1996 et annuel au-delà :
+
+#Rajout de la colonne date : 
+
+#La date : 
+Brieuc$date <- ymd(Brieuc$date)
+
+#Ajouter le mois et l'année 
+Brieuc$mois <- month(Brieuc$date)
+Brieuc$annee <- year(Brieuc$date)
+
+#Les espèces : 
+Brieuc [,4] <- tolower(Brieuc[,4])
+Brieuc[,4] <- iconv(Brieuc[,4], from = 'UTF-8',to = 'ASCII//TRANSLIT')
+Brieuc [,4] <- gsub(" ","_",Brieuc[,4])
+Brieuc [,4] <- gsub("'","_",Brieuc[,4])
+Brieuc [,4] <- gsub("-","_",Brieuc[,4])
+sort(unique(Brieuc$espece))
+
+Brieuc [,4] <- gsub("chevalier_combattant","combattant_varie",Brieuc[,4])
+Brieuc [,4] <- gsub("bernache_cravant_a_ventre_pale","bernache_cravant_occidentale",Brieuc[,4])
+
+
+#Sélection des anatidés et limicoles : 
+espece <- read.csv("Data/espece.csv", header = T)
+espece <- espece[-c(98,301,427),]
+
+espece[,5] <- tolower(espece[,5])
+espece[,5] <- gsub(" ","_",espece[,5])
+espece[,5] <- gsub("'","_",espece[,5])
+espece[,5] <- gsub("-","_",espece[,5])
+espece[,5] <- iconv(espece[,5],from = 'UTF-8',to = 'ASCII//TRANSLIT')
+sort(unique(espece$french_name))
+Brieuc <- merge(Brieuc, espece, by.x = "espece", by.y = "french_name", all.x = T) 
+
+#Voir les doublons 
+tabledupli <- Brieuc %>%
+  group_by(V1) %>%
+  filter(n()>1) %>%
+  ungroup() 
+
+Brieuc$order_tax[Brieuc$espece=="bernache_cravant_du_pacifique"] <- "Ansériformes"
+Brieuc$order_tax[Brieuc$espece=="canard_de_chiloe"] <- "Ansériformes"
+Brieuc$order_tax[Brieuc$espece=="dendrocygne_fauve"] <- "Ansériformes"
+Brieuc$order_tax[Brieuc$espece=="eider_a_tete_grise"] <- "Ansériformes"
+Brieuc$order_tax[Brieuc$espece=="ouette_de_magellan"] <- "Ansériformes"
+Brieuc$order_tax[Brieuc$espece=="nette_demi_deuil"] <- "Ansériformes"
+Brieuc$order_tax[Brieuc$espece=="oie_a_tete_barree"] <- "Ansériformes"
+
+Brieuc$family_tax[Brieuc$espece=="bernache_cravant_du_pacifique"] <- "Anatidés"
+Brieuc$family_tax[Brieuc$espece=="dendrocygne_fauve"] <- "Anatidés"
+Brieuc$family_tax[Brieuc$espece=="eider_a_tete_grise"] <- "Anatidés"
+Brieuc$family_tax[Brieuc$espece=="ouette_de_magellan"] <- "Anatidés"
+Brieuc$family_tax[Brieuc$espece=="oie_a_tete_barree"] <- "Anatidés"
+
+unique(Brieuc$order_tax)
+Brieuc <- subset(Brieuc,(Brieuc$order_tax=="Charadriiformes"|Brieuc$order_tax=="Ansériformes"))
+
+unique(Brieuc$family_tax)
+Brieuc <- subset(Brieuc, (Brieuc$family_tax=="Recurvirostridés"|Brieuc$family_tax=="Scolopacidés"
+                             |Brieuc$family_tax=="Anatidés"|Brieuc$family_tax=="Anatidae"
+                            |Brieuc$family_tax=="Charadriidés"|Brieuc$family_tax=="Haematropodidés"
+                            |Brieuc$family_tax=="Burhinidés"))
+
+sort(unique(Brieuc$espece))
+
+#Les sites 
+sort(unique(Brieuc$site))
+Brieuc[,12] <- tolower(Brieuc[,12])
+Brieuc[,12] <- gsub(" ","_",Brieuc[,12])
+Brieuc[,12]<- gsub("'","_",Brieuc[,12])
+Brieuc[,12] <- gsub("-","_",Brieuc[,12])
+Brieuc[,12] <- iconv(Brieuc[,12],from = 'UTF-8',to = 'ASCII//TRANSLIT')
+
+Brieuc [,12] <- gsub("dpm_anse_d_yffiniac___zpr","dpm_anse_d_yffiniac_zpr",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_anse_d_yffiniac___zpr_est","dpm_anse_d_yffiniac_zpr_est",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_anse_d_yffiniac___zpr_ouest","dpm_anse_d_yffiniac_zpr_ouest",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_anse_d_yffiniac___zpr_sud","dpm_anse_d_yffiniac_zpr_sud",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_anse_d_yffiniac__estran","dpm_anse_d_yffiniac_estran",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_anse_de_morieux___est","dpm_anse_de_morieux_est",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_anse_de_morieux___ouest","dpm_anse_de_morieux_ouest",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_anse_de_morieux___ouest___zh_littorale","dpm_anse_de_morieux_ouest_zh_littorale",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_anse_de_morieux___roc_verd","dpm_anse_de_morieux_roc_verd",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_zone_marine_hors_zps_(ouest_baie)","dpm_zone_marine_hors_zps_ouest_baie",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_zps_estran_hors_reserve_(zone_est_baie)","dpm_zps_estran_hors_reserve_zone_est_baie",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_zps_greve_des_courses","dpm_zps_greve_des_courses",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_zps_zone_marine_(zone_est_baie)","dpm_zps_zone_marine_zone_est_baie",Brieuc[,12])
+Brieuc [,12] <- gsub("dpm_anse_de_morieux_ouest___zh_littorale","dpm_anse_de_morieux_ouest_zh_littorale",Brieuc[,12])
+
+#Ajouter le nom du secteur 
+
+Brieuc$secteur <- "baie_de_saint_brieuc"
+
+#Ajouter le protocole de comptage 
+
+Brieuc$protocole <- "terrestre"
+
+#Prendre en compte les remarques : 
+sort(unique(Brieuc$remarques))
+
+#Ajouter la colonne qualité du comptage : 
+Brieuc$qualite_comptage <- "ok"
+
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 19"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 20"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 21"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 22"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 23"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 24"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 25"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 26"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 28"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 30"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 32"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 33"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 34"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 35"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 36"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 37"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 38"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 39"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 40"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 41"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 42"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 47"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 48"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 49"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 54"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 55"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 56"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 57"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 58"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 59"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 60"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 64"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 65"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 70"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 73"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 74"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 75"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="attention dérangement kite anse yffiniac, comptage certains anatidés le 76"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="BROUILLARD ET CHIEN SUR YFFINIAC"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="Chiens sans laisse"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="comptage avancé d'un jour cuase météo le lendemain, donc marée plus haute que d'habitude"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="comptage non complet"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="dérangement avant comptage Yffiniac et pendant Morieux et bateau mytili macreuse"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="derangement collecte algues vertes du Bon abri"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="dérangement sur morieux et évapotranspiration sur Yffiniac"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="Dérangement ULM avant comptage"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="environ, comptage incomplet"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="KITE SURF A BELIARD\nPas de courlis sur béliard et de nombreux envols"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="incomplet indiv ds les herbus"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="Kitesurf dans la RN"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="pas eu le temps de compter, et mauvaises conditions ensuite (envol, luminosité...)"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="présent pas compté difficulté lié aux conditions météo"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="sous-sestimé"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="sous estimation des bécasseau pb luminosité solei de face"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="sous estimé"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="sous estimé probablement"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="sous estimé probablement, nbx individus dans les prés salés à cause du vent"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="sous estimés"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="sous estimés prés salés"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="surement sous estimé"] <- "douteux"
+Brieuc$qualite_comptage[Brieuc$remarques=="visibilité et conditions d'observation médiocre, probablement largement sous -estimé"] <- "douteux"
 
 ################### FUSION TABLEAU DONNEES ##############
 help("rbind")

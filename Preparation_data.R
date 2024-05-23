@@ -309,20 +309,20 @@ data$jour_julien <- yday(data$date)
 #Création d'une colonne site_retenu 
 help("count")
 
-nb_suivi_site <-  
-  data %>% 
-  count(site, annee)
+#nb_suivi_site <-  
+  #data %>% 
+  #count(site, annee)
 
-nb_suivi_site <- 
-  nb_suivi_site %>%
-  count(site)
+#nb_suivi_site <- 
+  #nb_suivi_site %>%
+  #count(site)
 
-data <- merge(data,nb_suivi_site, by.x = "site", by.y = "site")
+#data <- merge(data,nb_suivi_site, by.x = "site", by.y = "site")
 
-colnames(data)[19] <- "nb_annee_suivie"
+#colnames(data)[19] <- "nb_annee_suivie"
 
-data$site_retenu <- with(data, ifelse(nb_annee_suivie < 3,"non",
-    ifelse(data$site=="baracon","non","oui")))  
+#data$site_retenu <- with(data, ifelse(nb_annee_suivie < 3,"non",
+    #ifelse(data$site=="baracon","non","oui")))  
 
 # Enlever le comptage du 10/11/2008 : X2 passage sur tous les sites, avec des conditions météo nulles
 # + comptage partiel -> remplacé par les comptages du 12/11 et du 24/11 : 
@@ -3369,7 +3369,7 @@ data <- bind_rows(data, Camargue)
 
 # Rajouter famille et order pour les espèces indeterminées : 
 unique(data$order_tax)
-
+data[,1] <- gsub("bernache_du_pacifique","bernache_cravant_du_pacifique",data[,1])
 data[,30] <- iconv(data[,30], from = "UTF-8", to = "ASCII//TRANSLIT")
 
 sort(unique(data$espece))
@@ -3378,6 +3378,7 @@ data$order_tax[data$espece=="anatides_sp"] <- "Anseriformes"
 data$order_tax[data$espece=="barges_sp"] <- "Charadriiformes"
 data$order_tax[data$espece=="becasseau_sp"] <- "Charadriiformes"
 data$order_tax[data$espece=="becasses"] <- "Charadriiformes"
+data$order_tax[data$espece=="bernache_cravant_du_pacifique"] <- "Anseriformes"
 data$order_tax[data$espece=="canard_sp"] <- "Anseriformes"
 data$order_tax[data$espece=="chevalier_sp"] <- "Charadriiformes"
 data$order_tax[data$espece=="courlis_sp"] <- "Charadriiformes"
@@ -3400,7 +3401,8 @@ data$order_tax[data$espece=="hybride_bernache_du_canada_x_oie_cendree"] <- "Anse
 data$order_tax[data$espece=="harelde_de_miquelon"] <- "Anseriformes"
 data$order_tax[data$espece=="fuligule_sp"] <- "Anseriformes"
 data$order_tax[data$espece=="dendrocygne_fauve"] <- "Anseriformes"
-
+data$order_tax[data$espece=="ouette_de_magellan"] <- "Anseriformes"
+data$order_tax[data$espece=="eider_a_tete_grise"] <- "Anseriformes"
 #On rajoute les familles : 
 unique(data$family_tax)
 
@@ -3431,6 +3433,8 @@ data$family_tax[data$espece=="hybride_bernache_du_canada_x_oie_cendree"] <- "Ana
 data$family_tax[data$espece=="harelde_de_miquelon"] <- "Anatides"
 data$family_tax[data$espece=="fuligule_sp"] <- "Anatides"
 data$family_tax[data$espece=="dendrocygne_fauve"] <- "Anatides"
+data$family_tax[data$espece=="ouette_de_magellan"] <- "Anatides"
+data$family_tax[data$espece=="eider_a_tete_grise"] <- "Anatides"
 
 #On rajoute la classe : 
 data$class_tax[data$espece=="anatides_sp"] <- "Oiseaux"
@@ -3457,8 +3461,9 @@ data$class_tax[data$espece=="hybride_bernache_du_canada_x_oie_cendree"] <- "Oise
 data$class_tax[data$espece=="harelde_de_miquelon"] <- "Oiseaux"
 data$class_tax[data$espece=="fuligule_sp"] <- "Oiseaux"
 data$class_tax[data$espece=="dendrocygne_fauve"] <- "Oiseaux"
+data$class_tax[data$espece=="ouette_de_magellan"] <- "Oiseaux"
+data$class_tax[data$espece=="eider_a_tete_grise"] <- "Oiseaux"
 
-unique(data$order_tax)
 
 #Du chipotage (mais pour qu'un maximum d'informations soient renseignées dans le tableau)
 data$pk_species[data$espece=="oie_de_la_toundra"] <- "ANSFABROS"
@@ -3475,6 +3480,8 @@ data$scientific_name[data$espece=="bernache_du_pacifique"] <- "Branta_bernicla_n
 data$scientific_name[data$espece=="canard_de_chiloe"] <- "Mareca_sibilatrix"
 data$scientific_name[data$espece=="canard_des_bahamas"] <- "Anas_bahamensis"
 data$scientific_name[data$espece=="sarcelle_a_ailes_vertes"] <- "Anas_carolinensis"
+data$scientific_tax[data$espece=="ouette_de_magellan"] <- "Chloephaga_picta"
+data$scientific_tax[data$espece=="eider_a_tete_grise"] <- "Somateria_spectabilis"
 
 data$niveau_taxo[data$espece=="anatides_sp"] <- "famille"
 data$niveau_taxo[data$espece=="chevalier_sp"] <- "famille"
@@ -3490,6 +3497,8 @@ data$niveau_taxo[data$espece=="sarcelle_sp"] <- "genre"
 data$niveau_taxo[data$espece=="limicole_sp"] <- "ordre"
 data$niveau_taxo[data$espece=="fuligule_sp"] <- "genre"
 data$niveau_taxo[data$espece=="bernache_du_pacifique"] <- "sous-espece"
+data$niveau_taxo[data$espece=="ouette_de_magellan"] <- "espece"
+data$niveau_taxo[data$espece=="eider_a_tete_grise"] <- "espece"
 
 data$english_name[data$espece=="anatides_sp"] <- "Anatidae_sp"
 data$english_name[data$espece=="limicole_sp"] <- "Waders_sp"
@@ -3505,7 +3514,8 @@ data$english_name[data$espece=="bernache_du_pacifique"] <- "Brant Goose (Nigrica
 data$english_name[data$espece=="becasseau_rousset"] <- "Buff-breasted Sandpiper"
 data$english_name[data$espece=="harelde_de_miquelon"] <- "Long-tailed Duck"
 data$english_name[data$espece=="dendrocygne_fauve"] <- "Fulvous Whistling Duck"
-
+data$english_name[data$espece=="ouette_de_magellan"] <- "Upland Goose"
+data$english_name[data$espece=="eider_a_tete_grise"] <- "Kind Eider"
 
 data$scientific_name[data$espece=="courlis_sp"] <- "Numenius_sp"
 data$scientific_name[data$espece=="gravelot_sp"] <- "Charadrius_sp"
@@ -3536,7 +3546,7 @@ setDF(data)
 
 colnames(data) [1] <- "espece"
 colnames(data) [7] <- "secteur"
-colnames(data) [34] <- "occurence_sp"
+colnames(data) [35] <- "occurence_sp"
 
 #Créer une colonne avec les jours juliens correspondant à la période d'hivernage 
 data$jour_julien_hiver <- ifelse(data$mois<6, 
@@ -3550,6 +3560,22 @@ data[,mois_hiver := ifelse(annee == annee_hiver, mois - 5, mois + 7)]
 data[,mois_hiver_txt := as.character(mois_hiver)]
 vec_annee_hiver <- sort(unique(data[,annee_hiver_txt]))
 setDF(data)
+
+#Création d'une colonne site retenu :
+
+nb_suivi_site <-  
+  data %>% 
+  count(site, annee_hiver)
+
+nb_suivi_site <- 
+  nb_suivi_site %>%
+  count(site)
+
+data <- merge(data,nb_suivi_site, by.x = "site", by.y = "site")
+
+colnames(data)[41] <- "nb_saison_suivi"
+
+data$site_retenu <- with(data, ifelse(data$nb_saison_suivi < 3 ,"non","oui"))
 
 #Création colonne pour les outliers et faraway : 
 #Outliers : 
@@ -3616,7 +3642,6 @@ data$faraway_verif <- with(data, ifelse(data$abondance < data$Faraway_inf, "fara
                                         ifelse(data$abondance > data$Faraway_sup, "faraway","clean")))
 
 table(data$outlier_verif)
-# -> 478 898 clean & 51 094 Outliers 
 
 table(data$faraway_verif)
 # -> 42 012 faraway & 487 980 clean 
@@ -3625,17 +3650,27 @@ table(data$faraway_verif)
 table <- table(data$qualite_comptage, data$outlier_verif)
 table
 #Proportion de outlier qui correspond véritablement à un comptage douteux : 
-# 27% de outlier qui sont des comptages douteux 
-# 37% de clean qui sont des comptages douteux 
+
 
 table <- table(data$qualite_comptage, data$faraway_verif)
 table
 
 #Retirer les données d'outlier et faraway : 
 data_clean <- subset(data, !(data$outlier_verif=="outlier" | data$faraway_verif=="faraway"))
+data_clean <- subset(data_clean, !(data_clean$site==""))
+
+#Rajouter en tant que site non retenu les sites agrégés du rhin et Baracon (focus sur les espèces gibier) + RNN de Beauguillot 
+
+data_clean$site_retenu[data_clean$site=="baracon"] <- "non"
+data_clean$site_retenu[data_clean$site=="rnn_beauguillot"] <- "non"
+data_clean$site_retenu[data_clean$site=="vieuxrhin_grandcanalalsace"] <- "non"
+data_clean$site_retenu[data_clean$site=="secteursud_rhinland_basenautique"] <- "non"
+data_clean$site_retenu[data_clean$site=="amontbarrage_avalbarrage"] <- "non"
 
 #Enregistrement des jeux de données : 
-write.csv2(data, "Data/data_clean.csv")
+write.csv2(data, "Data/data_clean.csv") #Données sans les outliers 
+
+
 write.csv2(data, "Data/data.csv")
 
 

@@ -3137,6 +3137,9 @@ Brieuc [,12] <- gsub("dpm_zps_greve_des_courses","dpm_zps_greve_des_courses",Bri
 Brieuc [,12] <- gsub("dpm_zps_zone_marine_(zone_est_baie)","dpm_zps_zone_marine_zone_est_baie",Brieuc[,12])
 Brieuc [,12] <- gsub("dpm_anse_de_morieux_ouest___zh_littorale","dpm_anse_de_morieux_ouest_zh_littorale",Brieuc[,12])
 
+#Les points d'observation : 
+sort(unique(Brieuc$lieu_observation))
+
 #Ajouter le nom du secteur 
 
 Brieuc$secteur <- "baie_de_saint_brieuc"
@@ -3144,6 +3147,11 @@ Brieuc$secteur <- "baie_de_saint_brieuc"
 #Ajouter le protocole de comptage 
 
 Brieuc$protocole <- "terrestre"
+
+#Les observateurs : 
+unique(Brieuc$obs)
+
+Brieuc$obs <- "reserve_naturelle"
 
 #Prendre en compte les remarques : 
 sort(unique(Brieuc$remarques))
@@ -3213,6 +3221,114 @@ Brieuc$qualite_comptage[Brieuc$remarques=="sous estimés prés salés"] <- "dout
 Brieuc$qualite_comptage[Brieuc$remarques=="surement sous estimé"] <- "douteux"
 Brieuc$qualite_comptage[Brieuc$remarques=="visibilité et conditions d'observation médiocre, probablement largement sous -estimé"] <- "douteux"
 
+#Ajouter une colonne pour le nombre d'observation : 
+
+nb_observation <- Brieuc %>% subset(abondance > 0) %>%
+  count(espece)
+
+Brieuc <- merge(Brieuc,nb_observation, by.x = "espece",by.y = "espece")
+colnames(Brieuc)[39] <- "occurence_sp"
+
+#Ajouter la colonne voie de migration 
+
+Brieuc$voie_migration <- "est_atlantique"
+
+
+id <- paste0(Brieuc$site,Brieuc$date)
+unique(id)
+# 2. Création de la table "site" : 
+site <- data.frame(id, Brieuc$site,Brieuc$secteur, Brieuc$protocole, Brieuc$qualite_comptage, Brieuc$voie_migration)
+site <- unique(site) 
+table(duplicated(site$id))
+site %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
+
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_estran2005-12-07"] <- "ok"
+
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_ouest2011-03-25"]<- "ok"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_ouest2010-01-07"] <- "douteux"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_estran2013-11-13"] <- "ok"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_ouest2010-05-12"] <- "ok"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_ouest2012-04-24"] <- "ok"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_de_morieux_est2021-11-30"] <- "douteux"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_ouest2011-11-01"] <- "ok"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_ouest2002-03-17"] <- "ok"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_estran2005-12-07"] <- "ok"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_ouest2004-05-10"] <- "ok"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_de_morieux_est2012-03-05"] <- "douteux"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_de_morieux_est2013-10-16"] <- "douteux"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_est2012-10-26"] <- "douteux"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_de_morieux_est2020-03-07"] <- "douteux"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_est2012-07-09"] <- "ok"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_sud2014-04-25"] <- "douteux"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_zpr_est2012-05-25"] <- "douteux"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_fronteven2017-06-21"] <- "douteux"
+site$Brieuc.qualite_comptage[site$id=="dpm_anse_d_yffiniac_estran2010-05-12"] <- "ok"
+
+site <- unique(site) 
+
+# 3. Création de la table inventaire : 
+
+inv <- data.frame(id,Brieuc$date,Brieuc$obs,Brieuc$mois,Brieuc$annee)
+inv <- unique(inv)
+table(duplicated(inv$id))
+
+inv %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
+
+# Compilation des deux tables : 
+Brieuc_inv <- merge(site,inv,by.x = "id", by.y = "id")
+
+# 4. Création de la table comptage (table d'observation) : 
+# -> création d'un id pour fusionner les tables (avec les espèces)
+Brieuc$id <- paste0(Brieuc$espece,Brieuc$site,Brieuc$date)
+Brieuc$id_inv <- paste0(Brieuc$site,Brieuc$date)
+
+#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
+
+id_inv <- unique(Brieuc$id_inv)
+sp <- unique(Brieuc$espece)
+
+inventaire <- expand.grid(id_inv, sp) # [RL] très bien
+View(inventaire)
+
+# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
+# dans les data
+
+inventaire$id_sp <- paste0(inventaire$Var2,inventaire$Var1)
+Brieuc_obs <- data.frame(Brieuc$abondance, Brieuc$id)
+Brieuc_obs <- aggregate(Brieuc_obs, Brieuc.abondance ~ Brieuc.id, median)
+
+# Combinaison des deux tableaux : 
+
+Brieuc_f <- merge(inventaire, Brieuc_obs, by.x = "id_sp", by.y = "Brieuc.id", all.x = T)
+
+#remplacer les na par les 0 
+Brieuc_f[is.na(Brieuc_f)] <- 0
+
+# Var 2 -> espece :
+colnames(Brieuc_f)[names(Brieuc_f)== "Var2"] <- "espece"
+colnames(Brieuc_f)[names(Brieuc_f)== "Var1"] <- "id"
+
+
+# Merge des tables : 
+Brieuc_f <- merge(Brieuc_f, Brieuc_inv, by.x = "id", by.y = "id")
+colnames(Brieuc_f) <- gsub("Brieuc.","",colnames(Brieuc_f))
+
+# Rajouter la somme des abondances pour chaque espèce/site 
+Brieuc_f$abondance <- as.numeric(Brieuc_f$abondance)
+setDT(Brieuc_f)
+Brieuc_f[, abondance_tot:= sum(abondance), by = .(espece,site)]
+setDF(Brieuc_f)
+Brieuc_f <- subset(Brieuc_f, abondance_tot > 0)
+
+write.csv2(Brieuc_f,"Data/Baie_saint_brieuc.csv")
+
+
 ################### FUSION TABLEAU DONNEES ##############
 help("rbind")
 help("bind_rows")
@@ -3223,17 +3339,16 @@ BA <- read.csv2("Data/Bassin_arcachon_limicoles.csv", header = T)
 Cotentin <- read.csv2("Data/Baie_Cotentin.csv", header = T)
 Aiguillon <- read.csv2("Data/Baie_aiguillon.csv", header = T)
 Rhin <- read.csv2("Data/Reserve_du_rhin.csv", header = T)
+Saint_Brieuc <- read.csv2("Data/Baie_saint_brieuc.csv", header = T)
 
 #Problème liés au noms 
 colnames(Aiguillon) [11] <- "voie_migration" 
 colnames(Cotentin) [9] <- "nb_annee_suivie"
 colnames(Camargue) [24] <- "nb_annee_suivie"
 
-
-
 # Fusion des tableaux (on rajoutera la camargue ultérieurement car déjà les colonnes liées à la taxonomie) 
 
-data <- bind_rows(Loire, BA, Cotentin, Aiguillon, Rhin)
+data <- bind_rows(Loire, BA, Cotentin, Aiguillon, Rhin, Saint_Brieuc)
 data[,1] <- iconv(data[,1],from = "UTF-8",to = "ASCII//TRANSLIT")
 
 
@@ -3400,11 +3515,9 @@ data$scientific_name[data$espece=="fuligule_sp"] <- "Aythya_sp"
 data$scientific_name[data$espece=="barges_sp"] <- "Limosa_sp"
 
 #Rajouter la colonne pour les jours julien 
-
 data$jour_julien <- yday(data$date)
 
 #Rajouter une colonne pour les occurence des espèces dans chaque secteurs : 
-
 
 occurence_sp <- 
   data %>% count(espece,secteur,abondance) %>% filter(abondance > 0)
@@ -3426,46 +3539,107 @@ colnames(data) [7] <- "secteur"
 colnames(data) [34] <- "occurence_sp"
 
 #Créer une colonne avec les jours juliens correspondant à la période d'hivernage 
-# jour 1 = 01/10 année n et dernier jour = 30/04 de l'année n + 1 
+data$jour_julien_hiver <- ifelse(data$mois<6, 
+                                 yday(data$date)+yday(as.Date(paste0(data$annee-1,"-12-31")))-yday(as.Date(paste0(data$annee-1,"-05-31"))),
+                                 yday(data$date)-yday(as.Date(paste0(data$annee,"-05-31"))))
+#Création des colonnes années hiver et mois hiver : 
+setDT(data)
+data[,annee_hiver := ifelse(mois > 5, annee,annee - 1)]
+data[,annee_hiver_txt := as.character(annee_hiver)]
+data[,mois_hiver := ifelse(annee == annee_hiver, mois - 5, mois + 7)]
+data[,mois_hiver_txt := as.character(mois_hiver)]
+vec_annee_hiver <- sort(unique(data[,annee_hiver_txt]))
+setDF(data)
+
+#Création colonne pour les outliers et faraway : 
+#Outliers : 
+#IQR => Q3-Q1 
+# Q1 - 1.25*IQR et Q3 + 1.25*IQR
+# Far Away 
+# Q1 - 3*IQR et Q3 + 3*IQR
+
+#Tableau des quantiles : 
+Tab_quant <- data %>%
+  group_by(espece,mois,secteur,annee) %>%
+  summarise(Q1 = quantile(abondance, probs =  c(0.25)),
+            Q2 = quantile(abondance, probs = c(0.50)),
+            Q3 = quantile(abondance, probs = c(0.75)))
+
+#Ajout des "bornes" inf et sup pour les outliers : 
+
+#IQR : 
+Tab_quant$IQR <- Tab_quant$Q3-Tab_quant$Q1
+
+#Pour les outliers 
+#Borne inf 
+Tab_quant$Outlier_inf <-Tab_quant$Q1-1.25*(Tab_quant$IQR)
+
+#Borne sup
+Tab_quant$Outlier_sup <-Tab_quant$Q3+1.25*(Tab_quant$IQR)
+
+#Pour les Faraway : 
+#Borne inf : 
+Tab_quant$Faraway_inf <-Tab_quant$Q1-3*(Tab_quant$IQR)
+
+#Borne sup : 
+Tab_quant$Faraway_sup <- Tab_quant$Q3+3*(Tab_quant$IQR)
 
 
-#Création colonne hivernage et reproduction : 
+#Création d'un identifiant pour merge les deux tableaux : 
+data$id_Quantile <- paste0(data$espece, data$mois, data$secteur, data$annee)
 
-data$periode <- with(data, ifelse(data$mois==1,"hivernage",
-                            ifelse(data$mois==2,"hivernage",
-                            ifelse(data$mois==3,"hivernage",
-                            ifelse(data$mois==4,"hivernage",
-                            ifelse(data$mois==10,"hivernage",
-                            ifelse(data$mois==11,"hivernage",
-                            ifelse(data$mois==12,"hivernage","repro"))))))))
-                            
+Tab_quant$id_Quantile <- paste0(Tab_quant$espece, Tab_quant$mois, Tab_quant$secteur, Tab_quant$annee)
+
+#Merge des deux tableaux : 
+
+data <- merge(data, Tab_quant, by.x = "id_Quantile",by.y = "id_Quantile")
+
+rm(list = c("Tab_quant"))
+
+setDT(data)
+data[, c('espece.y','secteur.y','mois.y','annee.y'):=NULL]
+setDF(data)
+
+colnames(data) <- gsub("espece.x","espece",colnames(data))
+colnames(data) <- gsub("mois.x","mois",colnames(data))
+colnames(data) <- gsub("secteur.x","secteur",colnames(data))
+colnames(data) <- gsub("annee.x","annee",colnames(data))
+
+#Vérifier que les abondances rentrent dans l'intervalle :
+#Pour les outliers 
+
+data$outlier_verif <- with(data, ifelse(data$abondance < data$Outlier_inf, "outlier",
+                                        ifelse(data$abondance > data$Outlier_sup, "outlier","clean")))        
+
+
+data$faraway_verif <- with(data, ifelse(data$abondance < data$Faraway_inf, "faraway",
+                                        ifelse(data$abondance > data$Faraway_sup, "faraway","clean")))
+
+table(data$outlier_verif)
+# -> 478 898 clean & 51 094 Outliers 
+
+table(data$faraway_verif)
+# -> 42 012 faraway & 487 980 clean 
+
+#Tableau de contingence : 
+table <- table(data$qualite_comptage, data$outlier_verif)
+table
+#Proportion de outlier qui correspond véritablement à un comptage douteux : 
+# 27% de outlier qui sont des comptages douteux 
+# 37% de clean qui sont des comptages douteux 
+
+table <- table(data$qualite_comptage, data$faraway_verif)
+table
+
+#Retirer les données d'outlier et faraway : 
+data_clean <- subset(data, !(data$outlier_verif=="outlier" | data$faraway_verif=="faraway"))
+
+#Enregistrement des jeux de données : 
+write.csv2(data, "Data/data_clean.csv")
 write.csv2(data, "Data/data.csv")
 
 
-## Voir pour les doubles comptages
-
-                                        # [RL] conseils :
-                                        # [RL] 1- créer une table site (id, nom, caratéristique,...)
-                                        # [RL] 2- créer une table inventaire (id, id_site,date, annee, mois,jour_julien,observateur,...)
-                                        # [RL] 3- tu as ta table observation (id_inventaire, espece, abondance)
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
+                                        
 
 
 

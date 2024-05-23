@@ -13,7 +13,7 @@ library(data.table)
 library(glmmTMB)
 library(ggeffects)
 
-data <- read.csv2("Data/Data_clean.csv", header = T)
+data <- read.csv2("Data/data_clean.csv", header = T)
 
 #Ajout colonnes année hiver + mois hiver 
 setDT(data)
@@ -82,10 +82,6 @@ for (isp in 1:length(vecsp)) {
     } } }
 
 
-#test avec une seule espèce : 
-attach(data)
-form <- as.formula("abondance ~ annee_hiver + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt)")
-md <- try(glmmTMB(form, subset(data, espece == "avocette_elegante", annee_hiver>2004), family = "nbinom2"))
 
 
 

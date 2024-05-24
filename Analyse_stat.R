@@ -83,5 +83,7 @@ for (isp in 1:length(vecsp)) {
 
 
 
-
+#test du modèle avec une seule espèce : 
+attach(data)
+md <- glmmTMB(abondance ~ annee_hiver + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt) ,data = subset(data, (espece == "avocette_elegante"|annee_hiver>2004)), family = "nbinom2")
 

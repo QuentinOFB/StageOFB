@@ -334,6 +334,8 @@ help("distinct")
 
 data <- subset(data,!(data$site=="saint_brevin"& data$date=="2008-07-18"& data$obs=="potiron"))
 
+data$espece[data$site =="saint_nicolas"&data$date=="2012-11-12"&data$espece=="sarcelle_d_ete"&data$abondance=="7"] <- "sarcelle_d_hiver"
+
 # Voir pour les doubles comptages avec Matthieu Bécot sur Pierre Rouge : 
 
 ##Selectionner les espèces limicoles et anatidés et enlever les autres : 
@@ -389,7 +391,7 @@ nb_observation <- data %>% subset(abondance > 0) %>%
   count(espece)
 
 data <- merge(data,nb_observation, by.x = "espece",by.y = "espece")
-colnames(data)[35] <- "occurence_sp"
+colnames(data)[33] <- "occurence_sp"
 
 #Ajouter colonne protocole 
 
@@ -406,7 +408,7 @@ data$voie_migration <- "est_atlantique"
 id <- paste0(data$site,data$date)
 
 # 2. Création de la table "site" : 
-site <- data.frame(id, data$site,data$secteur,data$protocole, data$nb_annee_suivie, data$qualite_comptage,data$voie_migration, data$site_retenu)
+site <- data.frame(id, data$site,data$secteur,data$protocole, data$qualite_comptage,data$voie_migration)
 site <- unique(site) 
 table(duplicated(site$id))
 # 3. Création de la table inventaire : 
@@ -418,7 +420,7 @@ table(duplicated(inv$id))
 # Compilation des deux tables : 
 data_inv <- merge(site,inv,by.x = "id", by.y = "id")
 table(duplicated(data_inv$id))
-data_inv <- subset(data_inv, !(data_inv$id=="migron 2017-12-15"&data_inv$data.obs=="guenezan, potiron"))
+data_inv <- subset(data_inv, !(data_inv$id=="migron 2017-12-15"& data_inv$data.obs=="guenezan, potiron"))
 
 # 4. Création de la table comptage (table d'observation) : 
 # -> création d'un id pour fusionner les tables (avec les espèces)
@@ -434,6 +436,58 @@ inventaire <- expand.grid(id_inv, sp) # [RL] très bien
 View(inventaire)
 
 data_obs <- data.frame(data$abondance,data$id)
+table(duplicated(data_obs$data.id))
+data_obs %>%
+  group_by(data.id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
+
+
+#Erreur liée à une mauvaise saisie des données : 
+data_obs <- subset(data_obs, ! (data_obs$data.id=="becasseau_variablemigron2013-02-06" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="becasseau_variablemigron2013-03-07" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_cravantgrand_bilho2014-11-19" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_cravantgrand_bilho2013-12-16" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_cravantgrand_bilho2012-11-12" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_cravantgrand_bilho2012-12-10" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_cravantgrand_bilho2012-02-20" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_cravantgrand_bilho2013-02-08" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_cravantgrand_bilho2014-03-13" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_cravantgrand_bilho2012-01-20" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_cravantgrand_bilho2012-10-12" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_cravantgrand_bilho2012-03-19" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_nonnettegrand_bilho2015-02-17" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="bernache_nonnettegrand_bilho2015-01-19" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="chevalier_gambettesaint_nicolas2008-07-18" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2018-12-20" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendrepaimboeuf_corsept2008-07-18" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2017-04-11" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2016-02-17" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2017-02-15" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2018-12-20" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2013-03-07" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2013-01-09" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2017-04-11" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2016-03-21" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2012-01-19" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2020-01-31" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2013-02-06" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2017-12-15" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2017-11-15" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="courlis_cendremigron2015-03-13" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="cygne_tuberculepipy2012-06-19" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="grand_gravelotestuaire2006-01-13" & data_obs$data.abondance=="50"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="grand_gravelotsaint_brevin_mean2008-02-18" & data_obs$data.abondance=="41"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="oie_cendreelavau2005-02-08" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="oie_cendreeestuaire2006-02-13" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="oie_cendreemassereau2006-03-13" & data_obs$data.abondance=="0"))
+data_obs <- subset(data_obs, ! (data_obs$data.id=="oie_cendreemassereau2006-03-13" & data_obs$data.abondance=="0"))
+
+#Erreur lié à un double passage 
+  #Double passage "unique" => Mean en 2005 - 04 - 12 
+
+  #Plusieurs double passage => Pierre rouge 
+
 data_obs <- aggregate(data_obs, data.abondance ~ data.id, median)
 
 warning(data_obs)
@@ -3328,6 +3382,217 @@ Brieuc_f <- subset(Brieuc_f, abondance_tot > 0)
 
 write.csv2(Brieuc_f,"Data/Baie_saint_brieuc.csv")
 
+######### 8 Marais d'Orx ############
+
+Orx_2014 <- read.csv("Data/donnees_marais_d_orx_2014.csv", header = T, fileEncoding = "UTF-8", sep = ";")
+
+colnames(Orx_2014) <- tolower(colnames(Orx_2014))
+
+#Régler la forme de la date :
+colnames(Orx_2014)[8] <- "date"
+Orx_2014$date <- dmy(Orx_2014$date)
+
+#Les noms des espèces : 
+colnames(Orx_2014)[25] <- "identifiant_esp"
+colnames(Orx_2014)[29] <- "espece" 
+sort(unique(Orx_2014$espece))
+
+Orx_2014[,29] <- tolower(Orx_2014[,29])
+Orx_2014[,29] <- gsub(" ","_",Orx_2014[,29])
+Orx_2014[,29] <- gsub("\\.","", Orx_2014[,29])
+Orx_2014[,29] <- gsub("'","_",Orx_2014[,29])
+Orx_2014[,29] <-iconv(Orx_2014[,29], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+sort(unique(Orx_2014$espece))
+
+#Sélection des anatidés : 
+Orx_2014 <- subset(Orx_2014,(Orx_2014$ordre=="Anseriformes"))
+
+#Les abondances : 
+colnames(Orx_2014)[35] <- "abondance"
+Orx_2014[is.na(Orx_2014)] <- 0
+
+#Les sites : 
+colnames(Orx_2014)[17] <- "site"
+
+Orx_2014[,17] <- tolower(Orx_2014[,17])
+Orx_2014[,17] <- gsub(" ","_",Orx_2014[,17])
+Orx_2014[,17] <- gsub("'","_",Orx_2014[,17])  
+Orx_2014[,17] <- iconv(Orx_2014[,17], from = 'UTF-8', to = 'ASCII//TRANSLIT')  
+  
+sort(unique(Orx_2014$site))
+
+#Les observateurs : 
+colnames(Orx_2014)[7] <- "obs"
+
+Orx_2014[,7] <- tolower(Orx_2014[,7])
+
+#Données de 2015 à 2024 : 
+
+Orx_2015_2024 <- read.csv("Data/donnees_marais_d_orx_2015_2024.csv", header = T, sep = ";",fileEncoding = "UTF-8")
+Orx_2015_2024 <- Orx_2015_2024[-c(1),]
+
+#Régler le problème de la date : 
+
+colnames(Orx_2015_2024)[8] <- "date"
+unique(Orx_2015_2024$date)
+
+
+Orx_2015_2024$date <- Orx_2015_2024$date |> str_replace_all(c("janv"="01","févr"="02",
+                                        "mars"="03","sept"="09","oct"="10",
+                                        "nov"="11","déc"="12"))
+
+Orx_2015_2024$date <- dmy(Orx_2015_2024$date)
+                            
+#Les noms des espèces : 
+colnames(Orx_2015_2024)[3] <- "espece" 
+sort(unique(Orx_2015_2024$espece))
+
+Orx_2015_2024[,3] <- tolower(Orx_2015_2024[,3])
+Orx_2015_2024[,3] <- gsub(" ","_",Orx_2015_2024[,3])
+Orx_2015_2024[,3] <- gsub("\\.","", Orx_2015_2024[,3])
+Orx_2015_2024[,3] <- gsub("'","_",Orx_2015_2024[,3])
+Orx_2015_2024[,3] <-iconv(Orx_2015_2024[,3], from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+#Sélection des anatidés : 
+unique(Orx_2015_2024$FAMILY_NAME)
+Orx_2015_2024 <- subset(Orx_2015_2024,(Orx_2015_2024$FAMILY_NAME=="Anatidae"))
+                                       
+#Les abondances : 
+colnames(Orx_2015_2024)[26] <- "abondance"
+unique(Orx_2015_2024$abondance)
+
+#Les sites : 
+colnames(Orx_2015_2024)[16] <- "site"
+
+Orx_2015_2024[,16] <- tolower(Orx_2015_2024[,16])
+Orx_2015_2024[,16] <- gsub(" ","_",Orx_2015_2024[,16])
+Orx_2015_2024[,16] <- gsub("'","_",Orx_2015_2024[,16])  
+Orx_2015_2024[,16] <- iconv(Orx_2015_2024[,16], from = 'UTF-8', to = 'ASCII//TRANSLIT')  
+
+sort(unique(Orx_2015_2024$site))
+
+#site marais d'orx générique ==> agrégés à l'ensemble du marais
+# rnn => probablement une aggrégation également (à vérifier)
+
+#Les remarques : 
+colnames(Orx_2015_2024)[14] <- "remarques"        
+                          
+#Fusionner les deux tableaux                       
+help("bind_rows")
+class(Orx_2014$abondance)
+class(Orx_2015_2024$abondance)
+Orx_2015_2024$abondance <- as.numeric(Orx_2015_2024$abondance)
+Orx <- bind_rows(Orx_2014,Orx_2015_2024)
+
+#Ajouter le mois et l'année 
+
+Orx$mois <- month(Orx$date)
+Orx$annee <- year(Orx$date)
+
+#voir les espèces : 
+sort(unique(Orx$espece))
+
+#Voir les noms de sites : 
+sort(unique(Orx$site))
+
+#Voir les doublons 
+tabledupli <- Orx %>%
+  group_by_all() %>%
+  filter(n()>1) %>%
+  ungroup()
+
+#Ajout protocole :
+Orx$protocole <- "terrestre"
+
+#Ajout secteur : 
+Orx$secteur <- "marais_d_orx"
+
+#Prendre en compte les remarques : 
+unique(Orx$remarques)
+
+#Création colonne qualité comptage : 
+Orx$qualite_comptage <- "ok"
+
+Orx$qualite_comptage[Orx$remarques=="Comptage sur l'ensemble du site, les chiffres sont approximatifs étant donné la superficie et les distances d'observation parfois importantes."] <- "douteux"
+Orx$qualite_comptage[Orx$remarques=="Dénombrement bimensuel, conditions météorologiques difficile, visibilité mauvaise, le Casier Burret n'est pas pris en compte dans ce comptage."] <- "douteux"
+Orx$qualite_comptage[Orx$remarques=="Comptage approximatif sur l'ensemble du site. Comptage difficile sur le casier Burret en raison de la végétation et de la visibilité."] <- "douteux"
+Orx$qualite_comptage[Orx$remarques=="Il pleut! Pas mal d'oiseaux sur le casier barrage, plus de 2500 canards comptabilisés ce matin toutes espèces confondues."] <- "douteux"
+Orx$qualite_comptage[Orx$remarques=="Comptage difficile en raison du niveau d'eau très haut sur le casier Central, de nombreux oiseaux cachés sous les saules et la végétation inondés (surtout sarcelle d 'hiver et canard colvert). Comptage difficile sur casier Burret en raison de la forte densité d'herbiers de jussie dans lesquels les oiseaux se remisent la journée."] <- "douteux"
+Orx$qualite_comptage[Orx$remarques=="Comptage très difficile et plus exhaustif que d'habitude en raison d'une inondation record sur le site. Toutes les berges et boisements humides sont sous l'eau et offrent de nombreuses zones de repos à l'abris des regards..."] <- "douteux"
+Orx$qualite_comptage[Orx$remarques=="Comptage bimensuel, niveaux d'eau très haut sur l'ensemble des casiers"] <- "douteux"
+
+Orx$voie_migration <- "est_atlantique"
+
+
+id <- paste0(Orx$site,Orx$date)
+unique(id)
+# 2. Création de la table "site" : 
+site <- data.frame(id, Orx$site,Orx$secteur, Orx$protocole, Orx$qualite_comptage, Orx$voie_migration)
+site <- unique(site) 
+table(duplicated(site$id))
+site %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
+
+#Création de la table inventaire
+inv <- data.frame(id,Orx$date,Orx$obs,Orx$mois,Orx$annee)
+inv <- unique(inv)
+table(duplicated(inv$id))
+
+inv %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  ungroup() %>% View()
+
+# Compilation des deux tables : 
+Orx_inv <- merge(site,inv,by.x = "id", by.y = "id")
+
+# 4. Création de la table comptage (table d'observation) : 
+# -> création d'un id pour fusionner les tables (avec les espèces)
+Orx$id <- paste0(Orx$espece,Orx$site,Orx$date)
+Orx$id_inv <- paste0(Orx$site,Orx$date)
+
+#Création du tableau inventaire qu'on va croiser avec le jeu de données : 
+
+id_inv <- unique(Orx$id_inv)
+sp <- unique(Orx$espece)
+
+inventaire <- expand.grid(id_inv, sp) # [RL] très bien
+View(inventaire)
+
+# Création d'un ID dans inventaire prenant en compte les espèces pour le combiner ensuite avec un ID
+# dans les data
+
+inventaire$id_sp <- paste0(inventaire$Var2,inventaire$Var1)
+Orx_obs <- data.frame(Orx$abondance, Orx$id)
+Orx_obs <- aggregate(Orx_obs, Orx.abondance ~ Orx.id, median)
+
+# Combinaison des deux tableaux : 
+
+Orx_f <- merge(inventaire, Orx_obs, by.x = "id_sp", by.y = "Orx.id", all.x = T)
+
+#remplacer les na par les 0 
+Orx_f[is.na(Orx_f)] <- 0
+
+# Var 2 -> espece :
+colnames(Orx_f)[names(Orx_f)== "Var2"] <- "espece"
+colnames(Orx_f)[names(Orx_f)== "Var1"] <- "id"
+
+# Merge des tables : 
+Orx_f <- merge(Orx_f, Orx_inv, by.x = "id", by.y = "id")
+colnames(Orx_f) <- gsub("Orx.","",colnames(Orx_f))
+
+# Rajouter la somme des abondances pour chaque espèce/site 
+Orx_f$abondance <- as.numeric(Orx_f$abondance)
+setDT(Orx_f)
+Orx_f[, abondance_tot:= sum(abondance), by = .(espece,site)]
+setDF(Orx_f)
+Orx_f <- subset(Orx_f, abondance_tot > 0)
+
+write.csv2(Orx_f,"Data/marais_d_orx.csv")
+
 
 ################### FUSION TABLEAU DONNEES ##############
 help("rbind")
@@ -3340,6 +3605,7 @@ Cotentin <- read.csv2("Data/Baie_Cotentin.csv", header = T)
 Aiguillon <- read.csv2("Data/Baie_aiguillon.csv", header = T)
 Rhin <- read.csv2("Data/Reserve_du_rhin.csv", header = T)
 Saint_Brieuc <- read.csv2("Data/Baie_saint_brieuc.csv", header = T)
+Marais_orx <- read.csv2("Data/marais_d_orx.csv", header = T)
 
 #Problème liés au noms 
 colnames(Aiguillon) [11] <- "voie_migration" 
@@ -3348,7 +3614,7 @@ colnames(Camargue) [24] <- "nb_annee_suivie"
 
 # Fusion des tableaux (on rajoutera la camargue ultérieurement car déjà les colonnes liées à la taxonomie) 
 
-data <- bind_rows(Loire, BA, Cotentin, Aiguillon, Rhin, Saint_Brieuc)
+data <- bind_rows(Loire, BA, Cotentin, Aiguillon, Rhin, Saint_Brieuc, Marais_orx)
 data[,1] <- iconv(data[,1],from = "UTF-8",to = "ASCII//TRANSLIT")
 
 
@@ -3666,6 +3932,18 @@ data_clean$site_retenu[data_clean$site=="rnn_beauguillot"] <- "non"
 data_clean$site_retenu[data_clean$site=="vieuxrhin_grandcanalalsace"] <- "non"
 data_clean$site_retenu[data_clean$site=="secteursud_rhinland_basenautique"] <- "non"
 data_clean$site_retenu[data_clean$site=="amontbarrage_avalbarrage"] <- "non"
+data_clean$site_retenu[data_clean$site=="marais_d_orx_(generique)"] <- "non"
+data_clean$site_retenu[data_clean$site=="reserve_naturelle_nationale_du_marais_d_orx/4010/casier_burret_(roe)"] <- "non"
+data_clean$site_retenu[data_clean$site=="rnn123_01_(1)"] <- "non"
+data_clean$site_retenu[data_clean$site=="rnn123_01_(2)"] <- "non"
+data_clean$site_retenu[data_clean$site=="rnn123_01_(3)"] <- "non"
+data_clean$site_retenu[data_clean$site=="rnn123_01_(4)"] <- "non"
+data_clean$site_retenu[data_clean$site=="rnn123_01_(6)"] <- "non"
+data_clean$site_retenu[data_clean$site=="rnn123_01_(7)"] <- "non"
+data_clean$site_retenu[data_clean$site=="rnn123_01_(10)"] <- "non"
+data_clean$site_retenu[data_clean$site=="rnn123_01_(11)"] <- "non"
+
+unique(Orx$site)
 
 #Enregistrement des jeux de données : 
 write.csv2(data, "Data/data_clean.csv") #Données sans les outliers 

@@ -3594,6 +3594,7 @@ Orx_f <- subset(Orx_f, abondance_tot > 0)
 write.csv2(Orx_f,"Data/marais_d_orx.csv")
 
 
+
 ################### FUSION TABLEAU DONNEES ##############
 help("rbind")
 help("bind_rows")
@@ -3636,6 +3637,7 @@ data <- bind_rows(data, Camargue)
 # Rajouter famille et order pour les espèces indeterminées : 
 unique(data$order_tax)
 data[,1] <- gsub("bernache_du_pacifique","bernache_cravant_du_pacifique",data[,1])
+data[,1] <- gsub("garrot_a_oil_d_or","garrot_a_oeil_d_or", data[,1])
 data[,30] <- iconv(data[,30], from = "UTF-8", to = "ASCII//TRANSLIT")
 
 sort(unique(data$espece))
@@ -3943,7 +3945,7 @@ data_clean$site_retenu[data_clean$site=="rnn123_01_(7)"] <- "non"
 data_clean$site_retenu[data_clean$site=="rnn123_01_(10)"] <- "non"
 data_clean$site_retenu[data_clean$site=="rnn123_01_(11)"] <- "non"
 
-unique(Orx$site)
+sort(unique(data_clean$espece))
 
 #Enregistrement des jeux de données : 
 write.csv2(data, "Data/data_clean.csv") #Données sans les outliers 

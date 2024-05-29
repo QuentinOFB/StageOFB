@@ -8,14 +8,17 @@
 
 #3. Réinstaller GLMMTMB
 
-
+library(ggplot2)
 library(data.table)
 library(glmmTMB)
 library(ggeffects)
 
 data <- read.csv2("Data/data_clean.csv", header = T)
 
-#Ajout colonnes année hiver + mois hiver 
+#Données non aggrégate : 
+data <- read.csv2("Data/data_clean_nonagglo.csv", header = T)
+
+#Ajout colonnes année hiver + mois hiver (déjà dans le tableau de données)
 setDT(data)
 data[,annee_hiver := ifelse(mois > 5, annee,annee - 1)]
 data[,annee_hiver_txt := as.character(annee_hiver)]
@@ -53,7 +56,10 @@ for (isp in 1:length(vecsp)) {
   # 1| mois_hiver_txt => effet aléatoire mois d'hiver 
   
   # Ajuster le modèle glmmTMB pour l'espèce courante, en utilisant la famille de distribution 'nbinom2' (binomiale négative)
-  md <- try(glmmTMB(form, subset(data, espece == sp, annee_hiver>2004), family = "nbinom2"))
+  md <- try(glmmTMB(form, subset(data, espece == sp & annee_hiver>2003 & site_retenu=="oui", family = "nbinom2")))
+  
+  #> Sélection les années à partir de 2004 
+  #> Sélection des sites retenus (+ de 3 saisons suivies)
   
   help("glmmTMB")
   
@@ -82,8 +88,9 @@ for (isp in 1:length(vecsp)) {
     } } }
 
 
-
 #test du modèle avec une seule espèce : 
-attach(data)
-md <- glmmTMB(abondance ~ annee_hiver + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt) ,data = subset(data, (espece == "avocette_elegante"|annee_hiver>2004)), family = "nbinom2")
+md_avo <- glmmTMB(abondance ~ annee_hiver + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt), data = subset(data, espece == "avocette_elegante"& annee_hiver>2003& site_retenu=="oui"), family = "nbinom2")
+summary(md_avo)  
+ggmd  <- as.data.frame(ggpredict(md_avo)$annee_hiver)
 
+  #représentation graphique : 

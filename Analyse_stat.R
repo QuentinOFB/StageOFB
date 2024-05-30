@@ -21,7 +21,9 @@ data <- read.csv2("Data/data_clean_nonagglo.csv", header = T)
 class(data$annee_hiver)
 class(data$annee_hiver_txt)
 
-data$annee_hiver_txt <- as.character(data$annee_hiver_txt)
+
+####### 1. L'année en facteur : 
+data$annee_hiver_txt <- as.factor(data$annee_hiver_txt)
 
 #Ajout colonnes année hiver + mois hiver (déjà dans le tableau de données)
 setDT(data)
@@ -58,7 +60,7 @@ for (isp in 1:length(vecsp)) {
   # 1| mois_hiver_txt => effet aléatoire mois d'hiver 
   
   # Ajuster le modèle glmmTMB pour l'espèce courante, en utilisant la famille de distribution 'nbinom2' (binomiale négative)
-  md <- try(glmmTMB(form, subset(data, espece == sp & annee_hiver_txt > 2003 & site_retenu=="oui", family = "nbinom2")))
+  md <- try(glmmTMB(form, subset(data, espece == sp & annee_hiver > 2003 & site_retenu=="oui", family = "nbinom2")))
   
   #> Sélection les années à partir de 2004 
   #> Sélection des sites retenus (+ de 3 saisons suivies)
@@ -83,25 +85,22 @@ for (isp in 1:length(vecsp)) {
     
     # Initialiser ou ajouter les données prédictives à la sortie finale
     if (!out_init) {
-      d_out_fact <- ggmd
+      d_out_txt <- ggmd
       out_init <- TRUE
     } else {
-      d_out_fact <- rbind(d_out_fact, ggmd, fill = TRUE)
+      d_out_txt <- rbind(d_out_txt, ggmd, fill = TRUE)
     } } }
 
-#Si on veut enregistrer d_Out (pour évitier d'avoir à faire retourner le modèle) 
-#L'année en numérique :
-write.csv2(d_out,"Data/d_out.csv")
-d_out <- read.csv2("Data/d_out.csv")
+
 #L'année en character : 
-write.csv2(d_out_fact, "Data/d_out_fact.csv")
+write.csv2(d_out_txt, "Data/d_out_txt.csv")
 
 #Information importante : on obtiens pas la même chose avec l'année en facteur ou en numérique...
 unique(d_out$code)
 unique(d_out_fact$code)
 
 #Mod pour avocette élégante 
-md_avo <- glmmTMB(abondance ~ annee_hiver_txt + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt), data = subset(data, espece == "avocette_elegante"& annee_hiver_txt>2003& site_retenu=="oui"), family = "nbinom2")
+md_avo <- glmmTMB(abondance ~ annee_hiver_txt + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt), data = subset(data, espece == "avocette_elegante"& site_retenu=="oui"), family = "nbinom2")
 ggmd <- ggpredict(md_avo, terms = c("annee_hiver_txt"))
 
 #Mod pour la sarcelle d'hiver 
@@ -135,18 +134,16 @@ d_pred <- data.frame(annee = ggmd$x,abondance_var = ggmd$predicted / ref, ICinf 
 print(d_pred)
 
 
-
 #Essaie de faire une boucle ? 
 #Le faire avec l'année en facteur : 
-d_out_fact <- read.csv2("Data/d_out_fact.csv")
 
 out_init <- FALSE
-vecsp <- unique(d_out_fact$code)
+vecsp <- unique(d_out_txt$code)
 for (isp in 1:length(vecsp)) {
   sp <- vecsp[isp]  # Sélectionner l'espèce courante
   cat("\n\n (", isp, "/", length(vecsp), ") ", sp)  # Afficher l'état de la boucle
 
-  data_ref <- subset(d_out_fact, code == sp)
+  data_ref <- subset(d_out_txt, code == sp)
   data_ref$year <- sort(data_ref$year)
   ref <- data_ref$predicted[1]
   d_pred <- data.frame(annee = data_ref$year, abondance_var =  data_ref$predicted / ref, ICinf =  data_ref$conf.low/ref , ICsup =  data_ref$conf.high/ref)
@@ -157,38 +154,34 @@ for (isp in 1:length(vecsp)) {
   d_pred[, `:=`(code = sp)]  
   
   if (!out_init) {
-    d_out_tempo_fact <- d_pred
+    d_tp_txt <- d_pred
     out_init <- TRUE
   } else {
-    d_out_tempo_fact <- rbind(d_out_tempo_fact, d_pred, fill = TRUE)
+    d_tp_txt <- rbind(d_tp_txt, d_pred, fill = TRUE)
   } } 
 
-rm(list = c("d_out_tempo_fact"))
-
-
-#Pour l'année en numérique :
-write.csv2(d_out_tempo_num,"Data/d_out_tempo_num.csv")
-
 #Pour l'année en facteur : 
-write.csv2(d_out_tempo_fact,"Data/d_out_tempo_fact.csv")
+write.csv2(d_tempo_fact,"Data/d_tp_txt.csv")
 
 
 #Représentation graphique : 
   # Une boucle ? 
 
 out_init <- FALSE
-vecsp <- unique(d_out_tempo_fact$code)
+vecsp <- unique(d_tp_txt$code)
 for (isp in 1:length(vecsp)) {
   sp <- vecsp[isp]  # Sélectionner l'espèce courante
   cat("\n\n (", isp, "/", length(vecsp), ") ", sp)
 
-gg <- ggplot(data = subset(d_out_tempo_fact, code == sp), mapping=aes(x=annee, y=abondance_var))
+gg <- ggplot(data = subset(d_tp_txt, code == sp), mapping=aes(x=annee, y=abondance_var))
 gg <- gg + geom_line()
 gg <- gg + geom_pointrange(aes(ymin = ICinf, ymax=ICsup))
 gg <- gg + labs(y="Variation d'abondance",x="Années", title = sp) 
 
 
-ggsave(filename = sp ,device = "png", path = "out/Variation_annee", width = 10, height = 10) 
+ggsave(filename = paste(sp,"png", sep= "."), path = "out/Variation_annee", width = 10, height = 10) 
+
+#jpeg(paste(names(setosa)[i], "jpeg", sep = "."), width = 15, height =12, units="cm", quality=75, res=300)
 
 print(gg)
 
@@ -196,6 +189,87 @@ print(gg)
 
 help(png)
 
+###### Partie 2 : l'année en numérique ###########
 
+class(data$annee_hiver)
+
+# Obtenir une liste unique des espèces dans la colonne 'espece' du dataframe 'data'
+vecsp <- unique(data$espece)
+
+# Initialiser la variable de sortie
+out_init <- FALSE
+
+# Boucle sur chaque espèce
+for (isp in 1:length(vecsp)) {
+  sp <- vecsp[isp]  # Sélectionner l'espèce courante
+  cat("\n\n (", isp, "/", length(vecsp), ") ", sp)  # Afficher l'état de la boucle
+  
+  # Définir la formule du modèle
+  form <- as.formula("abondance ~ annee_hiver + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt)")
+  
+  #(1|secteur/site) => effet imbriqué secteur/site (prend en compte effet aléatoire du site)
+  # 1| observateur => effet aléatoire observateur 
+  # 1| mois_hiver_txt => effet aléatoire mois d'hiver 
+  
+  # Ajuster le modèle glmmTMB pour l'espèce courante, en utilisant la famille de distribution 'nbinom2' (binomiale négative)
+  md <- try(glmmTMB(form, subset(data, espece == sp & annee_hiver > 2003 & site_retenu=="oui", family = "nbinom2")))
+  
+  #> Sélection les années à partir de 2004 
+  #> Sélection des sites retenus (+ de 3 saisons suivies)
+  
+  help("glmmTMB")
+  
+  #Négative binomiale et pas poisson ?  
+  
+  # Vérifier si le modèle a été ajusté avec succès
+  if (class(md)[1] != "try-error") {
+    # Obtenir les prédictions du modèle
+    ggmd <- as.data.frame(ggpredict(md)$annee_hiver)
+    
+    # Convertir en data.table pour des manipulations efficaces
+    setDT(ggmd)
+    
+    # Renommer la colonne 'x' en 'year'
+    setnames(ggmd, "x", "year")
+    
+    # Ajouter des colonnes supplémentaires
+    ggmd[, `:=`(code = sp)]
+    
+    #Faire un tableau avec les coefficients : 
+    trend <- as.data.frame(coef(summary(md))$cond)
+    
+    mdIC <- as.data.frame(confint(md)[,1:2])
+    colnames(mdIC) <- c("ICinf","ICsup")
+    IC_inf <- mdIC$ICinf[2]
+    IC_sup <- mdIC$ICsup[2]
+    
+    tab_trend <- data.frame(trend[2,1], IC_inf ,IC_sup, p_val=trend[2,4])
+    setDT(tab_trend)
+    setnames(tab_trend, "x", "estimate")
+    tab_trend[, `:=` (code = sp)]
+    
+    # Initialiser ou ajouter les données prédictives à la sortie finale
+    if (!out_init) {
+      d_out_num <- ggmd
+      tab <- tab_trend
+      out_init <- TRUE
+    } else {
+      d_out_num <- rbind(d_out_num, ggmd, fill = TRUE)
+      tab <- rbind(tab, tab_trend, fill = TRUE)
+    } } }
+
+#Si on veut enregistrer d_Out (pour évitier d'avoir à faire retourner le modèle) 
+#L'année en numérique :
+write.csv2(d_out_num,"Data/d_out_num.csv")
+summary(md)
+
+gg <- ggplot(data = subset(d_out_num, code == "becasseau_variable"), mapping=aes(x=year, y=predicted))
+gg <- gg + geom_line()
+gg <- gg + geom_pointrange(aes(ymin = conf.low, ymax=conf.high))
+gg <- gg + labs(y="Variation d'abondance",x="Années")
+print(gg)
+
+
+################# Essaie avec Zi ##############
 
 

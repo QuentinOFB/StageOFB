@@ -86,14 +86,19 @@ for (isp in 1:length(vecsp)) {
       d_out_fact <- ggmd
       out_init <- TRUE
     } else {
-      d_out_fact <- rbind(d_out, ggmd, fill = TRUE)
+      d_out_fact <- rbind(d_out_fact, ggmd, fill = TRUE)
     } } }
 
 #Si on veut enregistrer d_Out (pour évitier d'avoir à faire retourner le modèle) 
 #L'année en numérique :
 write.csv2(d_out,"Data/d_out.csv")
+d_out <- read.csv2("Data/d_out.csv")
 #L'année en character : 
 write.csv2(d_out_fact, "Data/d_out_fact.csv")
+
+#Information importante : on obtiens pas la même chose avec l'année en facteur ou en numérique...
+unique(d_out$code)
+unique(d_out_fact$code)
 
 #Mod pour avocette élégante 
 md_avo <- glmmTMB(abondance ~ annee_hiver_txt + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt), data = subset(data, espece == "avocette_elegante"& annee_hiver_txt>2003& site_retenu=="oui"), family = "nbinom2")
@@ -130,8 +135,10 @@ d_pred <- data.frame(annee = ggmd$x,abondance_var = ggmd$predicted / ref, ICinf 
 print(d_pred)
 
 
-#Essaie de faire une boucle ? 
 
+#Essaie de faire une boucle ? 
+#Le faire avec l'année en facteur : 
+d_out_fact <- read.csv2("Data/d_out_fact.csv")
 
 out_init <- FALSE
 vecsp <- unique(d_out_fact$code)
@@ -140,6 +147,7 @@ for (isp in 1:length(vecsp)) {
   cat("\n\n (", isp, "/", length(vecsp), ") ", sp)  # Afficher l'état de la boucle
 
   data_ref <- subset(d_out_fact, code == sp)
+  data_ref$year <- sort(data_ref$year)
   ref <- data_ref$predicted[1]
   d_pred <- data.frame(annee = data_ref$year, abondance_var =  data_ref$predicted / ref, ICinf =  data_ref$conf.low/ref , ICsup =  data_ref$conf.high/ref)
 
@@ -154,7 +162,10 @@ for (isp in 1:length(vecsp)) {
   } else {
     d_out_tempo_fact <- rbind(d_out_tempo_fact, d_pred, fill = TRUE)
   } } 
-  
+
+rm(list = c("d_out_tempo_fact"))
+
+
 #Pour l'année en numérique :
 write.csv2(d_out_tempo_num,"Data/d_out_tempo_num.csv")
 
@@ -162,8 +173,28 @@ write.csv2(d_out_tempo_num,"Data/d_out_tempo_num.csv")
 write.csv2(d_out_tempo_fact,"Data/d_out_tempo_fact.csv")
 
 
+#Représentation graphique : 
+  # Une boucle ? 
+
+out_init <- FALSE
+vecsp <- unique(d_out_tempo_fact$code)
+for (isp in 1:length(vecsp)) {
+  sp <- vecsp[isp]  # Sélectionner l'espèce courante
+  cat("\n\n (", isp, "/", length(vecsp), ") ", sp)
+
+gg <- ggplot(data = subset(d_out_tempo_fact, code == sp), mapping=aes(x=annee, y=abondance_var))
+gg <- gg + geom_line()
+gg <- gg + geom_pointrange(aes(ymin = ICinf, ymax=ICsup))
+gg <- gg + labs(y="Variation d'abondance",x="Années", title = sp) 
 
 
+ggsave(filename = sp ,device = "png", path = "out/Variation_annee", width = 10, height = 10) 
+
+print(gg)
+
+}
+
+help(png)
 
 
 

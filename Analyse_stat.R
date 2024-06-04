@@ -18,12 +18,45 @@ data <- read.csv2("Data/data_clean.csv", header = T)
 #Données non aggrégate : 
 data <- read.csv2("Data/data_clean_nonagglo.csv", header = T)
 
+#Réunir les bernaches : 
+sort(unique(data$espece))
+data[,4] <- gsub("bernache_cravant_du_pacifique","bernache_cravant",data[,4])
+data[,4] <- gsub("bernache_cravant_occidentale","bernache_cravant",data[,4])
+data[,4] <- gsub("oie_de_la_toundra","oie_des_moissons",data[,4])
+
+#Tri des espèces : 
+
+liste <- read.csv("Data/liste_sp.csv",header = T, sep = ";")
+sort(unique(liste$espece))
+
+data <- merge(data,liste, by.x = "espece", by.y = "espece")
+sort(unique(data$espece))
+
+data <- subset(data, data$tri=="Oui")
+
 class(data$annee_hiver)
 class(data$annee_hiver_txt)
-
-
-####### 1. L'année en facteur : 
 data$annee_hiver_txt <- as.factor(data$annee_hiver_txt)
+
+#Création de l'année de référence : 
+#sélectionner les années à partir de 2004
+data <- subset(data, annee_hiver > 2003)
+setDT(data)
+dd <- data[, occ := sum(as.numeric(abondance > 0)), by = .(espece, annee_hiver)]
+dd <- dd[,c(1,37,55)]
+dd[,occ_max := max(occ), by= .(espece)]
+#dd <- dd[occ_max=occ]
+dd <- dd[,inc:=1:.N, by=.(espece)]
+dd <- dd[inc==1,.(espece,annee_hiver,occ_max)]
+setnames(dd,"annee_hiver","annee_hiver_max")
+data <- merge(data,dd,by=("espece"),all.x = TRUE)
+data[,annee_hiver_txt:=ifelse(annee_hiver==annee_hiver_max,paste0(annee_hiver,"A"),as.character(annee_hiver))]
+setDF(data)
+#  protocole :
+
+data$protocole[data$protocole=="terrestre ?"] <- "terrestre"
+
+# Regarder DHARMA 
 
 #Ajout colonnes année hiver + mois hiver (déjà dans le tableau de données)
 setDT(data)
@@ -40,6 +73,7 @@ data$abondance <- round(data$abondance, digits = 0)
 # pour les arrondis 
 data$abondance <- as.integer(data$abondance)
 
+unique(data$protocole)
 
 # Obtenir une liste unique des espèces dans la colonne 'espece' du dataframe 'data'
 vecsp <- unique(data$espece)
@@ -53,7 +87,7 @@ for (isp in 1:length(vecsp)) {
   cat("\n\n (", isp, "/", length(vecsp), ") ", sp)  # Afficher l'état de la boucle
   
   # Définir la formule du modèle
-  form <- as.formula("abondance ~ annee_hiver_txt + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt)")
+  form <- as.formula("abondance ~ annee_hiver_txt + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt) + (1|protocole)")
   
   #(1|secteur/site) => effet imbriqué secteur/site (prend en compte effet aléatoire du site)
   # 1| observateur => effet aléatoire observateur 
@@ -83,6 +117,13 @@ for (isp in 1:length(vecsp)) {
     # Ajouter des colonnes supplémentaires
     ggmd[, `:=`(code = sp)]
     
+    #Vérification du modèle : 
+    #verif <- simulateResiduals(fittedModel = md, plot = F)
+    #testZeroInflation(verif)
+    #plot(verif)
+    #jpeg(filename = paste(sp, "jpeg", sep = "."), width = 15, height =12, units="cm", quality=75, res=300)
+    #dev.print(device = png, file = paste(sp, "png", sep = "."), width = 600)
+    
     # Initialiser ou ajouter les données prédictives à la sortie finale
     if (!out_init) {
       d_out_txt <- ggmd
@@ -92,6 +133,7 @@ for (isp in 1:length(vecsp)) {
     } } }
 
 summary(md)
+sort(unique(d_out_txt$year))
 
 #L'année en character : 
 write.csv2(d_out_txt, "Data/d_out_txt.csv")
@@ -112,9 +154,11 @@ ggmd <- ggpredict(md_sar, terms = c("annee_hiver_txt"))
 library(DHARMa)
 
 #Test avec l'avocette élégante : 
-verif <- simulateResiduals(fittedModel = md_avo, plot = F)
+verif <- simulateResiduals(fittedModel = md, plot = F)
 testZeroInflation(verif)
-
+help("DHARMa")
+summary(md)
+plot(verif)
 #Test avec la sarcelle d'hiver
 verif <- simulateResiduals(fittedModel = md_sar, plot = F)
 testZeroInflation(verif)
@@ -275,6 +319,7 @@ write.csv2(d_out_num,"Data/d_out_num.csv")
 write.csv2(tab,"Data/tab_mod.csv")
 ################# Essaie avec Zi ##############
 
+
 # Obtenir une liste unique des espèces dans la colonne 'espece' du dataframe 'data'
 vecsp <- unique(data$espece)
 
@@ -300,8 +345,6 @@ for (isp in 1:length(vecsp)) {
   #> Sélection des sites retenus (+ de 3 saisons suivies)
   #> Zi => Permet de gérer l'excès de 0 (notamment quand la probabilité de détection est différente de 1, donc génère des 0 parce qu'on voit pas l'espèce, et pas parce qu'elle n'est pas forcément là)
   help("glmmTMB")
-  
-  #Négative binomiale et pas poisson ?  
   
   # Vérifier si le modèle a été ajusté avec succès
   if (class(md)[1] != "try-error") {
@@ -370,7 +413,7 @@ for (isp in 1:length(vecsp)) {
   gg <- gg + labs(y="Variation d'abondance",x="Années", title = sp) 
   
   
-  ggsave(filename = paste(sp,"png", sep= "."), path = "out/Variation_annee", width = 10, height = 10) 
+  ggsave(filename = paste(sp,"png", sep= "."), path = "out/Variation_annee_zi", width = 10, height = 10) 
   
 } 
 

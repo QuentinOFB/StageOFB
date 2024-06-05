@@ -12,7 +12,7 @@ library(ggplot2)
 library(data.table)
 library(glmmTMB)
 library(ggeffects)
-
+library(dplyr)
 data <- read.csv2("Data/data_clean.csv", header = T)
 
 #Données non aggrégate : 
@@ -34,24 +34,42 @@ sort(unique(data$espece))
 
 data <- subset(data, data$tri=="Oui")
 
-class(data$annee_hiver)
-class(data$annee_hiver_txt)
-data$annee_hiver_txt <- as.factor(data$annee_hiver_txt)
 
 #Création de l'année de référence : 
 #sélectionner les années à partir de 2004
 data <- subset(data, annee_hiver > 2003)
 setDT(data)
-dd <- data[, occ := sum(as.numeric(abondance > 0)), by = .(espece, annee_hiver)]
+dd <- data[, occ := sum(abondance > 0), by = .(espece, annee_hiver)]
 dd <- dd[,c(1,37,55)]
 dd[,occ_max := max(occ), by= .(espece)]
-#dd <- dd[occ_max=occ]
-dd <- dd[,inc:=1:.N, by=.(espece)]
-dd <- dd[inc==1,.(espece,annee_hiver,occ_max)]
+dd[,occ_max := occ]##### ? 
+dd[,inc:= 1:.N, by=.(espece)]
+dd[inc==1,.(espece,annee_hiver,occ_max)]
+
 setnames(dd,"annee_hiver","annee_hiver_max")
 data <- merge(data,dd,by=("espece"),all.x = TRUE)
-data[,annee_hiver_txt:=ifelse(annee_hiver==annee_hiver_max,paste0(annee_hiver,"A"),as.character(annee_hiver))]
+data[,annee_hiver_txt:=ifelse(annee_hiver==annee_hiver_max,paste0("1.",annee_hiver),as.character(annee_hiver))]
 setDF(data)
+sort(unique(data$annee_hiver_txt))
+data$annee_hiver_txt <- as.factor(data$annee_hiver_txt)
+
+#Autre méthode 
+d <- aggregate(data, abondance > 0 ~ annee_hiver + espece, sum)
+setDT(d)
+d[,occ_max := max(`abondance > 0`),by = .(espece)]
+d <- subset(d, d$`abondance > 0`== d$occ_max)
+sort(unique(d$espece))
+
+d <- d %>% group_by(occ_max,espece) %>% filter(!duplicated(occ_max))
+
+unique(d$espece)
+setnames(d,"annee_hiver","annee_hiver_max")
+data <- merge(data,d,by=("espece"),all.x = TRUE)
+setDT(data)
+data[,annee_hiver_txt:=ifelse(annee_hiver==annee_hiver_max,paste0("1.",annee_hiver),as.character(annee_hiver))]
+setDF(data)
+data$annee_hiver_txt <- as.factor(data$annee_hiver_txt)
+
 #  protocole :
 
 data$protocole[data$protocole=="terrestre ?"] <- "terrestre"
@@ -133,7 +151,7 @@ for (isp in 1:length(vecsp)) {
     } } }
 
 summary(md)
-sort(unique(d_out_txt$year))
+d_out_txt$year <- sort(d_out_txt$year)
 
 #L'année en character : 
 write.csv2(d_out_txt, "Data/d_out_txt.csv")
@@ -189,7 +207,7 @@ for (isp in 1:length(vecsp)) {
   cat("\n\n (", isp, "/", length(vecsp), ") ", sp)  # Afficher l'état de la boucle
 
   data_ref <- subset(d_out_txt, code == sp)
-  data_ref$year <- sort(data_ref$year)
+  #data_ref$year <- sort(data_ref$year)
   ref <- data_ref$predicted[1]
   d_pred <- data.frame(annee = data_ref$year, abondance_var =  data_ref$predicted / ref, ICinf =  data_ref$conf.low/ref , ICsup =  data_ref$conf.high/ref)
 
@@ -208,6 +226,30 @@ for (isp in 1:length(vecsp)) {
 #Pour l'année en facteur : 
 write.csv2(d_tp_txt,"Data/d_tp_txt.csv")
 
+sort(unique(d_tp_txt$annee))
+d_tp_txt$annee <- as.character(d_tp_txt$annee)
+
+d_tp_txt$annee[d_tp_txt$annee=="1.2022"] <- "2022"
+d_tp_txt$annee[d_tp_txt$annee=="1.2011"] <- "2011"
+d_tp_txt$annee[d_tp_txt$annee=="1.2009"] <- "2009"
+d_tp_txt$annee[d_tp_txt$annee=="1.2020"] <- "2020"
+d_tp_txt$annee[d_tp_txt$annee=="1.2006"] <- "2006"
+d_tp_txt$annee[d_tp_txt$annee=="1.2017"] <- "2017"
+d_tp_txt$annee[d_tp_txt$annee=="1.2019"] <- "2019"
+d_tp_txt$annee[d_tp_txt$annee=="1.2014"] <- "2014"
+d_tp_txt$annee[d_tp_txt$annee=="1.2018"] <- "2018"
+d_tp_txt$annee[d_tp_txt$annee=="1.2021"] <- "2021"
+d_tp_txt$annee[d_tp_txt$annee=="1.2015"] <- "2015"
+d_tp_txt$annee[d_tp_txt$annee=="1.2016"] <- "2016"
+d_tp_txt$annee[d_tp_txt$annee=="1.2010"] <- "2010"
+d_tp_txt$annee[d_tp_txt$annee=="1.2007"] <- "2007"
+d_tp_txt$annee[d_tp_txt$annee=="1.2008"] <- "2008"
+d_tp_txt$annee[d_tp_txt$annee=="1.2023"] <- "2023"
+d_tp_txt$annee[d_tp_txt$annee=="1.2012"] <- "2012"
+
+sort(unique(d_tp_txt$annee))
+d_tp_txt$annee <- as.character(d_tp_txt$annee)
+d_tp_txt$annee <- as.factor(d_tp_txt$annee)
 
 #Représentation graphique : 
   # Une boucle ? 
@@ -218,13 +260,14 @@ for (isp in 1:length(vecsp)) {
   sp <- vecsp[isp]  # Sélectionner l'espèce courante
   cat("\n\n (", isp, "/", length(vecsp), ") ", sp)
 
+  
 gg <- ggplot(data = subset(d_tp_txt, code == sp), mapping=aes(x=annee, y=abondance_var))
 gg <- gg + geom_line()
-gg <- gg + geom_pointrange(aes(ymin = ICinf, ymax=ICsup))
+gg <- gg + geom_pointrange(aes(ymin = ICinf, ymax=ICsup)) + geom_hline(yintercept = 1, color = "red")
 gg <- gg + labs(y="Variation d'abondance",x="Années", title = sp) 
 
 
-ggsave(filename = paste(sp,"png", sep= "."), path = "out/Variation_annee", width = 10, height = 10) 
+ggsave(filename = paste(sp,"png", sep= "."), path = "out/Variation_annee_corr", width = 10, height = 10) 
 
 #jpeg(paste(names(setosa)[i], "jpeg", sep = "."), width = 15, height =12, units="cm", quality=75, res=300)
 

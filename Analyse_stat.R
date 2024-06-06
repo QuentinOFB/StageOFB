@@ -27,31 +27,27 @@ data[,4] <- gsub("oie_de_la_toundra","oie_des_moissons",data[,4])
 #Tri des espèces : 
 
 liste <- read.csv("Data/liste_sp.csv",header = T, sep = ";")
-sort(unique(liste$espece))
-
 data <- merge(data,liste, by.x = "espece", by.y = "espece")
-sort(unique(data$espece))
-
 data <- subset(data, data$tri=="Oui")
 
 
 #Création de l'année de référence : 
 #sélectionner les années à partir de 2004
 data <- subset(data, annee_hiver > 2003)
-setDT(data)
-dd <- data[, occ := sum(abondance > 0), by = .(espece, annee_hiver)]
-dd <- dd[,c(1,37,55)]
-dd[,occ_max := max(occ), by= .(espece)]
-dd[,occ_max := occ]##### ? 
-dd[,inc:= 1:.N, by=.(espece)]
-dd[inc==1,.(espece,annee_hiver,occ_max)]
 
-setnames(dd,"annee_hiver","annee_hiver_max")
-data <- merge(data,dd,by=("espece"),all.x = TRUE)
-data[,annee_hiver_txt:=ifelse(annee_hiver==annee_hiver_max,paste0("1.",annee_hiver),as.character(annee_hiver))]
-setDF(data)
-sort(unique(data$annee_hiver_txt))
-data$annee_hiver_txt <- as.factor(data$annee_hiver_txt)
+#setDT(data)
+#dd <- data[, occ := sum(abondance > 0), by = .(espece, annee_hiver)]
+#dd <- dd[,c(1,37,55)]
+#dd[,occ_max := max(occ), by= .(espece)]
+#dd[,occ_max := occ]##### ? 
+#dd[,inc:= 1:.N, by=.(espece)]
+#dd[inc==1,.(espece,annee_hiver,occ_max)]
+#setnames(dd,"annee_hiver","annee_hiver_max")
+#data <- merge(data,dd,by=("espece"),all.x = TRUE)
+#data[,annee_hiver_txt:=ifelse(annee_hiver==annee_hiver_max,paste0("1.",annee_hiver),as.character(annee_hiver))]
+#setDF(data)
+#sort(unique(data$annee_hiver_txt))
+#data$annee_hiver_txt <- as.factor(data$annee_hiver_txt)
 
 #Autre méthode 
 d <- aggregate(data, abondance > 0 ~ annee_hiver + espece, sum)
@@ -74,7 +70,6 @@ data$annee_hiver_txt <- as.factor(data$annee_hiver_txt)
 
 data$protocole[data$protocole=="terrestre ?"] <- "terrestre"
 
-# Regarder DHARMA 
 
 #Ajout colonnes année hiver + mois hiver (déjà dans le tableau de données)
 setDT(data)
@@ -117,7 +112,7 @@ for (isp in 1:length(vecsp)) {
   #> Sélection les années à partir de 2004 
   #> Sélection des sites retenus (+ de 3 saisons suivies)
   
-  help("glmmTMB")
+  #help("glmmTMB")
   
   #Négative binomiale et pas poisson ?  
   
@@ -275,12 +270,11 @@ print(gg)
 
 }
 
-#Borne intervalle de confiance qui sont énormes ? 
 
 ###### Partie 2 : l'année en numérique ###########
 
 class(data$annee_hiver)
-
+data$annee_hiver <- as.numeric(data$annee_hiver)
 # Obtenir une liste unique des espèces dans la colonne 'espece' du dataframe 'data'
 vecsp <- unique(data$espece)
 
@@ -293,7 +287,7 @@ for (isp in 1:length(vecsp)) {
   cat("\n\n (", isp, "/", length(vecsp), ") ", sp)  # Afficher l'état de la boucle
   
   # Définir la formule du modèle
-  form <- as.formula("abondance ~ annee_hiver + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt)")
+  form <- as.formula("abondance ~ annee_hiver + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt) + (1|protocole)")
   
   #(1|secteur/site) => effet imbriqué secteur/site (prend en compte effet aléatoire du site)
   # 1| observateur => effet aléatoire observateur 
@@ -304,10 +298,6 @@ for (isp in 1:length(vecsp)) {
   
   #> Sélection les années à partir de 2004 
   #> Sélection des sites retenus (+ de 3 saisons suivies)
-  
-  help("glmmTMB")
-  
-  #Négative binomiale et pas poisson ?  
   
   # Vérifier si le modèle a été ajusté avec succès
   if (class(md)[1] != "try-error") {
@@ -322,6 +312,14 @@ for (isp in 1:length(vecsp)) {
     
     # Ajouter des colonnes supplémentaires
     ggmd[, `:=`(code = sp)]
+    
+    #Vérification du modèle : 
+    verif <- simulateResiduals(fittedModel = md, plot = F)
+    testZeroInflation(verif)
+    #dev.print(device = png, file = paste(sp,"zi","png", sep = "."), width = 600)
+    
+    plot(verif)
+    dev.print(device = png, file = paste(sp, "png", sep = "."), width = 600)
     
     #Faire un tableau avec les coefficients : 
     tab_trend_raw <- as.data.frame(coef(summary(md))$cond)
@@ -347,6 +345,11 @@ for (isp in 1:length(vecsp)) {
       tab <- rbind(tab, tab_trend, fill = TRUE)
     } } }
 
+
+#DHARMa:testOutliers with type = binomial may have inflated Type I error rates for integer-valued distributions. To get a more exact result, it is recommended to re-run testOutliers with type = 'bootstrap'. See ?testOutliers for details
+
+
+
 #Si on veut enregistrer d_Out (pour évitier d'avoir à faire retourner le modèle) 
 #L'année en numérique :
 write.csv2(d_out_num,"Data/d_out_num.csv")
@@ -360,6 +363,12 @@ print(gg)
 
 write.csv2(d_out_num,"Data/d_out_num.csv")
 write.csv2(tab,"Data/tab_mod.csv")
+
+
+
+
+
+
 ################# Essaie avec Zi ##############
 
 
@@ -546,4 +555,93 @@ for (isp in 1:length(vecsp)) {
 
 write.csv2(tab, "Data/tab_mod_zi.csv")
 
+############# Analyse avec le secteur #############
+attach(data)
+md_van <- glmmTMB(abondance ~ annee_hiver * secteur + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt) + (1|protocole), data = subset(data, espece == "avocette_elegante" & annee_hiver > 2003 & site_retenu=="oui"), family = "nbinom2", ziformula = ~ 1)
+gg_van <- ggpredict(md_van, terms = c("annee_hiver_txt"))
+summary(md_van)
+#A creuser : ne parvient pas à calculer les borne écart-type et pvalue !!!
+
+# Mettre Zi sinon : Warning message:
+#In finalizeTMB(TMBStruc, obj, fit, h, data.tmb.old) :
+  #Model convergence problem; non-positive-definite Hessian matrix. See vignette('troubleshooting')
+
+
+data$secteur <- as.factor(data$secteur)
+class(data$secteur)
+
+# Initialiser la variable de sortie
+out_init <- FALSE
+attach(data)
+# Boucle sur chaque espèce
+for (isp in 1:length(vecsp)) {
+  sp <- vecsp[isp]  # Sélectionner l'espèce courante
+  cat("\n\n (", isp, "/", length(vecsp), ") ", sp)  # Afficher l'état de la boucle
+  
+  # Définir la formule du modèle
+  form <- as.formula("abondance ~ annee_hiver * secteur + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt)")
+  
+  #(1|secteur/site) => effet imbriqué secteur/site (prend en compte effet aléatoire du site)
+  # 1| observateur => effet aléatoire observateur 
+  # 1| mois_hiver_txt => effet aléatoire mois d'hiver 
+  # 1| protocole => effet aléatoire du protocole 
+  
+  # Ajuster le modèle glmmTMB pour l'espèce courante, en utilisant la famille de distribution 'nbinom2' (binomiale négative)
+  md <- try(glmmTMB(form, subset(data, espece == sp & annee_hiver > 2003 & site_retenu=="oui"), family = "nbinom2"))
+  
+  #> Sélection les années à partir de 2004 
+  #> Sélection des sites retenus (+ de 3 saisons suivies)
+  
+  help("glmmTMB")
+  
+  #Négative binomiale et pas poisson ?  
+  
+  # Vérifier si le modèle a été ajusté avec succès
+  if (class(md)[1] != "try-error") {
+    
+    #Le tableau avec les coefficients : 
+    tab_trend_raw <-as.data.frame(coef(summary(md))$cond)
+    trend_raw <- tab_trend_raw[c(2,3),1]
+    trend <- exp(trend_raw)
+    
+    mdIC <- as.data.frame(confint(md)[,1:2])
+    colnames(mdIC) <- c("ICinf","ICsup")
+    IC_inf_raw <- mdIC$ICinf[2]
+    IC_sup_raw <- mdIC$ICsup[2]
+    IC_inf <- exp(IC_inf_raw)
+    IC_sup <- exp(IC_sup_raw)
+    nb_year <- length(unique(subset(data, espece == sp &  data$annee_hiver > 2003)[,37]))
+    first_year <- min(subset(data, espece ==sp &  data$annee_hiver > 2003)[,37])
+    last_year <- max(subset(data,espece == sp & data$annee_hiver > 2003)[,37])
+    tab_trend <- data.frame(nb_year, 
+                            first_year, 
+                            last_year,
+                            trend, IC_inf, IC_sup, pval = tab_trend_raw[2,4]) 
+    
+    setDT(tab_trend)
+    #setnames(tab_trend, "trend.2..1.", "estimate")
+    tab_trend[, `:=` (code = sp)]
+    
+    #affectCatEBCC <- function(trend, pVal = p_val, ICinf, ICsup){ 
+    #catEBCC <- ifelse(pVal>0.05,
+    #ifelse(ICinf < 0.95 | ICsup > 1.05, "Incertain","stable"),
+    #ifelse(trend < 1, 
+    #ifelse(ICsup < 0.95, "Fort déclin", "Déclin modéré"),
+    #ifelse(ICinf > 1.05, "Forte augmentation","Augmentation modérée")))
+    # return(catEBCC)
+    #}
+    #duration <- nb_year-1
+    
+    #tab_trend[,`:=`(pourcentage_var = round(((trend^duration) -1)*100,2),
+    #pourcentage_IC_inf = round(((IC_inf^duration) -1)*100,2),
+    #pourcentage_IC_sup = round(((IC_sup^duration) -1)*100,2),
+    #catEBCC = affectCatEBCC(trend = trend,pVal = p_val,ICinf=IC_inf,ICsup=IC_sup))]
+    
+    # Initialiser ou ajouter les données prédictives à la sortie finale
+    if (!out_init) {
+      tab <- tab_trend
+      out_init <- TRUE
+    } else {
+      tab <- rbind(tab, tab_trend, fill = TRUE)
+    } } }
               

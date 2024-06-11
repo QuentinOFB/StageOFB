@@ -13,6 +13,7 @@ library(data.table)
 library(glmmTMB)
 library(ggeffects)
 library(dplyr)
+library(DHARMa)
 data <- read.csv2("Data/data_clean.csv", header = T)
 
 #Données non aggrégate : 
@@ -23,6 +24,22 @@ sort(unique(data$espece))
 data[,4] <- gsub("bernache_cravant_du_pacifique","bernache_cravant",data[,4])
 data[,4] <- gsub("bernache_cravant_occidentale","bernache_cravant",data[,4])
 data[,4] <- gsub("oie_de_la_toundra","oie_des_moissons",data[,4])
+
+#Combien d'espèces intialement ? 
+sort(unique(data$espece))
+
+data <- subset(data, annee_hiver > 2003)
+
+
+#Occurence totale (nombre de fois où l'espèce a été vue sur tous les secteurs)
+occurence_tot <- data %>% count(espece,abondance, annee_hiver) %>% filter(abondance > 0)
+
+occurence_tot <-  aggregate(occurence_tot, n ~ espece + annee_hiver, sum)
+  
+occurence_tot_ann <- occurence_tot %>% count(n, espece,annee_hiver)  
+occurence_tot_ann <- occurence_tot_ann %>% count(nn, espece)  
+
+data <- merge(data, occurence_tot, by.x = "espece", by.y = "espece")
 
 #Tri des espèces : 
 
@@ -314,12 +331,12 @@ for (isp in 1:length(vecsp)) {
     ggmd[, `:=`(code = sp)]
     
     #Vérification du modèle : 
-    verif <- simulateResiduals(fittedModel = md, plot = F)
-    testZeroInflation(verif)
+    #verif <- simulateResiduals(fittedModel = md, plot = F)
+    #testZeroInflation(verif)
     #dev.print(device = png, file = paste(sp,"zi","png", sep = "."), width = 600)
     
-    plot(verif)
-    dev.print(device = png, file = paste(sp, "png", sep = "."), width = 600)
+    #plot(verif)
+    #dev.print(device = png, file = paste(sp, "png", sep = "."), width = 600)
     
     #Faire un tableau avec les coefficients : 
     tab_trend_raw <- as.data.frame(coef(summary(md))$cond)
@@ -345,6 +362,8 @@ for (isp in 1:length(vecsp)) {
       tab <- rbind(tab, tab_trend, fill = TRUE)
     } } }
 
+
+write.csv2(tab, "Data/tab.csv")
 
 #DHARMa:testOutliers with type = binomial may have inflated Type I error rates for integer-valued distributions. To get a more exact result, it is recommended to re-run testOutliers with type = 'bootstrap'. See ?testOutliers for details
 
@@ -556,30 +575,74 @@ for (isp in 1:length(vecsp)) {
 write.csv2(tab, "Data/tab_mod_zi.csv")
 
 ############# Analyse avec le secteur #############
-attach(data)
-md_van <- glmmTMB(abondance ~ annee_hiver * secteur + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt) + (1|protocole), data = subset(data, espece == "avocette_elegante" & annee_hiver > 2003 & site_retenu=="oui"), family = "nbinom2", ziformula = ~ 1)
-gg_van <- ggpredict(md_van, terms = c("annee_hiver_txt"))
-summary(md_van)
+
+#Centrée réduire la variable année ? 
+setDT(data)
+data[,`:=`(annee_sc = scale(annee_hiver))]
+setDF(data)
+
+#Pour le premier test on va choisir l'avocette élégante : (nb les années > 2003 ont déjà été sélectionnées)
+
+data_avo <- subset(data, espece == "avocette_elegante" & site_retenu == "oui")
+
+#Le modèle : 
+
+md <- glmmTMB(abondance ~ annee_hiver*secteur + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt) + (1|protocole), data = data_avo, family = nbinom2)
+summary(md)
+
+#Problème -> Que des NaN pour l'erreur standard, z value et p value 
+# Peut-être que le soucis vient de "secteur/site ? 
+md1 <- glmmTMB(abondance ~ annee_hiver*secteur + (1|site) + (1|obs) + (1|mois_hiver_txt) + (1|protocole), data = data_avo, family = "nbinom2")
+summary(md1)
+#Toujours pas... 
+
+#Test en enlevant un effet aléatoire (au hasard obs)
+md2 <- glmmTMB(abondance ~ annee_hiver*secteur + (1|site) + (1|obs) + (1|mois_hiver_txt), data = data_avo, family = "nbinom2")
+summary(md2)
+#### -> On obtient des valeurs pour l'erreur standard, z value et p value : 
+md3 <- glmmTMB(abondance ~ annee_hiver*secteur + (1|site) + (1|mois_hiver_txt) + (1|protocole), data = data_avo, family = "nbinom2")
+summary(md3)
+####### Problème avec le protocole ? des NaN encore...
+md4 <- glmmTMB(abondance ~ annee_hiver*secteur + (1|site) + (1|obs) + (1|protocole), data = data_avo, family = "nbinom2")
+summary(md4)
+
+md5 <- glmmTMB(abondance ~ annee_hiver*secteur + (1|mois_hiver_txt) + (1|obs) + (1|protocole), data = data_avo, family = "nbinom2")
+summary(md5)
+
+
+
+tab <- as.data.frame(coef(summary(md))$cond)
+tab$title <- ""
+
+
+tab$title[1] <- "intercept"
+rownames(tab)[1] <- "(Intercept)"
+
+tab_trend <- tab[,1]
+trend <- exp(tab_trend)
+
+ind <- as.data.frame(confint(md)[,1:2])
+colnames(mdIC) <- c("ICinf","ICsup")
+IC_inf_raw <- mdIC$ICinf
+IC_sup_raw <- mdIC$ICsup[2]
+
+#+ (1|secteur/site) (1|obs) + (1|mois_hiver_txt) + (1|protocole) +
 #A creuser : ne parvient pas à calculer les borne écart-type et pvalue !!!
-
-# Mettre Zi sinon : Warning message:
-#In finalizeTMB(TMBStruc, obj, fit, h, data.tmb.old) :
-  #Model convergence problem; non-positive-definite Hessian matrix. See vignette('troubleshooting')
+#Modèle trop complexe ? produite des Na si Secteur/site et s'il y a plus de 3 var aléatoires
 
 
-data$secteur <- as.factor(data$secteur)
-class(data$secteur)
 
+vecsp <- unique(data$espece)
 # Initialiser la variable de sortie
 out_init <- FALSE
-attach(data)
+
 # Boucle sur chaque espèce
 for (isp in 1:length(vecsp)) {
   sp <- vecsp[isp]  # Sélectionner l'espèce courante
   cat("\n\n (", isp, "/", length(vecsp), ") ", sp)  # Afficher l'état de la boucle
   
   # Définir la formule du modèle
-  form <- as.formula("abondance ~ annee_hiver * secteur + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt)")
+  form <- as.formula("abondance ~ annee_hiver * secteur + (1|site) + (1|obs) + (1|mois_hiver_txt)")
   
   #(1|secteur/site) => effet imbriqué secteur/site (prend en compte effet aléatoire du site)
   # 1| observateur => effet aléatoire observateur 
@@ -601,22 +664,20 @@ for (isp in 1:length(vecsp)) {
     
     #Le tableau avec les coefficients : 
     tab_trend_raw <-as.data.frame(coef(summary(md))$cond)
-    trend_raw <- tab_trend_raw[c(2,3),1]
-    trend <- exp(trend_raw)
+    trend_raw <- tab_trend_raw[,1]
+    trend <- exp(tab_trend_raw)
     
     mdIC <- as.data.frame(confint(md)[,1:2])
     colnames(mdIC) <- c("ICinf","ICsup")
-    IC_inf_raw <- mdIC$ICinf[2]
-    IC_sup_raw <- mdIC$ICsup[2]
+    mdIC <- mdIC[-c(13:15),]
+    IC_inf_raw <- mdIC$ICinf
+    IC_sup_raw <- mdIC$ICsup
     IC_inf <- exp(IC_inf_raw)
     IC_sup <- exp(IC_sup_raw)
-    nb_year <- length(unique(subset(data, espece == sp &  data$annee_hiver > 2003)[,37]))
-    first_year <- min(subset(data, espece ==sp &  data$annee_hiver > 2003)[,37])
-    last_year <- max(subset(data,espece == sp & data$annee_hiver > 2003)[,37])
-    tab_trend <- data.frame(nb_year, 
-                            first_year, 
-                            last_year,
-                            trend, IC_inf, IC_sup, pval = tab_trend_raw[2,4]) 
+    #nb_year <- length(unique(subset(data, espece == sp &  data$annee_hiver > 2003)[,37]))
+    #first_year <- min(subset(data, espece ==sp &  data$annee_hiver > 2003)[,37])
+    #last_year <- max(subset(data,espece == sp & data$annee_hiver > 2003)[,37])
+    tab_trend <- data.frame(trend, IC_inf, IC_sup, pval = tab_trend_raw[,4]) 
     
     setDT(tab_trend)
     #setnames(tab_trend, "trend.2..1.", "estimate")
@@ -643,5 +704,7 @@ for (isp in 1:length(vecsp)) {
       out_init <- TRUE
     } else {
       tab <- rbind(tab, tab_trend, fill = TRUE)
+      write.csv2(tab, file = paste(sp,"csv",sep = "."))
     } } }
-              
+ help("write.csv2")             
+ 

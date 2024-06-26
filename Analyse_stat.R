@@ -79,7 +79,6 @@ colnames(data) [2] <- "espece"
 #  protocole :
 data$protocole[data$protocole=="terrestre ?"] <- "terrestre"
 
-
     ########### Analyses statistiques #########
 
 ### Boucle initiale (exemple) ####
@@ -159,8 +158,8 @@ for (isp in 1:length(vecsp)) {
   cat("\n\n (", isp, "/", length(vecsp), ") ", sp)
   
   #Modèle 1 (année en facteur)
-  md1 <- glmmTMB(abondance~annee_hiver_txt + (1|secteur/site) + (1|obs) + (1|protocole) + (1|mois_hiver_txt), data = subset(data, espece == sp & site_retenu=="oui"), family = "nbinom2")
-  
+  md1 <- glmmTMB(abondance~annee_hiver_txt + (1|secteur/site) + (1|obs) + (1|protocole) + (1|mois_hiver_txt), data = subset(data, espece == "becasseau_sanderling" & site_retenu=="oui"), family = "nbinom2")
+  summary(md1)
   #Générer les prédictions pour le modèle 1 : 
   pred1 <- as.data.frame(ggpredict(md1, terms = c("annee_hiver_txt")))
   setDT(pred1)
@@ -176,7 +175,7 @@ for (isp in 1:length(vecsp)) {
   
   #Modèle 2 : année en numérique (la tendance)
   
-  md2 <- glmmTMB(abondance~annee_hiver + (1|secteur/site) + (1|obs) + (1|protocole) + (1|annee_hiver_txt/mois_hiver_txt),data = subset(data, espece == sp & site_retenu=="oui"), family = "nbinom2")
+  md2 <- glmmTMB(abondance~annee_hiver + (1|secteur/site) + (1|obs) + (1|protocole) + (1|annee_hiver_txt/mois_hiver_txt),data = subset(data, espece == "canard_siffleur" & site_retenu=="oui"), family = "nbinom2")
   smd2 <- summary(md2)
   
   #Récupérer les estimates : 
@@ -188,7 +187,7 @@ for (isp in 1:length(vecsp)) {
   setDT(est_tot)
   
   #Calculer le nombre d'années dans les données 
-  data_now <- subset(data, espece==sp & site_retenu=="oui")
+  data_now <- subset(data, espece=="canard_chipeau" & site_retenu=="oui")
   nb_y <- max(data_now[, "annee_hiver"]) - min(data_now[, "annee_hiver"])  
   
   # Calculer les pourcentages de variation et les intervalles de confiance
@@ -242,7 +241,7 @@ for (isp in 1:length(vecsp)) {
   #pred[, x := as.numeric(as.character(x))]
   
   #Récupérer la pvalue 
-  pval <- paste("pvalue",tab_trend$p_val,sep = "=")
+  pval <- paste("pvalue",tab_trend$p_val)
   
   # Renommer la colonne 'x' en 'year' et normaliser les prédictions
   colnames(pred)[1] <- "year"
@@ -274,7 +273,7 @@ for (isp in 1:length(vecsp)) {
   # Créer le graphique avec ggplot2
   gg <- ggplot(pred, aes(x = year, y = predicted, colour = group, ymin = conf.low, ymax = conf.high, fill = group, group = group))
   gg <- gg + geom_ribbon(alpha = 0.2, colour = NA) + geom_point(size = 0.8) + geom_line(size = 1.5)
-  gg <- gg + labs(x = "Année hiver", y = "Variation abondance", title = title, size = 12)
+  gg <- gg + labs(x = "Année hiver", y = "Variation abondance", size = 12)
   gg <- gg + scale_colour_manual(values = vec_col) + scale_fill_manual(values = vec_fill)
   gg <- gg + theme_bw() + theme(legend.title = element_text(size = 14), legend.text = element_text(size = 12),plot.caption = element_text(color = "purple", face = "bold", size = 14),
                                axis.title = element_text(size = 14, face = "bold"),
@@ -301,7 +300,7 @@ for (isp in 1:length(vecsp)) {
   } } 
 
 
-write.csv(data_trend,"Data/data_trend.csv", fileEncoding = "UTF-8")
+write.csv2(pred,"Data/prediction_chipeau.csv", fileEncoding = "UTF-8")
 
 ####### Analyses des tendances sur le long terme en fonction des secteurs ##################  
   # ATTENTION !!! Bien prendre en compte l'année de référence par espèce et secteurs 
@@ -469,7 +468,7 @@ if (!out_init2) {
 } } 
 
 
-write.csv2(data_trend_all,"Data/data_trend_all_1.csv", fileEncoding = "UTF-8")
+write.csv2(pred,"Data/predictionavo2", fileEncoding = "UTF-8")
 
 
 

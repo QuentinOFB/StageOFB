@@ -1,5 +1,4 @@
 #Chargement des package : 
-
 library(ggplot2)
 library(data.table)
 library(glmmTMB)
@@ -9,34 +8,51 @@ library(DHARMa)
 library(stringr)
 
 #Ouverture du jeu de données : 
-data <- read.csv2("Data/data_clean_nonagglo.csv", header = T)
-
-#Réunir les bernaches : 
+data <- read.csv2("Data/data_VF.csv", header = T)
+#Combien d'espèces intialement ? -> 119 
 sort(unique(data$espece))
-data[,4] <- gsub("bernache_cravant_du_pacifique","bernache_cravant",data[,4])
-data[,4] <- gsub("bernache_cravant_occidentale","bernache_cravant",data[,4])
-data[,4] <- gsub("oie_de_la_toundra","oie_des_moissons",data[,4])
-
-#Combien d'espèces intialement ? -> 116 taxons  
-sort(unique(data$espece))
+sort(unique(data$saison))
+#Tous les secteurs présents ?
+unique(data$secteur)
 
 #Mettre l'année Txt et le mois txt en facteur : 
 data$annee_hiver_txt <- as.character(data$annee_hiver_txt)
 data$mois_hiver_txt <- as.character(data$mois_hiver_txt)
 
-#Ne sélectionner que la série temporelle : 2004 - 2024 
-data <- subset(data, annee_hiver > 2003)
+  #Choisir des espèces qui sont présentes à la fois sur l'estuaire et dans plus de 3 secteurs
+  data <- subset(data, present_loire =="oui" & occurence_sp_secteur > 3)  
+  unique(data$espece)
+ 
+ #Tri des espèces : 
+ tri <- read.csv2("Data/liste_sp.csv", header = TRUE)
+ data <- merge(data, tri, by = "espece")
+ data <- subset(data, tri == "Oui")
 
-#Centrer réduire l'année : 
-setDT(data)
-data[,`:=`(annee_sc = scale(annee_hiver))]
-setDF(data)
+ #selection des espèce en fonction de leur pertinence : 
+ crit <- read.csv("Data/crit.csv", header = TRUE, sep = ";")
+  unique(crit$pertinence)
+ crit$pertinence[crit$pertinence=="Pertinence sur le secteur"] <- "P"
+  
+crit[,2] <- tolower(crit[,2])
+crit[,2] <- gsub(" ","_",crit[,2])
+crit[,2] <- iconv(crit[,2], from = "UTF-8", to = "ASCII//TRANSLIT")
+crit[,2] <- gsub("'","_", crit[,2]) 
+unique(crit$espece)
+crit[,2] <- gsub("garrot_a_oil_d_or","garrot_a_oeil_d_or",crit[,2])
+crit$id_pertinence <- paste0(crit$espece,crit$secteur)
 
+data$id_pertinence <- paste0(data$espece,data$secteur)
+data <- merge(data,crit, by = "id_pertinence", all.x = TRUE)
 
-#Tri des espèces : 
-liste <- read.csv("Data/liste_sp.csv",header = T, sep = ";")
-data <- merge(data,liste, by.x = "espece", by.y = "espece")
-data <- subset(data, data$tri=="Oui")
+data$pertinence[is.na(data$pertinence)] <- 0
+
+colnames(data) <- gsub("espece.x","espece",colnames(data))
+colnames(data) <- gsub("secteur.x","secteur",colnames(data))
+
+data <- select(data, -c(espece.y,secteur.y))
+
+#Sélectionner les espèces en fonction de leur pertinence : 
+data <- subset(data, pertinence == "P"|pertinence=="0")
 
 #Création de l'année de référence : 
 d <- aggregate(data, abondance > 0 ~ annee_hiver + espece, sum)
@@ -52,7 +68,6 @@ data <- merge(data,d,by=("espece"),all.x = TRUE)
 setDT(data)
 data[,annee_hiver_txt:=ifelse(annee_hiver==annee_hiver_max, paste0("1.",annee_hiver),as.character(annee_hiver))]
 setDF(data)
-
 
 #Création de l'année de référence pour chaque espèce et par secteur : 
 d_sect <- aggregate(data, abondance > 0 ~ annee_hiver + espece + secteur, sum)
@@ -73,13 +88,9 @@ setDT(data)
 data[,annee_hiver_txt:=ifelse(annee_hiver==annee_hiver_max, paste0("1.",annee_hiver),as.character(annee_hiver))]
 setDF(data)
 
-colnames(data) [2] <- "espece"
-
-
-#  protocole :
-data$protocole[data$protocole=="terrestre ?"] <- "terrestre"
-
-    ########### Analyses statistiques #########
+colnames(data) [3] <- "espece"
+    
+########### Analyses statistiques #########
 
 ### Boucle initiale (exemple) ####
 
@@ -137,14 +148,34 @@ for (isp in 1:length(vecsp)) {
     } } }
 
 
-#Enlever les espèces pour qui ça fonctionne pas : 
-data <- subset(data, !(espece=="becasseau_de_temminck"|espece=="becassine_sourde"
-                       |espece=="canard_mandarin"|espece=="chevalier_stagnatile"
-                       |espece=="cygne_chanteur"|espece=="cygne_de_bewick"|espece=="harle_bievre"|espece=="cygne_noir"|espece=="eider_a_duvet"
-                       |espece=="erismature_rousse"))
 
+class(data$annee_hiver) # -> Integer 
+class(data$annee_hiver_txt) # Character 
 
+#Enlever les espèces pour qui ça ne fonctionne pas : 
+#data <- subset(data, !(espece == "becasseau_sanderling"|espece=="barge_rousse"|espece=="gravelot_a_collier_interrompu"))
+                       #|espece=="becasseau_maubeche"|espece=="canard_chipeau"
+                       #|espece=="chevalier_gambette"|espece=="chevalier_sylvain"
+                       #|espece=="combattant_varie"|espece=="courlis_corlieu"|espece=="cygne_chanteur"
+                       #|espece=="fuligule_milouinan"|espece=="fuligule_morillon"
+                       #|espece=="gravelot_a_collier_interrompu"|espece=="harle_huppe"|espece=="huitrier_pie"
+                       #|espece=="oie_rieuse"|espece=="petit_gravelot"|espece=="sarcelle_d_ete"))
 
+rm(list = c("crit","tri","d")) 
+unique(data$secteur)
+data <- subset(data, !(espece=="barge_rousse"|espece=="bernache_cravant"))
+               
+               #|espece=="cygne_chanteur"|espece=="fuligule_milouinan"|espece=="sarcelle_d_ete"
+                       #|espece=="tadorne_casarca"|espece=="barge_rousse"|espece=="becasseau_sanderling"
+                       #|espece=="canard_souchet"|espece=="bernache_cravant"|espece=="gravelot_a_collier_interrompu"))
+
+data <- subset(data, !(secteur=="golfe_du_morbihan"|secteur=="moeze_oleron"|secteur=="lac_du_der"))
+data <- subset(data, saison == "hivernage")
+data <- subset(data, !(espece=="becasseau_minute"|espece =="cygne_chanteur"|espece== "fuligule_milouinan"|espece=="eider_a_duvet"
+                       |espece=="fuligule_milouin"|espece=="fuligule_morillon"|espece=="grand_gravelot"|espece=="gravelot_a_collier_interrompu"
+                       |espece=="harle_huppe"|espece=="oie_cendree"|espece=="oie_rieuse"|espece=="petit_gravelot"))
+data <- subset(data, secteur == "estuaire")
+unique(data$espece)
 ####### Analyse des tendances générales sur le long terme  #########
 # Obtenir une liste unique des espèces dans la colonne 'espece' du dataframe 'data'
 vecsp <- unique(data$espece)
@@ -158,10 +189,12 @@ for (isp in 1:length(vecsp)) {
   cat("\n\n (", isp, "/", length(vecsp), ") ", sp)
   
   #Modèle 1 (année en facteur)
-  md1 <- glmmTMB(abondance~annee_hiver_txt + (1|secteur/site) + (1|obs) + (1|protocole) + (1|mois_hiver_txt), data = subset(data, espece == "becasseau_sanderling" & site_retenu=="oui"), family = "nbinom2")
+  md1 <- glmmTMB(abondance~annee_hiver_txt + (1|secteur/site) + (1|mois_hiver_txt) , data = subset(data, espece == sp & site_retenu=="oui"), family = "nbinom2")
   summary(md1)
+  
   #Générer les prédictions pour le modèle 1 : 
-  pred1 <- as.data.frame(ggpredict(md1, terms = c("annee_hiver_txt")))
+  pred1 <- ggpredict(md1, terms = c("annee_hiver_txt"))
+  pred1 <- as.data.frame(pred1)
   setDT(pred1)
   pred1[, group := "var"]
   
@@ -174,8 +207,7 @@ for (isp in 1:length(vecsp)) {
     str_replace(fixed("1."), "")
   
   #Modèle 2 : année en numérique (la tendance)
-  
-  md2 <- glmmTMB(abondance~annee_hiver + (1|secteur/site) + (1|obs) + (1|protocole) + (1|annee_hiver_txt/mois_hiver_txt),data = subset(data, espece == "canard_siffleur" & site_retenu=="oui"), family = "nbinom2")
+  md2 <- glmmTMB(abondance~annee_hiver + (1|secteur/site) + (1|annee_hiver_txt/mois_hiver_txt) ,data = subset(data, espece == sp & site_retenu=="oui" ), family = "nbinom2")
   smd2 <- summary(md2)
   
   #Récupérer les estimates : 
@@ -187,25 +219,28 @@ for (isp in 1:length(vecsp)) {
   setDT(est_tot)
   
   #Calculer le nombre d'années dans les données 
-  data_now <- subset(data, espece=="canard_chipeau" & site_retenu=="oui")
+  data_now <- subset(data, espece== sp & site_retenu=="oui")
   nb_y <- max(data_now[, "annee_hiver"]) - min(data_now[, "annee_hiver"])  
   
   # Calculer les pourcentages de variation et les intervalles de confiance
   est_tot[, `:=`(var = "annee_hiver", nb_year = nb_y, pourcent = round(mean * nb_y * 100, 2), pourcent_inf = round(ICinf * nb_y * 100, 2), pourcent_sup = round(ICsup * nb_y * 100, 2))]
   
   # Générer des prédictions pour le deuxième modèle
+  #pred2 <- ggpredict(md2, terms = list(annee_hiver=seq(2004,2024,0.1)))
+  #pred2 <- as.data.frame(pred2)
+  
   pred2 <- as.data.frame(ggpredict(md2, terms = list(annee_hiver=seq(2004,2024,0.1))))
   setDT(pred2)
   pred2[, group := "trend"]
   
   tab_trend_raw <- as.data.frame(coef(summary(md2))$cond)
   trend_raw <- tab_trend_raw[2,1]
-  
+  std_raw <- tab_trend_raw[2,2]
   mean_year <- mean(data_now[,"annee_hiver"])
   sd_year <- sd(data_now[,"annee_hiver"])
   
   trend <- exp(trend_raw)
-  
+  std <- exp(std_raw)
   mdIC <- as.data.frame(confint(md2)[,1:2])
   colnames(mdIC) <- c("ICinf","ICsup")
   IC_inf_raw <- mdIC$ICinf[2]
@@ -213,7 +248,7 @@ for (isp in 1:length(vecsp)) {
   IC_inf <- exp(IC_inf_raw)
   IC_sup <- exp(IC_sup_raw)
   
-  tab_trend <- data.frame(nb_year = length(unique(data_now[,"annee_hiver_txt"])), first_year = min(data_now[,"annee_hiver"]), last_year = max(data_now[,"annee_hiver"]), trend, IC_inf ,IC_sup,p_val=tab_trend_raw[2,4])
+  tab_trend <- data.frame(nb_year = length(unique(data_now[,"annee_hiver_txt"])), first_year = min(data_now[,"annee_hiver"]), last_year = max(data_now[,"annee_hiver"]), trend, IC_inf ,IC_sup,p_val=tab_trend_raw[2,4], trend_raw,std,std_raw)
   setDT(tab_trend)
   
   #Ajouter les catégories EBCC de tendance : 
@@ -247,6 +282,7 @@ for (isp in 1:length(vecsp)) {
   colnames(pred)[1] <- "year"
   setDT(pred)
   pred[, `:=`(predicted = predicted/init, conf.low = conf.low/init, conf.high = conf.high/init)]
+ 
   
   #Vérification des modèles avec DHARMa : 
     #Modèle 1 : 
@@ -258,11 +294,12 @@ for (isp in 1:length(vecsp)) {
   #verif2 <- simulateResiduals(fittedModel = md2, plot = F)
   #testZeroInflation(verif2)
   #plot(verif2)
- # jpeg(filename = paste(sp, "verif2_jpeg", sep = "."), width = 15, height =12, units="cm", quality=75, res=300)
+ #jpeg(filename = paste(sp, "verif2_jpeg", sep = "."), width = 15, height =12, units="cm", quality=75, res=300)
 
   # Définir le titre et le sous-titre du graphique
-  title <- paste(sp, pval, sep=" ")
-
+  title <- sp
+  subtitle <- pval
+  
   # Définir les couleurs pour les graphiques
   col_river <- "#2b8cbe"
   col_trend1 <- "#e6550d"
@@ -273,16 +310,17 @@ for (isp in 1:length(vecsp)) {
   # Créer le graphique avec ggplot2
   gg <- ggplot(pred, aes(x = year, y = predicted, colour = group, ymin = conf.low, ymax = conf.high, fill = group, group = group))
   gg <- gg + geom_ribbon(alpha = 0.2, colour = NA) + geom_point(size = 0.8) + geom_line(size = 1.5)
-  gg <- gg + labs(x = "Année hiver", y = "Variation abondance", size = 12)
+  gg <- gg + labs(x = "Année hiver", y = "Variation abondance", title = title, size = 16, subtitle = subtitle)
   gg <- gg + scale_colour_manual(values = vec_col) + scale_fill_manual(values = vec_fill)
   gg <- gg + theme_bw() + theme(legend.title = element_text(size = 14), legend.text = element_text(size = 12),plot.caption = element_text(color = "purple", face = "bold", size = 14),
                                axis.title = element_text(size = 14, face = "bold"),
-                               axis.text = element_text(size = 14, face = "bold"))
-  # Afficher le graphique : 
-  print(gg)
+                               axis.text = element_text(size = 14, face = "bold")) 
+  
+  #Afficher le graphique : 
+  #print(gg)
 
   #Enregistrer le graphique : 
-  ggsave(filename = paste(sp,"png", sep= "."), path = "out/figure", width = 10, height = 10) 
+  ggsave(filename = paste(sp,"png", sep= "."), path = "out/modele_finaux_estuaire", width = 10, height = 10) 
   
   #Combiner les tableaux de predictions + tendances pour les espèces : 
   setDT(pred)
@@ -299,8 +337,8 @@ for (isp in 1:length(vecsp)) {
     data_trend <- rbind(data_trend, tab_trend, fill = TRUE)
   } } 
 
-
-write.csv2(pred,"Data/prediction_chipeau.csv", fileEncoding = "UTF-8")
+  #Enregistrer le tableau : 
+write.csv2(data_trend,"Data/prediction_espece_modele_final.csv", fileEncoding = "UTF-8")
 
 ####### Analyses des tendances sur le long terme en fonction des secteurs ##################  
   # ATTENTION !!! Bien prendre en compte l'année de référence par espèce et secteurs 
@@ -445,7 +483,7 @@ title <- sp
            
  gg <- ggplot(subset(data_pred, sp==sp), aes(x = year, y = predicted, group = secteur, colour = secteur))
  gg <- gg + geom_line(data = subset(data_pred,group=="trend"), aes(x = year, y = predicted, color = secteur), size = 1) 
- gg <- gg + labs(x = "Années hiver",y = "Variation d'abondance", title = title, size = 12)
+ gg <- gg + labs(x = "Années hiver",y = "Variation d'abondance", title = title, size = 16)
  gg <- gg + theme_bw() + theme(legend.title = element_text(size = 14), legend.text = element_text(size = 12),plot.caption = element_text(color = "purple", face = "bold", size = 14),
                                axis.title = element_text(size = 14, face = "bold"),
                                axis.text = element_text(size = 14, face = "bold"))
@@ -471,419 +509,157 @@ if (!out_init2) {
 write.csv2(pred,"Data/predictionavo2", fileEncoding = "UTF-8")
 
 
+# Analyse par période pour comparer entre les secteurs :######### 
 
+#Aggrégation par secteur/mois/année/sp/max et nb de sortie :
+  #Ajouter un "site" pour le golfe du Morbihan 
+    data$site[data$secteur=="golfe_du_morbihan"] <- "gof"
+    data$site_retenu[data$secteur=="golfe_du_morbihan"] <- "oui"
+    data$date[data$secteur=="golfe_du_morbihan"] <- "2015-01-15"
+  
+    #Extraire la valeur la plus proche du 15
+  data <- data %>%
+    group_by(annee, mois) %>%
+    mutate(mid_month = as.Date(paste(annee, mois, 15, sep = "-")))
+  
+  # Calculer la différence en jours avec le milieu du mois
+  data <- data %>%
+    mutate(diff_mid = abs(as.numeric(difftime(date, mid_month, units = "days"))))
+  
+  # Sélectionner l'inventaire le plus proche du milieu du mois pour chaque mois
+  tab <- data %>%
+    group_by(annee, mois, espece, site, secteur) %>%
+    filter(diff_mid == min(diff_mid))
+    
+    verif <- tab %>% 
+      group_by(annee, mois, espece, site, secteur) %>% 
+      count(mois_hiver_txt)
+  
+    rm(list = c('crit','data','tri'))
+    
+    #Somme des abondances pour agréger au secteur : 
+    tab <- subset(tab, site_retenu=="oui")
+    data_s <- aggregate(tab, abondance ~ espece + secteur + mois_hiver_txt + annee_hiver_txt, sum)
+    
+    #Rajouter la période + le macro secteur 
+    data_s$annee_hiver <- as.numeric(data_s$annee_hiver_txt)
+    data_s$mois_hiver <- as.numeric(data_s$mois_hiver_txt)
+    
+    data_s$periode <- with(data_s, ifelse(annee_hiver >= 2004 & annee_hiver < 2011, "P1",
+                                    ifelse(annee_hiver >= 2011 & annee_hiver <2017, "P2","P3")))
+    
+    #Ajouter le macro_secteur : 
+    data_s$macro_secteur <- with(data_s, ifelse(secteur=="camargue","est",
+                                          ifelse(secteur=="reserve_du_rhin","est",
+                                          ifelse(secteur=="lac_du_der","est","ouest"))))
+    
+   data_s$saison <- with(data_s, ifelse(mois_hiver >= 1 & mois_hiver < 10, "hivernage","reproduction"))
+    
+    #Enregistrer jeu de données 
+    write.csv2(data_s, "Data/data_15.csv")
+    data <- read.csv2("Data/data_15.csv") 
+  
+    #Obtenir la liste d'espèces :
+    vecsp <- unique(data$espece)
 
+  #Initier la sortie du modèle 
+  out_init <- FALSE
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-#Essaie de faire une boucle ? 
-#Le faire avec l'année en facteur : (penser à faire la transformation en exponentielle)
-
-out_init <- FALSE
-vecsp <- unique(d_out_txt$code)
+#Faire une boucle sur chaque espèce : 
 for (isp in 1:length(vecsp)) {
-  sp <- vecsp[isp]  # Sélectionner l'espèce courante
-  cat("\n\n (", isp, "/", length(vecsp), ") ", sp)  # Afficher l'état de la boucle
-
-  data_ref <- subset(d_out_txt, code == sp)
-  #data_ref$year <- sort(data_ref$year)
-  ref <- data_ref$predicted[1]
-  d_pred <- data.frame(annee = data_ref$year, abondance_var =  data_ref$predicted / ref, ICinf =  data_ref$conf.low/ref , ICsup =  data_ref$conf.high/ref)
-
-  setDT(d_pred)
+  sp <- vecsp[isp]
+  cat("\n\n(",isp, "/", length(vecsp),")",sp)
   
-  # Ajouter des colonnes supplémentaires
-  d_pred[, `:=`(code = sp)]  
+  #Modèle 1 : Evolution des abondances en fonction de la période temporelle : 
+  md1 <- glmmTMB(abondance ~ periode*macro_secteur + (1|annee_hiver_txt/mois_hiver_txt) + (1|secteur), data = subset(data_s, espece == sp & saison == "hivernage"), family = "nbinom2")
+  summary(md1)
   
-  if (!out_init) {
-    d_tp_txt <- d_pred
-    out_init <- TRUE
-  } else {
-    d_tp_txt <- rbind(d_tp_txt, d_pred, fill = TRUE)
-  } } 
+  pred1 <- as.data.frame(ggpredict(md1, terms = c("periode","macro_secteur")))
 
-#Pour l'année en facteur : 
-write.csv2(d_tp_txt,"Data/d_tp_txt.csv")
-
-sort(unique(d_tp_txt$annee))
-d_tp_txt$annee <- as.character(d_tp_txt$annee)
-
-
-
-
-
-
-#Représentation graphique : 
-  # Une boucle ? 
-
-out_init <- FALSE
-vecsp <- unique(d_tp_txt$code)
-for (isp in 1:length(vecsp)) {
-  sp <- vecsp[isp]  # Sélectionner l'espèce courante
-  cat("\n\n (", isp, "/", length(vecsp), ") ", sp)
-
+  #Ajouter la colonne espèce au tableau des predictions :
+  pred1$sp <- sp 
+  colnames(pred1) <- gsub("group","macro_secteur",colnames(pred1))
   
-gg <- ggplot(data = subset(d_tp_txt, code == sp), mapping=aes(x=annee, y=abondance_var))
-gg <- gg + geom_line()
-gg <- gg + geom_pointrange(aes(ymin = ICinf, ymax=ICsup)) + geom_hline(yintercept = 1, color = "red")
-gg <- gg + labs(y="Variation d'abondance",x="Années", title = sp) 
-
-
-ggsave(filename = paste(sp,"png", sep= "."), path = "out/Variation_annee_corr", width = 10, height = 10) 
-
-#jpeg(paste(names(setosa)[i], "jpeg", sep = "."), width = 15, height =12, units="cm", quality=75, res=300)
-
-print(gg)
-
-}
-
-
-
-
-
-
-
-
-
+  #Diviser par le nb max d'abondance :
+  init <- pred1 %>% group_by(macro_secteur)%>% summarise(init = max(predicted))
+  pred <- merge(pred1,init, by = "macro_secteur")
+  colnames(pred)[7] <-"init"
+  colnames(pred) <- gsub("x","periode",colnames(pred1))
   
-
- 
-    
-    
-    
-
-
-
-
-
-
-vecsp <- unique(data$espece)
-# Initialiser la variable de sortie
-out_init <- FALSE
-
-# Boucle sur chaque espèce
-for (isp in 1:length(vecsp)) {
-  sp <- vecsp[isp]  # Sélectionner l'espèce courante
-  cat("\n\n (", isp, "/", length(vecsp), ") ", sp)
-
-  md <- glmmTMB(abondance ~ annee_hiver_txt + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt) + (1|protocole), data = subset(data, espece == sp & annee_hiver > 2003 & site_retenu=="oui"), family = "nbinom2")
-ggmd <- ggpredict(md, terms = c("annee_hiver_txt"))
-ref <- ggmd$predicted[1] 
-d_pred <- data.frame(annee = ggmd$x,abondance_var = ggmd$predicted / ref)
-colnames(d_pred)[2]<- "predicted"
-d_pred$group <- "var"
-
-#année numérique : 
-md2 <- glmmTMB(abondance ~ annee_hiver + (1|secteur/site) + (1|obs) + (1|mois_hiver_txt) + (1|protocole), data = subset(data, espece == sp & annee_hiver > 2003 & site_retenu=="oui"), family = "nbinom2")
-summary(md2)
-
-ggpredic <- ggpredict(md2, terms = c("annee_hiver"))
-colnames(ggpredic)[1] <- "annee"
-ggpredic$group <- "trend"
-ggpredic <- ggpredic[,-c(3:5)]
-
-tab_trend_raw <- as.data.frame(coef(summary(md2))$cond)
-trend_raw <-tab_trend_raw[2,1]
-
-trend <- trend_raw
-mdIC <- as.data.frame(confint(md2)[,1:2])
-colnames(mdIC) <- c("ICinf","ICsup") 
-#IC_inf_raw <- mdIC$ICinf[2]
-#IC_sup_raw <- mdIC$ICsup[2]
-#IC_inf <- IC_inf_raw
-#IC_sup <- IC_sup_raw
-intercept_raw <- tab_trend_raw[1,1]
-intercept <- intercept_raw
-tab_trend <- data.frame(trend,p_val=tab_trend_raw[2,4],intercept = intercept)
-pval <- tab_trend[1,4]
-pval <- paste("pvalue",pval,sep = "=")
-d_pred$annee <- as.character(d_pred$annee)
-d_pred$annee <- d_pred$annee |> 
-  str_replace(fixed("1."), "")
-
-
-pred <- rbind(ggpredic,d_pred)
-setDT(pred)
-pred[, annee := as.numeric(as.character(annee))]
-
-
- } 
-
-
-
-############# Analyse avec le secteur #############
-
-
-
-
-
-
-
-
-## 1. Secteur x année (étape une par une) : ######
-data$annee_hiver_txt <- as.factor(data$annee_hiver_txt)
-unique(sort(data$espece))
-data1 <- subset(data, espece == "petit_gravelot")
-data1 <- subset(data1, !(secteur=="marais_d_orx"))
-
-vecsct <- unique(data1$secteur)
-# Initialiser la variable de sortie
-out_init <- FALSE
-
-# Boucle sur chaque espèce
-for (isp in 1:length(vecsct)) {
-  sct <- vecsct[isp]  # Sélectionner l'espèce courante
-  cat("\n\n (", isp, "/", length(vecsct), ") ", sct)
-
-#Premier modèle : 
-
-md1 <- glmmTMB(abondance~annee_hiver_txt + (1|site) + (1|mois_hiver_txt) + (1|obs), data = subset(data1, secteur == sct & site_retenu == "oui"), family = "nbinom2")
-summary(md1)
-
-pred1 <- as.data.frame(ggpredict(md1, terms = c("annee_hiver_txt")))
-setDT(pred1)
-setnames(pred1,"group","secteur")
-pred1$secteur <- sct
-pred1$group <- "var"
-
-#
-init <- pred1 |> filter(x |> str_detect(fixed("1.")))
-init <- init$predicted
-
-#Second modèle : 
-md2 <- glmmTMB(abondance~annee_hiver + (1|site)  + (1|mois_hiver_txt) + (1|obs) , data = subset(data1, secteur == sct & site_retenu == "oui"), family = "nbinom2")
-summary(md2)                       
-                       
-pred2 <- as.data.frame(ggpredict(md2, terms = c("annee_hiver")))                                                          
-setDT(pred2)
-setnames(pred2,"group","secteur")
-pred2$secteur <- sct
-pred2$group <- "trend"
-                                  
-smd2 <- summary(md2)
-est2 <- as.data.frame(smd2$coefficients$cond)[2,]
-est2$secteur <- sct
-
-#
-pred1$x <- pred1$x |> 
-  str_replace(fixed("1."), "")
-
-#Combiner les deux prédictions : 
-pred <- rbind(pred1, pred2, fill = TRUE)
-pred[, x := as.numeric(as.character(x))]
-setDT(pred)
-
-setnames(pred, "x", "year")
-pred[, `:=`(predicted = predicted/init)]
-
-
-if (!out_init) {
-  pred_all <- pred
-  est_tot <- est2
-  out_init <- TRUE
-} else {
-  pred_all <- rbind(pred_all, pred, fill = TRUE)
-  est_tot <- rbind(est_tot, est2)
-} } 
-
-write.csv2(est_tot,"Data/estimate_petit_gravelot.csv")
-
-
-#titre : 
-title <- "canard mandarin"
-
-
-# Créer le graphique avec ggplot2 : 
-
-gg <- ggplot(pred_all, aes(x = year, y = predicted, group = secteur))
-gg <- gg + geom_line(data = subset(pred_all,group=="trend"), aes(x = year, y = predicted, color = secteur), size = 1) 
-gg <- gg + labs(x = "année",y = "variation d'abondance", title = title, size = 12)
-gg <- gg + theme_bw() + theme(legend.title = element_text(size = 14), legend.text = element_text(size = 12),plot.caption = element_text(color = "purple", face = "bold", size = 14),
-                              axis.title = element_text(size = 14, face = "bold"),
-                              axis.text = element_text(size = 14, face = "bold"))
-                              
-
-print(gg)
-
-ggsave(filename = paste("canard_mandarin","png", sep= "."), path = "out/figure_secteur", width = 10, height = 7) 
-
-
-#Comparaison tendances avec celles des autres zh : 
-#Retirer les espèces qui ne sont pas présentes sur l'estuaire de la Loire : 
-data <- subset(data, !(espece =="becasseau_de_temminck"|espece=="becasseau_violet"
-                       |espece=="chevalier_stagnatile"|espece=="cygne_de_bewick"
-                       |espece=="erismature_rousse"|espece=="garrot_a_oeil_d_or"
-                       |espece=="harle_bievre"|espece=="macreuse_brune"
-                       |espece=="nette_rousse"|espece=="oie_a_bec_court"
-                       |espece=="oie_des_moissons"|espece=="ouette_d_egytpe"
-                       |espece=="phalarope_a_bec_etroit"|espece=="phalarope_a_bec_court"
-                       |espece=="phalarope_de_wilson"|espece=="pluvier_guignard"
-                       |espece=="canard_mandarin"|espece=="becassine_sourde"))
-
-#Transformer la variable estuaire pour qu'elle apparaisse en premier :
-data$secteur[data$secteur=="estuaire"] <- "aa_estuaire"
-vecsp <- unique(data$espece)
-out_init <- FALSE
-# Boucle sur chaque espèce
-for (isp in 1:length(vecsp)) {
-  sp <- vecsp[isp]  # Sélectionner l'espèce courante
-  cat("\n\n (", isp, "/", length(vecsp), ") ", sp)
+  #Divison par la valeur de référence : 
+  pred$predicted <- pred$predicted/pred$init
+  pred$conf.low <- pred$conf.low/pred$init
+  pred$conf.high <- pred$conf.high/pred$init
   
-md <- glmmTMB(abondance~secteur*scale(annee_hiver) + (1|site) + (1|protocole) + (1|mois_hiver_txt) + (1|obs), data = subset(data, espece == "avocette_elegante" & site_retenu=="oui"), family = "nbinom2")
-summary(md)
-
-#Récupérer les coefficients : 
-smd <- summary(md)
-est <- as.data.frame(smd$coefficients$cond)
-colnames(est)[4] <- "pvalue"
-est$signi <- ifelse(est$pvalue < 0.001, "***", ifelse(est$pvalue < 0.01, "**",
-                                                  ifelse(est$pvalue<0.05,"*","NS"))
-)
-est$code <- sp
-
-#Enregistrer le tableau : 
-
-if (!out_init) {
-  tableau_sum <- est
-  out_init <- TRUE
-} else {
-  tableau_sum <- rbind(est, tableau_sum, fill = TRUE)
-}
-}
-
-
-
-vecsct <- unique(data$secteur)
-out_init <- FALSE
-
-#Boucle sur chaque secteurs : 
-for (isp in 1 : length(vecsct)) {
-sct <- vecsct[isp]
-    
-#data <- subset(data, secteur == "estuaire")
-#data$annee_hiver_txt <- as.factor(data$annee_hiver_txt)
-
-vecsp <- unique(data$espece)
-
-# Boucle sur chaque espèce
-for (isp in 1:length(vecsp)) {
-  sp <- vecsp[isp]  # Sélectionner l'espèce courante
-  cat("\n\n (", isp, "/", length(vecsp), ") ", sp)
-
-#Modèle 1 : 
-md1 <- glmmTMB(abondance ~ annee_hiver_txt + (1|site) + (1|obs) + (1|mois_hiver_txt) + (1|protocole), data = subset(data, espece == sp & site_retenu=="oui" & secteur == sct), family = "nbinom2")
-summary(md1)
-
-#Modèle 2 : 
-md2 <- glmmTMB(abondance ~ scale(annee_hiver) + (1|site) + (1|obs) + (1|mois_hiver_txt) + (1|protocole), data = subset(data, espece == sp & site_retenu== "oui" & secteur == sct), family = "nbinom2")
-summary(md2)
-
-#Prediction avec le 1er modèle : 
-pred1 <- as.data.frame(ggpredict(md1, terms = c("annee_hiver_txt")))
-setDT(pred1)
-setnames(pred1,"group","annee_hiver")
-pred1[, group := "var"]
-#Créer la valeur de référence : 
-init <- pred1$predicted[1]
-init <- round(init, digits = 7)
-
-#Enlever le 1. 
-pred1$x <- pred1$x |> 
-  str_replace(fixed("1."), "")
-
-#Prédiction avec le second modèle : 
-pred2 <- as.data.frame(ggpredict(md2, terms = list(annee_hiver = seq(min(data$annee_hiver), max(data$annee_hiver), 0.1))))
-setDT(pred2)
-pred2[, group := "trend"]
-smd2 <- summary(md2)
-est2 <- as.data.frame(smd2$coefficients$cond)[2,]
-
-#Les intervalles de confiance : 
-est_tot <- as.data.frame(confint(md2)) [2,]
-colnames(est_tot) <- c("ICinf", "ICsup", "mean")
-setDT(est_tot)
-
-# Calculer le nombre d'années dans les données
-data_y <- subset(data, espece == sp & site_retenu == "oui" & secteur == sct)
-
-nb_y <- max(data_y[, "annee_hiver"]) - min(data_y[, "annee_hiver"])
-
-# Calculer les pourcentages de variation et les intervalles de confiance
-est_tot[, `:=`(var = "year", nb_year = nb_y, pourcent = round(mean * nb_y * 100, 2), pourcent_inf = round(ICinf * nb_y * 100, 2), pourcent_sup = round(ICsup * nb_y * 100, 2))]
-
-#Combiner les deux prédictions : 
-pred <- rbind(pred1, pred2, fill = TRUE)
-pred[, x := as.numeric(as.character(x))]
-setDT(pred)
-pred[, `:=`(code = sp, secteur = sct)]
-
-#Renommer la colonne 'x' en 'year' et normaliser les prédictions
-setnames(pred, "x", "year")
-pred[, `:=`(predicted = predicted/init, conf.low = conf.low/init, conf.high = conf.high/init)]
-
-#pvalue 
-pval <- est2[2,4]
-pvalue <- paste("pvalue", pval, sep = " = ")
-
-# Définir le titre et le sous-titre du graphique
-title <- paste(sct,sp, pvalue, sep = " ")
-sub <- paste0(ifelse(est_tot[var == "year", pourcent] > 0, "+ ", "- "), abs(est_tot[var == "year", pourcent]), "%  [", est_tot[var == "year", pourcent_inf], ", ", est_tot[var == "year", pourcent_sup], "] sur ", est_tot[var == "year", nb_year], " ans")
-
-# Définir les couleurs pour les graphiques
-col_river <- "#2b8cbe"
-col_trend1 <- "#e6550d"
-col_trend2 <- "#fdae6b"
-vec_col <- c(col_river, col_trend1)
-vec_fill <- c(col_river, col_trend2)
-
-# Créer le graphique avec ggplot2
-gg <- ggplot(pred, aes(x = year, y = predicted, colour = group, ymin = conf.low, ymax = conf.high, fill = group, group = group))
-gg <- gg + geom_ribbon(alpha = 0.2, colour = NA) + geom_point(size = 0.8) + geom_line(size = 1.5)
-gg <- gg + labs(x = "", y = "", title = title, subtitle = sub)
-gg <- gg + scale_colour_manual(values = vec_col) + scale_fill_manual(values = vec_fill)
-gg <- gg + theme_bw() +
-  theme(plot.caption = element_text(color = "purple", face = "bold", size = 14),
-        axis.title = element_text(size = 14, face = "bold"),
-        axis.text = element_text(size = 14, face = "bold"), legend.position = "none") + guides(fill = "none")
-
-# Afficher le graphique
-print(gg)
-
-# Enregistrer le graphique en format PNG et SVG
-
-ggsave(filename = paste(sp,"png", sep= "."), path = "out/figure_secteur", width = 10, height = 10) 
-
-
-#Enregistrer le tableau avec les tendances : 
-
-tab <- as.data.frame(coef(summary(md2))$cond)
-tab$code <- sp
-tab$secteur <- sct
-if (!out_init) {
-  tab_1 <- tab
-  out_init <- TRUE
-} else {
-  tab_all <- rbind(tab, tab_1, fill = TRUE)
-}
-}}
-
-
-summary(md2)
-    
+  title <- sp 
   
-    
-   
-    
-           
- 
+  gg <- ggplot(pred, mapping = aes(x = periode, y=predicted, colour = macro_secteur))
+  gg <- gg + geom_point(position = position_jitterdodge(jitter.width = 0, jitter.height = 0)) 
+  gg <- gg + geom_pointrange(aes(ymin = conf.low, ymax = conf.high), position = position_jitterdodge(jitter.width = 0, jitter.height = 0))
+  gg <- gg + scale_colour_manual(values = c("est" = "springgreen4",
+                                            "ouest" = "red2"))
+  gg <- gg + labs(x = "Période", y = "Abondance prédite", title = title, size = 16)
+  gg <- gg + theme_bw() + theme(legend.title = element_text(size = 14), legend.text = element_text(size = 12),plot.caption = element_text(color = "purple", face = "bold", size = 14),
+                                axis.title = element_text(size = 14, face = "bold"),
+                                axis.text = element_text(size = 14, face = "bold")) 
+  
+  
+  print(gg)
+  
+  ggsave(filename = paste(sp,"png", sep= "."), path = "out/periodeXmacro_secteur", width = 10, height = 10) 
+  
+  #Second modèle 
+  md2 <- glmmTMB(abondance ~ periode*secteur + (1|annee_hiver_txt/mois_hiver_txt), data = subset(data_s, espece == sp & saison == "hivernage"), family = "nbinom2")
+  summary(md2)
+  #Faire des prédictions :
+  pred2 <- as.data.frame(ggpredict(md2, terms = c("secteur","periode")))
+  colnames(pred2) <- gsub("x","secteur",colnames(pred2))
+  
+  colnames(pred2) <- gsub("group","periode",colnames(pred2))
+  
+  #Diviser par le nb max d'abondance :
+  init <- pred2 %>% group_by(secteur)%>% summarise(init = max(predicted))
+  pred <- merge(pred2,init, by = "secteur")
+  colnames(pred_bis)[7] <-"init"
+  pred$sp <- sp
+  #Divison par la valeur de référence : 
+  pred$predicted <- pred$predicted/pred$init
+  pred$conf.low <- pred$conf.low/pred$init
+  pred$conf.high <- pred$conf.high/pred$init
+  
+  gg <- ggplot(pred, mapping = aes(x = periode, y=predicted, colour = secteur))
+  gg <- gg + geom_point(position = position_jitterdodge(jitter.width = 0, jitter.height = 0)) 
+  gg <- gg + geom_pointrange(aes(ymin = conf.low, ymax = conf.high), position = position_jitterdodge(jitter.width = 0, jitter.height = 0))
+  gg <- gg + scale_colour_manual(values = c("arcachon" = "olivedrab2",
+                                            "baie_aiguillon" = "darkred",
+                                            "baie_de_saint_brieuc" = "darkgoldenrod2",
+                                            "camargue" = "lightpink2",
+                                            "cotentin" = "royalblue4",
+                                            "estuaire" = "deepskyblue2",
+                                            "golfe_du_morbihan"="turquoise3",
+                                            "lac_du_der"="forestgreen",
+                                            "moeze_oleron"="firebrick1",
+                                            "reserve_du_rhin"="orangered",
+                                            "marais_d_orx"="violetred"))
+  gg <- gg + labs(x = "Période", y = "Abondance prédite", title = title, size = 16)
+  gg <- gg + theme_bw() + theme(legend.title = element_text(size = 14), legend.text = element_text(size = 12),plot.caption = element_text(color = "purple", face = "bold", size = 14),
+                                axis.title = element_text(size = 14, face = "bold"),
+                                axis.text = element_text(size = 14, face = "bold")) 
+  
+  
+  print(gg)
+  ggsave(filename = paste(sp,"png", sep= "."), path = "out/periodeXsecteur", width = 10, height = 10) 
+  
+  
+  }
+
+
+
+
+
+
+
+
+
+
+
